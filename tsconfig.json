@@ -25,6 +25,9 @@
     "paths": {
       "@/*": [
         "./*"
+      ],
+      "pdf-parse": [
+        "./lib/pdf-parse"
       ]
     }
   },
