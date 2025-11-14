@@ -4,19 +4,20 @@ import { firestore } from "./firebase"
 import { PROVIDERS } from "./providers"
 
 export async function ensureProvidersSeeded() {
-  if (!firestore) {
+  const db = firestore
+  if (!db) {
     console.warn("Firestore is not available. Skipping provider seeding check.")
     return
   }
 
   try {
-    const snapshot = await getDocs(query(collection(firestore, "providers"), limit(1)))
+    const snapshot = await getDocs(query(collection(db, "providers"), limit(1)))
     if (!snapshot.empty) {
       return
     }
 
     await Promise.all(
-      PROVIDERS.map((provider) => setDoc(doc(firestore, "providers", provider.id), provider)),
+      PROVIDERS.map((provider) => setDoc(doc(db, "providers", provider.id), provider)),
     )
     console.log("Providers collection was empty. Seeded default providers.")
   } catch (error) {

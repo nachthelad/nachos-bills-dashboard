@@ -41,19 +41,31 @@ export async function GET(request: NextRequest) {
       return null
     }
 
-    const summaries = snapshot.docs
+    type HoaSummaryResponse = Record<string, unknown> & {
+      id: string
+      periodKey: string | null
+      createdAt: string | null
+      updatedAt: string | null
+    }
+
+    const summaries: HoaSummaryResponse[] = snapshot.docs
       .map((doc) => {
-        const data = doc.data()
+        const data = doc.data() as Record<string, unknown>
+        const periodKey = typeof data.periodKey === "string" ? data.periodKey : null
+
         return {
           id: doc.id,
           ...data,
+          periodKey,
           createdAt: toIsoString(data.createdAt),
           updatedAt: toIsoString(data.updatedAt),
         }
       })
       .sort((a, b) => {
-        if (!a.periodKey || !b.periodKey) return 0
-        return b.periodKey.localeCompare(a.periodKey)
+        const aKey = typeof a.periodKey === "string" ? a.periodKey : null
+        const bKey = typeof b.periodKey === "string" ? b.periodKey : null
+        if (!aKey || !bKey) return 0
+        return bKey.localeCompare(aKey)
       })
 
     return NextResponse.json({ summaries })

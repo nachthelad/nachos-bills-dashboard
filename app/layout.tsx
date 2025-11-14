@@ -9,7 +9,7 @@ const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Nacho's Bills Dashboard",
+  title: "Bills Dashboard",
   description: "Manage your recurring bills with ease",
   generator: "nachthelad.com.ar",
   icons: {

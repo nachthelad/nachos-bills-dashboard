@@ -131,22 +131,29 @@ export default function UploadPage() {
       // Create document record via server
       const docId = await createDocumentViaApi(storageUrl)
 
-      // Trigger parsing (call API route) - best effort
-      const parseResponse = await fetch("/api/parse", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ documentId: docId }),
-      })
-
-      if (!parseResponse.ok) {
-        const data = await parseResponse.json().catch(() => ({}))
-        console.warn("Parser service unavailable:", data.error)
-      }
-
+      // Redirect immediately so the UI doesn't wait for parsing
       router.push("/documents")
+
+      // Trigger parsing (call API route) - fire and forget
+      void (async () => {
+        try {
+          const parseResponse = await fetch("/api/parse", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ documentId: docId }),
+          })
+
+          if (!parseResponse.ok) {
+            const data = await parseResponse.json().catch(() => ({}))
+            console.warn("Parser service unavailable:", data.error)
+          }
+        } catch (parseError) {
+          console.warn("Parser request failed:", parseError)
+        }
+      })()
     } catch (err) {
       console.error("Upload error:", err)
       setError(err instanceof Error ? err.message : "Upload failed")

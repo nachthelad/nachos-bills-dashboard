@@ -1,32 +1,32 @@
-"use client"
+"use client";
 
-import { useAuth } from "@/lib/auth-context"
-import { useParams, useRouter } from "next/navigation"
-import { useCallback, useEffect, useState } from "react"
-import type { BillDocument } from "@/lib/firestore-helpers"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import Link from "next/link"
-import { ChevronLeft, Trash2 } from "lucide-react"
+import { useAuth } from "@/lib/auth-context";
+import { useParams, useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
+import type { BillDocument } from "@/lib/firestore-helpers";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
+import { ChevronLeft, Trash2 } from "lucide-react";
 
 export default function DocumentDetailPage() {
-  const { user } = useAuth()
-  const params = useParams()
-  const router = useRouter()
-  const docId = params.id as string
+  const { user } = useAuth();
+  const params = useParams();
+  const router = useRouter();
+  const docId = params.id as string;
 
-  const [document, setDocument] = useState<BillDocument | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [editing, setEditing] = useState(false)
-  const [parseLoading, setParseLoading] = useState(false)
-  const [parseError, setParseError] = useState<string | null>(null)
-  const [actionError, setActionError] = useState<string | null>(null)
-  const [formData, setFormData] = useState<Partial<BillDocument>>({})
+  const [document, setDocument] = useState<BillDocument | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [parseLoading, setParseLoading] = useState(false);
+  const [parseError, setParseError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [formData, setFormData] = useState<Partial<BillDocument>>({});
 
   const mapResponseToDocument = (data: any): BillDocument => ({
     ...data,
     uploadedAt: data.uploadedAt ? new Date(data.uploadedAt) : new Date(),
-  })
+  });
 
   const applyFormState = (doc: BillDocument) => {
     setFormData({
@@ -34,57 +34,74 @@ export default function DocumentDetailPage() {
       amount: doc.amount ?? doc.totalAmount ?? undefined,
       dueDate: doc.dueDate ?? "",
       status: doc.status,
-    })
-  }
+    });
+  };
 
   const fetchDocument = useCallback(
     async (withLoader = true) => {
-      if (!user || !docId) return
-      if (withLoader) setLoading(true)
-      setActionError(null)
+      if (!user || !docId) return;
+      if (withLoader) setLoading(true);
+      setActionError(null);
 
       try {
-        const token = await user.getIdToken()
+        const token = await user.getIdToken();
         const response = await fetch(`/api/documents/${docId}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        })
+        });
 
         if (!response.ok) {
-          const data = await response.json().catch(() => ({}))
-          throw new Error(data.error ?? "Failed to load document")
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data.error ?? "Failed to load document");
         }
 
-        const data = await response.json()
-        const mapped = mapResponseToDocument(data)
-        setDocument(mapped)
-        applyFormState(mapped)
+        const data = await response.json();
+        const mapped = mapResponseToDocument(data);
+        setDocument(mapped);
+        applyFormState(mapped);
       } catch (error) {
-        console.error("Error fetching document:", error)
-        setActionError(error instanceof Error ? error.message : "Failed to fetch document")
+        console.error("Error fetching document:", error);
+        setActionError(
+          error instanceof Error ? error.message : "Failed to fetch document"
+        );
       } finally {
         if (withLoader) {
-          setLoading(false)
+          setLoading(false);
         }
       }
     },
-    [docId, user],
-  )
+    [docId, user]
+  );
 
   useEffect(() => {
-    fetchDocument()
-  }, [fetchDocument])
+    fetchDocument();
+  }, [fetchDocument]);
 
-  const refreshDocument = async () => {
-    await fetchDocument(false)
-  }
+  const refreshDocument = useCallback(async () => {
+    await fetchDocument(false);
+  }, [fetchDocument]);
+
+  const documentStatus = document?.status as string | undefined;
+  const isDocumentParsing = documentStatus === "parsing";
+
+  useEffect(() => {
+    if (!isDocumentParsing) {
+      return;
+    }
+    const interval = setInterval(() => {
+      refreshDocument().catch((error) =>
+        console.warn("Failed to refresh parsing document:", error)
+      );
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [isDocumentParsing, refreshDocument]);
 
   const handleSave = async () => {
-    if (!docId || !user) return
+    if (!docId || !user) return;
 
     try {
-      const token = await user.getIdToken()
+      const token = await user.getIdToken();
       const response = await fetch(`/api/documents/${docId}`, {
         method: "PATCH",
         headers: {
@@ -97,30 +114,32 @@ export default function DocumentDetailPage() {
           dueDate: formData.dueDate ?? null,
           status: formData.status ?? document?.status ?? "pending",
         }),
-      })
+      });
 
       if (!response.ok) {
-        const data = await response.json().catch(() => ({}))
-        throw new Error(data.error ?? "Failed to save document")
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error ?? "Failed to save document");
       }
 
-      const updated = mapResponseToDocument(await response.json())
-      setDocument(updated)
-      applyFormState(updated)
-      setEditing(false)
-      setActionError(null)
+      const updated = mapResponseToDocument(await response.json());
+      setDocument(updated);
+      applyFormState(updated);
+      setEditing(false);
+      setActionError(null);
     } catch (error) {
-      console.error("Error saving document:", error)
-      setActionError(error instanceof Error ? error.message : "Failed to save document")
+      console.error("Error saving document:", error);
+      setActionError(
+        error instanceof Error ? error.message : "Failed to save document"
+      );
     }
-  }
+  };
 
   const handleParse = async () => {
-    if (!docId || !user) return
-    setParseLoading(true)
-    setParseError(null)
+    if (!docId || !user) return;
+    setParseLoading(true);
+    setParseError(null);
     try {
-      const token = await user.getIdToken()
+      const token = await user.getIdToken();
       const response = await fetch("/api/parse", {
         method: "POST",
         headers: {
@@ -128,97 +147,120 @@ export default function DocumentDetailPage() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ documentId: docId }),
-      })
+      });
 
       if (!response.ok) {
-        const data = await response.json().catch(() => ({}))
-        throw new Error(data.error ?? "Failed to parse document")
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error ?? "Failed to parse document");
       }
 
-      await refreshDocument()
+      await refreshDocument();
     } catch (error) {
-      console.error("Error parsing document:", error)
-      setParseError(error instanceof Error ? error.message : "Unexpected error")
+      console.error("Error parsing document:", error);
+      setParseError(
+        error instanceof Error ? error.message : "Unexpected error"
+      );
     } finally {
-      setParseLoading(false)
+      setParseLoading(false);
     }
-  }
+  };
 
   const handleDelete = async () => {
-    if (!docId || !user || !confirm("Are you sure?")) return
+    if (!docId || !user || !confirm("Are you sure?")) return;
 
     try {
-      const token = await user.getIdToken()
+      const token = await user.getIdToken();
       const response = await fetch(`/api/documents/${docId}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
         },
-      })
+      });
 
       if (!response.ok) {
-        const data = await response.json().catch(() => ({}))
-        throw new Error(data.error ?? "Failed to delete document")
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error ?? "Failed to delete document");
       }
 
-      router.push("/documents")
+      router.push("/documents");
     } catch (error) {
-      console.error("Error deleting document:", error)
-      setActionError(error instanceof Error ? error.message : "Failed to delete document")
+      console.error("Error deleting document:", error);
+      setActionError(
+        error instanceof Error ? error.message : "Failed to delete document"
+      );
     }
-  }
+  };
 
   if (loading) {
     return (
-      <div className="p-8 flex items-center justify-center">
-        <div className="text-muted-foreground">Loading document...</div>
+      <div className="min-h-screen bg-slate-950 text-slate-100 p-8 flex items-center justify-center">
+        <div className="text-slate-400">Loading document...</div>
       </div>
-    )
+    );
   }
 
   if (!document) {
     return (
-      <div className="p-8">
-        <p className={actionError ? "text-destructive" : "text-muted-foreground"}>
+      <div className="min-h-screen bg-slate-950 text-slate-100 p-8">
+        <p className={actionError ? "text-destructive" : "text-slate-400"}>
           {actionError ?? "Document not found"}
         </p>
       </div>
-    )
+    );
   }
 
-  const hasParsedText = Boolean(document.textExtract)
-  const shouldShowParseButton = true
+  const hasParsedText = Boolean(document.textExtract);
+  const shouldShowParseButton = true;
+  const isParserBusy = parseLoading || isDocumentParsing;
 
-  const InfoItem = ({ label, value }: { label: string; value?: string | number | null }) => (
+  const InfoItem = ({
+    label,
+    value,
+  }: {
+    label: string;
+    value?: string | number | null;
+  }) => (
     <div>
-      <p className="text-sm text-muted-foreground">{label}</p>
-      <p className="text-base font-medium break-words">{value ?? "—"}</p>
+      <p className="text-sm text-slate-400">{label}</p>
+      <p className="text-base font-medium break-words">{value ?? "-"}</p>
     </div>
-  )
+  );
 
   const formatCurrency = (value?: number | null) => {
-    if (value === undefined || value === null) return "—"
-    return new Intl.NumberFormat("es-AR", { style: "currency", currency: document.currency ?? "ARS" }).format(value)
-  }
+    if (value === undefined || value === null) return "—";
+    return new Intl.NumberFormat("es-AR", {
+      style: "currency",
+      currency: document.currency ?? "ARS",
+    }).format(value);
+  };
 
-  const formatDate = (value?: string | null) => value ?? "—"
+  const formatDate = (value?: string | null) => value ?? "—";
 
   return (
-    <div className="p-8">
-      <Link href="/documents" className="flex items-center gap-2 mb-8 text-primary hover:underline">
+    <div className="min-h-screen bg-slate-950 text-slate-100 p-6 lg:p-10 space-y-8">
+      <Link
+        href="/documents"
+        className="flex items-center gap-2 mb-8 text-emerald-300 hover:underline"
+      >
         <ChevronLeft className="w-4 h-4" />
         Back to Documents
       </Link>
 
-      <Card className="mb-6">
+      <Card className="mb-6 bg-slate-900/70 border border-slate-800/80 text-slate-100">
         <CardHeader className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <div>
             <CardTitle>{document.fileName}</CardTitle>
-            <p className="text-sm text-muted-foreground">Status: {document.status}</p>
+            <p className="text-sm text-muted-foreground">
+              Status: {document.status}
+            </p>
           </div>
           {shouldShowParseButton && (
-            <Button onClick={handleParse} disabled={parseLoading} variant="secondary">
-              {parseLoading ? (
+            <Button
+              onClick={handleParse}
+              disabled={isParserBusy}
+              variant="secondary"
+            >
+              {isParserBusy ? (
                 <>
                   <span className="animate-spin mr-2 border-2 border-current border-t-transparent rounded-full w-4 h-4" />
                   Parsing...
@@ -232,26 +274,47 @@ export default function DocumentDetailPage() {
           )}
         </CardHeader>
         <CardContent className="space-y-6">
-          {parseError && <p className="text-destructive text-sm">{parseError}</p>}
-          {!parseError && actionError && <p className="text-destructive text-sm">{actionError}</p>}
+          {parseError && (
+            <p className="text-destructive text-sm">{parseError}</p>
+          )}
+          {!parseError && actionError && (
+            <p className="text-destructive text-sm">{actionError}</p>
+          )}
           {!parseError && !actionError && document.errorMessage && (
-            <p className="text-sm text-destructive">Last parser error: {document.errorMessage}</p>
+            <p className="text-sm text-destructive">
+              Last parser error: {document.errorMessage}
+            </p>
           )}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <InfoItem label="Provider" value={document.providerNameDetected ?? document.provider} />
+            <InfoItem
+              label="Provider"
+              value={document.providerNameDetected ?? document.provider}
+            />
             <InfoItem label="Provider ID" value={document.providerId} />
             <InfoItem label="Category" value={document.category} />
-            <InfoItem label="Total Amount" value={formatCurrency(document.totalAmount ?? document.amount)} />
+            <InfoItem
+              label="Total Amount"
+              value={formatCurrency(document.totalAmount ?? document.amount)}
+            />
             <InfoItem label="Currency" value={document.currency ?? "ARS"} />
-            <InfoItem label="Issue Date" value={formatDate(document.issueDate)} />
+            <InfoItem
+              label="Issue Date"
+              value={formatDate(document.issueDate)}
+            />
             <InfoItem label="Due Date" value={formatDate(document.dueDate)} />
-            <InfoItem label="Period Start" value={formatDate(document.periodStart)} />
-            <InfoItem label="Period End" value={formatDate(document.periodEnd)} />
+            <InfoItem
+              label="Period Start"
+              value={formatDate(document.periodStart)}
+            />
+            <InfoItem
+              label="Period End"
+              value={formatDate(document.periodEnd)}
+            />
           </div>
         </CardContent>
       </Card>
 
-      <Card className="mb-6">
+      <Card className="mb-6 bg-slate-900/70 border border-slate-800/80 text-slate-100">
         <CardHeader>
           <CardTitle>Manual Overrides</CardTitle>
         </CardHeader>
@@ -262,9 +325,11 @@ export default function DocumentDetailPage() {
               <input
                 type="text"
                 value={(formData.provider as string) || ""}
-                onChange={(e) => setFormData((prev) => ({ ...prev, provider: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, provider: e.target.value }))
+                }
                 disabled={!editing}
-                className="w-full px-3 py-2 border rounded-md bg-background disabled:opacity-50"
+                className="w-full px-3 py-2 border border-slate-800 rounded-md bg-slate-900/40 text-slate-100 placeholder:text-slate-500 disabled:opacity-60 disabled:bg-slate-900/20"
               />
             </div>
 
@@ -276,11 +341,13 @@ export default function DocumentDetailPage() {
                 onChange={(e) =>
                   setFormData((prev) => ({
                     ...prev,
-                    amount: e.target.value ? Number.parseFloat(e.target.value) : undefined,
+                    amount: e.target.value
+                      ? Number.parseFloat(e.target.value)
+                      : undefined,
                   }))
                 }
                 disabled={!editing}
-                className="w-full px-3 py-2 border rounded-md bg-background disabled:opacity-50"
+                className="w-full px-3 py-2 border border-slate-800 rounded-md bg-slate-900/40 text-slate-100 placeholder:text-slate-500 disabled:opacity-60 disabled:bg-slate-900/20"
               />
             </div>
 
@@ -289,9 +356,11 @@ export default function DocumentDetailPage() {
               <input
                 type="date"
                 value={(formData.dueDate as string) || ""}
-                onChange={(e) => setFormData((prev) => ({ ...prev, dueDate: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, dueDate: e.target.value }))
+                }
                 disabled={!editing}
-                className="w-full px-3 py-2 border rounded-md bg-background disabled:opacity-50"
+                className="w-full px-3 py-2 border border-slate-800 rounded-md bg-slate-900/40 text-slate-100 placeholder:text-slate-500 disabled:opacity-60 disabled:bg-slate-900/20"
               />
             </div>
 
@@ -299,9 +368,14 @@ export default function DocumentDetailPage() {
               <label className="text-sm font-medium block mb-2">Status</label>
               <select
                 value={(formData.status as BillDocument["status"]) || ""}
-                onChange={(e) => setFormData((prev) => ({ ...prev, status: e.target.value as BillDocument["status"] }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    status: e.target.value as BillDocument["status"],
+                  }))
+                }
                 disabled={!editing}
-                className="w-full px-3 py-2 border rounded-md bg-background disabled:opacity-50"
+                className="w-full px-3 py-2 border border-slate-800 rounded-md bg-slate-900/40 text-slate-100 disabled:opacity-60 disabled:bg-slate-900/20"
               >
                 <option value="pending">Pending</option>
                 <option value="parsed">Parsed</option>
@@ -315,7 +389,11 @@ export default function DocumentDetailPage() {
             {!editing ? (
               <>
                 <Button onClick={() => setEditing(true)}>Edit</Button>
-                <Button onClick={handleDelete} variant="destructive" className="ml-auto">
+                <Button
+                  onClick={handleDelete}
+                  variant="destructive"
+                  className="ml-auto"
+                >
                   <Trash2 className="w-4 h-4 mr-2" />
                   Delete
                 </Button>
@@ -332,20 +410,22 @@ export default function DocumentDetailPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="bg-slate-900/70 border border-slate-800/80 text-slate-100">
         <CardHeader>
           <CardTitle>Extracted Text</CardTitle>
         </CardHeader>
         <CardContent>
           {document.textExtract ? (
-            <pre className="max-h-[400px] overflow-auto whitespace-pre-wrap text-sm bg-muted p-4 rounded-md">
+            <pre className="max-h-[400px] overflow-auto whitespace-pre-wrap text-sm bg-slate-900/50 border border-slate-800 rounded-md p-4">
               {document.textExtract}
             </pre>
           ) : (
-            <p className="text-muted-foreground text-sm">No text extracted yet. Run the parser to see results.</p>
+            <p className="text-slate-400 text-sm">
+              No text extracted yet. Run the parser to see results.
+            </p>
           )}
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }
