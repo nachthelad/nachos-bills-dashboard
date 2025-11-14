@@ -1,9 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server"
 
 import { adminAuth, adminFirestore } from "@/lib/firebase-admin"
-import { Timestamp } from "firebase-admin/firestore"
 
-const PARSER_ENDPOINT = process.env.PARSER_SERVICE_URL ?? "http://localhost:8000/parse"
+import { parsePdfWithOpenAI, type BillingParseResult } from "./parser"
+import { Timestamp } from "firebase-admin/firestore"
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,27 +37,36 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Document has no pdfUrl/storageUrl" }, { status: 400 })
     }
 
-    let parseResponse: any
+    let pdfBuffer: Buffer
     try {
-      const parseFetch = await fetch(PARSER_ENDPOINT, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pdf_url: pdfUrl }),
-      })
-
-      if (!parseFetch.ok) {
-        const errorBody = await parseFetch.text()
-        throw new Error(`Parser responded with ${parseFetch.status}: ${errorBody}`)
+      const pdfResponse = await fetch(pdfUrl)
+      if (!pdfResponse.ok) {
+        const errorBody = await pdfResponse.text()
+        throw new Error(`Failed to download PDF: ${pdfResponse.status} ${errorBody}`)
       }
-      parseResponse = await parseFetch.json()
+      const arrayBuffer = await pdfResponse.arrayBuffer()
+      pdfBuffer = Buffer.from(arrayBuffer)
     } catch (error: any) {
-      console.error("Parser service error:", error)
+      console.error("PDF download error:", error)
       await docRef.update({
         status: "needs_review",
-        errorMessage: error.message ?? "Failed to reach parser service",
+        errorMessage: error.message ?? "Failed to download PDF",
         updatedAt: new Date(),
       })
-      return NextResponse.json({ error: "Parser service unavailable" }, { status: 502 })
+      return NextResponse.json({ error: "Failed to download PDF" }, { status: 502 })
+    }
+
+    let parseResponse: BillingParseResult
+    try {
+      parseResponse = await parsePdfWithOpenAI(pdfBuffer)
+    } catch (error: any) {
+      console.error("PDF parsing error:", error)
+      await docRef.update({
+        status: "needs_review",
+        errorMessage: error.message ?? "Failed to parse PDF",
+        updatedAt: new Date(),
+      })
+      return NextResponse.json({ error: "Failed to parse PDF" }, { status: 502 })
     }
 
     const updatePayload: Record<string, any> = {
