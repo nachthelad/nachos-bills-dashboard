@@ -4,7 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/lib/auth-context"
-import { FileText, Upload, BarChart3, LogOut, Building2 } from "lucide-react"
+import { FileText, Upload, BarChart3, LogOut, Building2, Wallet } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export function Sidebar() {
@@ -14,6 +14,7 @@ export function Sidebar() {
   const links = [
     { href: "/dashboard", label: "Dashboard", icon: BarChart3 },
     { href: "/hoa", label: "HOA", icon: Building2 },
+    { href: "/income", label: "Income", icon: Wallet },
     { href: "/upload", label: "Upload Bill", icon: Upload },
     { href: "/documents", label: "Documents", icon: FileText },
   ]

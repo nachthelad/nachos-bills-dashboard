@@ -10,28 +10,17 @@
  */
 
 import { useAuth } from "@/lib/auth-context"
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import type { BillDocument } from "@/lib/firestore-helpers"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import Link from "next/link"
 import { cn } from "@/lib/utils"
+import { fetchIncomeEntries, type IncomeEntry } from "@/lib/income-client"
 import { Eye, EyeOff } from "lucide-react"
 type DashboardDocument = Omit<BillDocument, "uploadedAt"> & { uploadedAt: Date }
 
 const formatter = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" })
 const categoryOrder = ["electricity", "water", "gas", "internet", "hoa", "credit_card", "other"] as const
-
-type IncomeEntry = {
-  id: string
-  amount: number
-  source: string
-  date: Date
-}
-
-type IncomeForm = {
-  amount: string
-  source: string
-  date: string
-}
 
 type DashboardSummary = {
   totals: {
@@ -51,17 +40,9 @@ export default function DashboardPage() {
   const [expenseDocs, setExpenseDocs] = useState<DashboardDocument[]>([])
   const [incomeEntries, setIncomeEntries] = useState<IncomeEntry[]>([])
   const [error, setError] = useState<string | null>(null)
-  const [incomeLoading, setIncomeLoading] = useState(false)
   const [refreshingDocs, setRefreshingDocs] = useState(false)
   const [refreshMessage, setRefreshMessage] = useState<string | null>(null)
   const [summaryFallback, setSummaryFallback] = useState<DashboardSummary | null>(null)
-  const [incomeEdits, setIncomeEdits] = useState<Record<string, string>>({})
-  const [incomeAction, setIncomeAction] = useState<{ id: string; type: "update" | "delete" } | null>(null)
-  const [incomeForm, setIncomeForm] = useState<IncomeForm>({
-    amount: "",
-    source: "Salary",
-    date: new Date().toISOString().split("T")[0],
-  })
   const [showAmounts, setShowAmounts] = useState(true)
 
   useEffect(() => {
@@ -97,24 +78,6 @@ useEffect(() => {
       }
     })()
 }, [user])
-
-  const reloadIncomeEntries = useCallback(
-    async (providedToken?: string) => {
-      if (!user) return
-      const tokenToUse = providedToken ?? (await user.getIdToken())
-      const refreshed = await fetchIncomeEntries(tokenToUse)
-      setIncomeEntries(refreshed)
-    },
-    [user],
-  )
-
-  useEffect(() => {
-    const editMap: Record<string, string> = {}
-    incomeEntries.forEach((entry) => {
-      editMap[entry.id] = entry.amount ? entry.amount.toString() : ""
-    })
-    setIncomeEdits(editMap)
-  }, [incomeEntries])
 
   useEffect(() => {
     if (!refreshMessage) return
@@ -229,113 +192,6 @@ useEffect(() => {
   const displayIncomeSources = hasLiveIncome ? incomeMetrics.perSource : fallbackIncomeSources
   const categoryMax = Math.max(...Object.values(displayCategoryTotals), 0)
   const incomeMax = Math.max(...Object.values(displayIncomeSources), 0)
-
-  const handleIncomeSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    if (!user) {
-      setError("Cannot save income right now.")
-      return
-    }
-    const amountValue = Number.parseFloat(incomeForm.amount)
-    if (!amountValue || amountValue <= 0) {
-      setError("Enter a valid amount.")
-      return
-    }
-
-    setIncomeLoading(true)
-    setError(null)
-    try {
-      const token = await user.getIdToken()
-      const response = await fetch("/api/income", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          amount: amountValue,
-          source: incomeForm.source,
-          date: incomeForm.date,
-        }),
-      })
-
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}))
-        throw new Error(data.error ?? "Failed to add income")
-      }
-
-      setIncomeForm((prev) => ({ ...prev, amount: "" }))
-      await reloadIncomeEntries(token)
-    } catch (err) {
-      console.error("Add income error", err)
-      setError("Failed to add income entry.")
-    } finally {
-      setIncomeLoading(false)
-    }
-  }
-
-  const handleIncomeAmountChange = (id: string, value: string) => {
-    setIncomeEdits((prev) => ({ ...prev, [id]: value }))
-  }
-
-  const handleSaveIncome = async (id: string) => {
-    if (!user) return
-    const amountValue = Number.parseFloat(incomeEdits[id] ?? "")
-    if (!Number.isFinite(amountValue) || amountValue <= 0) {
-      setError("Enter a valid amount for the selected income.")
-      return
-    }
-    setIncomeAction({ id, type: "update" })
-    try {
-      const token = await user.getIdToken()
-      const response = await fetch(`/api/income/${id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ amount: amountValue }),
-      })
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}))
-        throw new Error(data.error ?? "Failed to update income entry")
-      }
-      await reloadIncomeEntries(token)
-      setError(null)
-      setRefreshMessage("Income amount updated.")
-    } catch (err) {
-      console.error("Update income error:", err)
-      setError("Failed to update income entry.")
-    } finally {
-      setIncomeAction(null)
-    }
-  }
-
-  const handleDeleteIncome = async (id: string) => {
-    if (!user) return
-    setIncomeAction({ id, type: "delete" })
-    try {
-      const token = await user.getIdToken()
-      const response = await fetch(`/api/income/${id}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}))
-        throw new Error(data.error ?? "Failed to delete income entry")
-      }
-      await reloadIncomeEntries(token)
-      setError(null)
-      setRefreshMessage("Income entry removed.")
-    } catch (err) {
-      console.error("Delete income error:", err)
-      setError("Failed to delete income entry.")
-    } finally {
-      setIncomeAction(null)
-    }
-  }
 
   const handleRefreshParsedData = async () => {
     if (!user) return
@@ -472,108 +328,36 @@ useEffect(() => {
             <div>
               <p className="text-sm uppercase tracking-wide text-slate-400">Income Breakdown</p>
               <h2 className="text-xl font-semibold">Total income by source</h2>
+              <p className="text-xs text-slate-500 mt-1">
+                Manage entries from the{" "}
+                <Link href="/income" className="text-emerald-300 hover:text-emerald-200 underline underline-offset-2">
+                  Income page
+                </Link>
+                .
+              </p>
             </div>
-            <form onSubmit={handleIncomeSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              value={incomeForm.amount}
-              onChange={(e) => setIncomeForm((prev) => ({ ...prev, amount: e.target.value }))}
-              placeholder="Amount"
-              className="rounded-lg border border-slate-700 bg-slate-900/50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              required
-            />
-            <input
-              type="text"
-              value={incomeForm.source}
-              onChange={(e) => setIncomeForm((prev) => ({ ...prev, source: e.target.value }))}
-              placeholder="Source"
-              className="rounded-lg border border-slate-700 bg-slate-900/50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              required
-            />
-            <input
-              type="date"
-              value={incomeForm.date}
-              max={new Date().toISOString().split("T")[0]}
-              onChange={(e) => setIncomeForm((prev) => ({ ...prev, date: e.target.value }))}
-              className="rounded-lg border border-slate-700 bg-slate-900/50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              required
-            />
-            <button
-              type="submit"
-              disabled={incomeLoading}
-              className="md:col-span-3 rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-emerald-400 transition disabled:opacity-60"
-            >
-              {incomeLoading ? "Adding income..." : "Add income"}
-            </button>
-          </form>
 
-          <div className="space-y-4">
-            {incomeMax === 0 ? (
-              <p className="text-sm text-slate-400">No income entries yet. Add your salary or side gigs above.</p>
-            ) : (
-              Object.entries(displayIncomeSources)
-                .sort(([, a], [, b]) => b - a)
-                .map(([source, total]) => (
-                  <BreakdownBar
-                    key={source}
-                    label={source}
-                    amount={total}
-                    maxValue={incomeMax}
-                    accent="bg-emerald-400"
-                    hidden={!showAmounts}
-                  />
-                ))
-            )}
-          </div>
-
-          <div className="space-y-3 pt-2">
-            {incomeEntries.map((entry) => {
-              const isUpdating = incomeAction?.id === entry.id && incomeAction?.type === "update"
-              const isDeleting = incomeAction?.id === entry.id && incomeAction?.type === "delete"
-              const displayValue = showAmounts ? incomeEdits[entry.id] ?? "" : "••••"
-              return (
-                <div
-                  key={entry.id}
-                  className="flex flex-col gap-2 rounded-lg border border-slate-800 bg-slate-900/40 p-4 md:flex-row md:items-center md:justify-between"
-                >
-                  <div>
-                    <p className="font-medium text-slate-100">{entry.source}</p>
-                    <p className="text-xs text-slate-500">{formatDisplayDate(entry.date)}</p>
-                  </div>
-                  <div className="flex flex-col gap-2 md:flex-row md:items-center">
-                    <input
-                      type={showAmounts ? "number" : "text"}
-                      min="0"
-                      step="0.01"
-                      value={displayValue}
-                      readOnly={!showAmounts}
-                      onChange={(e) => showAmounts && handleIncomeAmountChange(entry.id, e.target.value)}
-                      className="rounded-md border border-slate-700 bg-slate-900/50 px-3 py-1.5 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            <div className="space-y-4">
+              {incomeMax === 0 ? (
+                <p className="text-sm text-slate-400">
+                  No income entries yet. Head to the Income page to add your salaries or side gigs.
+                </p>
+              ) : (
+                Object.entries(displayIncomeSources)
+                  .sort(([, a], [, b]) => b - a)
+                  .map(([source, total]) => (
+                    <BreakdownBar
+                      key={source}
+                      label={source}
+                      amount={total}
+                      maxValue={incomeMax}
+                      accent="bg-emerald-400"
+                      hidden={!showAmounts}
                     />
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleSaveIncome(entry.id)}
-                        disabled={isUpdating || isDeleting || !showAmounts}
-                        className="rounded-md bg-emerald-500 px-3 py-1.5 text-sm font-medium text-slate-900 hover:bg-emerald-400 disabled:opacity-60"
-                      >
-                        {isUpdating ? "Saving..." : "Save"}
-                      </button>
-                      <button
-                        onClick={() => handleDeleteIncome(entry.id)}
-                        disabled={isDeleting || isUpdating || !showAmounts}
-                        className="rounded-md border border-red-500 px-3 py-1.5 text-sm font-medium text-red-400 hover:bg-red-500/10 disabled:opacity-60"
-                      >
-                        {isDeleting ? "Removing..." : "Delete"}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
+                  ))
+              )}
+            </div>
           </div>
-        </div>
       </section>
     </div>
   )
@@ -674,25 +458,6 @@ async function fetchExpenses(token: string): Promise<DashboardDocument[]> {
   return (payload.documents ?? []).map((doc: Partial<BillDocument> & { id: string }) => ({
     ...doc,
     uploadedAt: normalizeDateInput(doc.uploadedAt),
-  }))
-}
-
-async function fetchIncomeEntries(token: string): Promise<IncomeEntry[]> {
-  const response = await fetch("/api/income", {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  })
-  if (!response.ok) {
-    const data = await response.json().catch(() => ({}))
-    throw new Error(data.error ?? "Failed to fetch income entries")
-  }
-  const payload = await response.json()
-  return (payload.entries ?? []).map((entry: any) => ({
-    id: entry.id,
-    amount: entry.amount ?? 0,
-    source: entry.source ?? "Unknown",
-    date: normalizeDateInput(entry.date),
   }))
 }
 
