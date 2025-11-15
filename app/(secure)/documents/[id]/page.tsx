@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { ChevronLeft, Trash2 } from "lucide-react";
-import { CATEGORY_OPTIONS } from "@/lib/categories";
+import { CATEGORY_OPTIONS } from "@/config/billing/categories";
 
 export default function DocumentDetailPage() {
   const { user } = useAuth();
@@ -23,6 +23,7 @@ export default function DocumentDetailPage() {
   const [parseError, setParseError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<BillDocument>>({});
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const mapResponseToDocument = (data: any): BillDocument => ({
     ...data,
@@ -176,7 +177,7 @@ export default function DocumentDetailPage() {
   };
 
   const handleDelete = async () => {
-    if (!docId || !user || !confirm("Are you sure?")) return;
+    if (!docId || !user) return;
 
     try {
       const token = await user.getIdToken();
@@ -384,12 +385,17 @@ export default function DocumentDetailPage() {
             </div>
 
             <div>
-              <label className="text-sm font-medium block mb-2">Issue Date</label>
+              <label className="text-sm font-medium block mb-2">
+                Issue Date
+              </label>
               <input
                 type="date"
                 value={(formData.issueDate as string) || ""}
                 onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, issueDate: e.target.value }))
+                  setFormData((prev) => ({
+                    ...prev,
+                    issueDate: e.target.value,
+                  }))
                 }
                 disabled={!editing}
                 className="w-full px-3 py-2 border border-slate-800 rounded-md bg-slate-900/40 text-slate-100 placeholder:text-slate-500 disabled:opacity-60 disabled:bg-slate-900/20"
@@ -430,12 +436,17 @@ export default function DocumentDetailPage() {
             </div>
 
             <div>
-              <label className="text-sm font-medium block mb-2">Period Start</label>
+              <label className="text-sm font-medium block mb-2">
+                Period Start
+              </label>
               <input
                 type="date"
                 value={(formData.periodStart as string) || ""}
                 onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, periodStart: e.target.value }))
+                  setFormData((prev) => ({
+                    ...prev,
+                    periodStart: e.target.value,
+                  }))
                 }
                 disabled={!editing}
                 className="w-full px-3 py-2 border border-slate-800 rounded-md bg-slate-900/40 text-slate-100 placeholder:text-slate-500 disabled:opacity-60 disabled:bg-slate-900/20"
@@ -443,12 +454,17 @@ export default function DocumentDetailPage() {
             </div>
 
             <div>
-              <label className="text-sm font-medium block mb-2">Period End</label>
+              <label className="text-sm font-medium block mb-2">
+                Period End
+              </label>
               <input
                 type="date"
                 value={(formData.periodEnd as string) || ""}
                 onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, periodEnd: e.target.value }))
+                  setFormData((prev) => ({
+                    ...prev,
+                    periodEnd: e.target.value,
+                  }))
                 }
                 disabled={!editing}
                 className="w-full px-3 py-2 border border-slate-800 rounded-md bg-slate-900/40 text-slate-100 placeholder:text-slate-500 disabled:opacity-60 disabled:bg-slate-900/20"
@@ -461,7 +477,7 @@ export default function DocumentDetailPage() {
               <>
                 <Button onClick={() => setEditing(true)}>Edit</Button>
                 <Button
-                  onClick={handleDelete}
+                  onClick={() => setDeleteDialogOpen(true)}
                   variant="destructive"
                   className="ml-auto"
                 >
@@ -487,9 +503,14 @@ export default function DocumentDetailPage() {
         </CardHeader>
         <CardContent>
           {document.textExtract ? (
-            <pre className="max-h-[400px] overflow-auto whitespace-pre-wrap text-sm bg-slate-900/50 border border-slate-800 rounded-md p-4">
-              {document.textExtract}
-            </pre>
+            <div className="max-h-[400px] max-w-full overflow-auto rounded-md border border-slate-800 bg-slate-900/50">
+              <pre
+                className="w-full max-w-full min-w-0 whitespace-pre-wrap text-sm text-slate-100 p-4"
+                style={{ wordBreak: "break-word", overflowWrap: "break-word" }}
+              >
+                {document.textExtract}
+              </pre>
+            </div>
           ) : (
             <p className="text-slate-400 text-sm">
               No text extracted yet. Run the parser to see results.
@@ -497,6 +518,37 @@ export default function DocumentDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      {deleteDialogOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-xl border border-slate-800 bg-slate-900/90 p-6 space-y-4">
+            <h3 className="text-xl font-semibold text-slate-100">
+              Delete document?
+            </h3>
+            <p className="text-sm text-slate-400">
+              This action will remove the bill and its parsing history. You
+              can’t undo this operation.
+            </p>
+            <div className="flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setDeleteDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  setDeleteDialogOpen(false);
+                  handleDelete();
+                }}
+              >
+                Delete
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
