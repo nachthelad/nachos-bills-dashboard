@@ -17,7 +17,8 @@ import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { fetchIncomeEntries, type IncomeEntry } from "@/lib/income-client"
 import { Eye, EyeOff } from "lucide-react"
-import { CATEGORY_OPTIONS, type CategoryValue, normalizeCategory } from "@/lib/categories"
+import { CATEGORY_OPTIONS, type CategoryValue } from "@/config/billing/categories"
+import { normalizeCategory } from "@/lib/category-utils"
 type DashboardDocument = Omit<BillDocument, "uploadedAt"> & { uploadedAt: Date }
 
 const formatter = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" })

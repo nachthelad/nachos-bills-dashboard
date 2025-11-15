@@ -1,85 +1,110 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { type NextRequest, NextResponse } from "next/server";
 
-import { adminAuth, adminFirestore } from "@/lib/firebase-admin"
-import { normalizeCategory } from "@/lib/categories"
+import { adminAuth, adminFirestore } from "@/lib/firebase-admin";
+import type { CategoryValue } from "@/config/billing/categories";
+import { PROVIDER_HINTS, type ProviderHint } from "@/config/billing/providerHints";
+import { normalizeCategory, normalizeSearchValue } from "@/lib/category-utils";
 
-import { parsePdfWithOpenAI, type BillingParseResult } from "./parser"
-import { Timestamp } from "firebase-admin/firestore"
+import { parsePdfWithOpenAI, type BillingParseResult } from "./parser";
+import { Timestamp } from "firebase-admin/firestore";
 
 export async function POST(request: NextRequest) {
   try {
-    const authHeader = request.headers.get("authorization") ?? ""
+    const authHeader = request.headers.get("authorization") ?? "";
     if (!authHeader.startsWith("Bearer ")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const token = authHeader.slice(7)
-    const decoded = await adminAuth.verifyIdToken(token)
+    const token = authHeader.slice(7);
+    const decoded = await adminAuth.verifyIdToken(token);
 
-    const { documentId } = await request.json()
+    const { documentId } = await request.json();
 
     if (!documentId) {
-      return NextResponse.json({ error: "Missing documentId" }, { status: 400 })
+      return NextResponse.json(
+        { error: "Missing documentId" },
+        { status: 400 }
+      );
     }
 
-    const docRef = adminFirestore.collection("documents").doc(documentId)
-    const docSnapshot = await docRef.get()
+    const docRef = adminFirestore.collection("documents").doc(documentId);
+    const docSnapshot = await docRef.get();
     if (!docSnapshot.exists) {
-      return NextResponse.json({ error: "Document not found" }, { status: 404 })
+      return NextResponse.json(
+        { error: "Document not found" },
+        { status: 404 }
+      );
     }
 
-    const documentData = docSnapshot.data()
+    const documentData = docSnapshot.data();
     if (documentData?.userId && documentData.userId !== decoded.uid) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
-    const pdfUrl = documentData?.pdfUrl ?? documentData?.storageUrl
+    const pdfUrl = documentData?.pdfUrl ?? documentData?.storageUrl;
 
     if (!pdfUrl) {
-      return NextResponse.json({ error: "Document has no pdfUrl/storageUrl" }, { status: 400 })
+      return NextResponse.json(
+        { error: "Document has no pdfUrl/storageUrl" },
+        { status: 400 }
+      );
     }
 
-    let pdfBuffer: Buffer
+    let pdfBuffer: Buffer;
     try {
-      const pdfResponse = await fetch(pdfUrl)
+      const pdfResponse = await fetch(pdfUrl);
       if (!pdfResponse.ok) {
-        const errorBody = await pdfResponse.text()
-        throw new Error(`Failed to download PDF: ${pdfResponse.status} ${errorBody}`)
+        const errorBody = await pdfResponse.text();
+        throw new Error(
+          `Failed to download PDF: ${pdfResponse.status} ${errorBody}`
+        );
       }
-      const arrayBuffer = await pdfResponse.arrayBuffer()
-      pdfBuffer = Buffer.from(arrayBuffer)
+      const arrayBuffer = await pdfResponse.arrayBuffer();
+      pdfBuffer = Buffer.from(arrayBuffer);
     } catch (error: any) {
-      console.error("PDF download error:", error)
+      console.error("PDF download error:", error);
       await docRef.update({
         status: "needs_review",
         errorMessage: error.message ?? "Failed to download PDF",
         updatedAt: new Date(),
-      })
-      return NextResponse.json({ error: "Failed to download PDF" }, { status: 502 })
+      });
+      return NextResponse.json(
+        { error: "Failed to download PDF" },
+        { status: 502 }
+      );
     }
 
-    let parseResponse: BillingParseResult
+    let parseResponse: BillingParseResult;
     try {
-      parseResponse = await parsePdfWithOpenAI(pdfBuffer)
+      parseResponse = await parsePdfWithOpenAI(pdfBuffer);
     } catch (error: any) {
-      console.error("PDF parsing error:", error)
+      console.error("PDF parsing error:", error);
       await docRef.update({
         status: "needs_review",
         errorMessage: error.message ?? "Failed to parse PDF",
         updatedAt: new Date(),
-      })
-      return NextResponse.json({ error: "Failed to parse PDF" }, { status: 502 })
+      });
+      return NextResponse.json(
+        { error: "Failed to parse PDF" },
+        { status: 502 }
+      );
     }
 
     const detectedCategory = normalizeCategory(
       parseResponse.providerId ?? documentData?.providerId,
       parseResponse.category ?? documentData?.category,
-      parseResponse.providerNameDetected ?? documentData?.provider ?? documentData?.providerNameDetected ?? null,
-    )
+      parseResponse.providerNameDetected ??
+        documentData?.provider ??
+        documentData?.providerNameDetected ??
+        null
+    );
 
     const updatePayload: Record<string, any> = {
       textExtract: parseResponse.text ?? documentData?.textExtract ?? null,
       providerId: parseResponse.providerId ?? documentData?.providerId ?? null,
-      providerNameDetected: parseResponse.providerNameDetected ?? documentData?.providerNameDetected ?? null,
+      providerNameDetected:
+        parseResponse.providerNameDetected ??
+        documentData?.providerNameDetected ??
+        null,
       provider:
         parseResponse.providerNameDetected ??
         parseResponse.providerId ??
@@ -87,79 +112,100 @@ export async function POST(request: NextRequest) {
         documentData?.providerNameDetected ??
         null,
       category: detectedCategory,
-      totalAmount: parseResponse.totalAmount ?? documentData?.totalAmount ?? null,
+      totalAmount:
+        parseResponse.totalAmount ?? documentData?.totalAmount ?? null,
       amount: parseResponse.totalAmount ?? documentData?.amount ?? null,
       currency: parseResponse.currency ?? documentData?.currency ?? null,
       status: parseResponse.text ? "parsed" : "needs_review",
       lastParsedAt: new Date(),
       errorMessage: null,
-    }
+    };
 
     if ("hoaDetails" in parseResponse) {
-      updatePayload.hoaDetails = parseResponse.hoaDetails ?? null
+      updatePayload.hoaDetails = parseResponse.hoaDetails ?? null;
     }
 
     if (parseResponse.hoaDetails?.totalToPayUnit != null) {
-      updatePayload.totalAmount = parseResponse.hoaDetails.totalToPayUnit
-      updatePayload.amount = parseResponse.hoaDetails.totalToPayUnit
-      updatePayload.currency = parseResponse.currency ?? "ARS"
-      updatePayload.category = "hoa"
+      updatePayload.totalAmount = parseResponse.hoaDetails.totalToPayUnit;
+      updatePayload.amount = parseResponse.hoaDetails.totalToPayUnit;
+      updatePayload.currency = parseResponse.currency ?? "ARS";
+      updatePayload.category = "hoa";
       if (!updatePayload.providerId) {
-        updatePayload.providerId = "expensas"
+        updatePayload.providerId = "expensas_genericas";
       }
       if (!updatePayload.provider) {
-        updatePayload.provider = parseResponse.providerNameDetected ?? "Expensas consorcio"
+        updatePayload.provider =
+          parseResponse.providerNameDetected ?? "Expensas consorcio";
       }
+    }
+
+    const fallbackProvider = inferProviderFromContent({
+      fileName: documentData?.fileName,
+      text:
+        updatePayload.textExtract ??
+        documentData?.textExtract ??
+        parseResponse.text ??
+        "",
+    });
+
+    if (fallbackProvider) {
+      updatePayload.providerId ??= fallbackProvider.providerId;
+      updatePayload.provider ??= fallbackProvider.providerName;
+      updatePayload.category =
+        fallbackProvider.category ?? updatePayload.category;
     }
 
     const assignDate = (field: string, value?: string | null) => {
-      if (!value) return
-      const parsed = parseDate(value)
+      if (!value) return;
+      const parsed = parseDate(value);
       if (parsed) {
-        updatePayload[field] = Timestamp.fromDate(parsed)
+        updatePayload[field] = Timestamp.fromDate(parsed);
       }
-    }
+    };
 
-    assignDate("issueDate", parseResponse.issueDate)
-    assignDate("dueDate", parseResponse.dueDate)
-    assignDate("periodStart", parseResponse.periodStart)
-    assignDate("periodEnd", parseResponse.periodEnd)
+    assignDate("issueDate", parseResponse.issueDate);
+    assignDate("dueDate", parseResponse.dueDate);
+    assignDate("periodStart", parseResponse.periodStart);
+    assignDate("periodEnd", parseResponse.periodEnd);
 
-    await docRef.update(updatePayload)
+    await docRef.update(updatePayload);
 
     if (parseResponse.hoaDetails && documentData?.userId) {
-      await upsertHoaSummary(documentData.userId, parseResponse.hoaDetails)
+      await upsertHoaSummary(documentData.userId, parseResponse.hoaDetails);
     }
 
-    const updatedDoc = await docRef.get()
+    const updatedDoc = await docRef.get();
 
-    return NextResponse.json({ id: updatedDoc.id, ...updatedDoc.data() })
+    return NextResponse.json({ id: updatedDoc.id, ...updatedDoc.data() });
   } catch (error) {
-    console.error("Parse route error:", error)
-    return NextResponse.json({ error: "Failed to parse document" }, { status: 500 })
+    console.error("Parse route error:", error);
+    return NextResponse.json(
+      { error: "Failed to parse document" },
+      { status: 500 }
+    );
   }
 }
 
 function parseDate(value: string): Date | null {
-  const isoMatch = /^\d{4}-\d{2}-\d{2}$/.test(value)
+  const isoMatch = /^\d{4}-\d{2}-\d{2}$/.test(value);
   if (isoMatch) {
-    return new Date(`${value}T00:00:00Z`)
+    return new Date(`${value}T00:00:00Z`);
   }
-  const parsed = new Date(value)
-  return Number.isNaN(parsed.getTime()) ? null : parsed
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
 async function upsertHoaSummary(userId: string, hoaDetails: any) {
-  const { buildingCode, unitCode, periodYear, periodMonth } = hoaDetails ?? {}
+  const { buildingCode, unitCode, periodYear, periodMonth } = hoaDetails ?? {};
   if (!userId || !buildingCode || !unitCode || !periodYear || !periodMonth) {
-    return
+    return;
   }
 
-  const periodKey = `${periodYear}-${String(periodMonth).padStart(2, "0")}`
-  const summaryId = `${userId}_${buildingCode}_${unitCode}_${periodKey}`
-  const summaryRef = adminFirestore.collection("hoaSummaries").doc(summaryId)
-  const now = Timestamp.now()
-  const snapshot = await summaryRef.get()
+  const periodKey = `${periodYear}-${String(periodMonth).padStart(2, "0")}`;
+  const summaryId = `${userId}_${buildingCode}_${unitCode}_${periodKey}`;
+  const summaryRef = adminFirestore.collection("hoaSummaries").doc(summaryId);
+  const now = Timestamp.now();
+  const snapshot = await summaryRef.get();
 
   const basePayload = {
     userId,
@@ -171,24 +217,34 @@ async function upsertHoaSummary(userId: string, hoaDetails: any) {
     periodKey,
     periodYear,
     periodMonth,
-    periodLabel: hoaDetails.periodLabel ?? `${String(periodMonth).padStart(2, "0")}/${periodYear}`,
+    periodLabel:
+      hoaDetails.periodLabel ??
+      `${String(periodMonth).padStart(2, "0")}/${periodYear}`,
     totalToPayUnit: hoaDetails.totalToPayUnit ?? null,
     totalBuildingExpenses: hoaDetails.totalBuildingExpenses ?? null,
     rubros: Array.isArray(hoaDetails.rubros)
       ? hoaDetails.rubros.map((r: any) => {
-          const hasConvertibleTotal = r?.total !== null && r?.total !== undefined
-          const numericTotal = hasConvertibleTotal ? Number(r.total) : Number.NaN
+          const hasConvertibleTotal =
+            r?.total !== null && r?.total !== undefined;
+          const numericTotal = hasConvertibleTotal
+            ? Number(r.total)
+            : Number.NaN;
           const totalValue =
-            typeof r?.total === "number" ? r.total : hasConvertibleTotal && Number.isFinite(numericTotal) ? numericTotal : null
+            typeof r?.total === "number"
+              ? r.total
+              : hasConvertibleTotal && Number.isFinite(numericTotal)
+              ? numericTotal
+              : null;
           return {
-            rubroNumber: typeof r?.rubroNumber === "number" ? r.rubroNumber : null,
+            rubroNumber:
+              typeof r?.rubroNumber === "number" ? r.rubroNumber : null,
             label: typeof r?.label === "string" ? r.label : null,
             total: totalValue,
-          }
+          };
         })
       : [],
     updatedAt: now,
-  }
+  };
 
   if (snapshot.exists) {
     await summaryRef.set(
@@ -196,13 +252,38 @@ async function upsertHoaSummary(userId: string, hoaDetails: any) {
         ...basePayload,
         createdAt: snapshot.data()?.createdAt ?? now,
       },
-      { merge: true },
-    )
-    return
+      { merge: true }
+    );
+    return;
   }
 
   await summaryRef.set({
     ...basePayload,
     createdAt: now,
-  })
+  });
+}
+
+function inferProviderFromContent({
+  fileName,
+  text,
+}: {
+  fileName?: string | null;
+  text?: string | null;
+}): ProviderHint | null {
+  const values = [fileName, text]
+    .filter(Boolean)
+    .map((value) => normalizeSearchValue(value as string));
+  if (!values.length) return null;
+
+  for (const hint of PROVIDER_HINTS) {
+    if (
+      hint.keywords.some((keyword) =>
+        values.some((value) => value.includes(keyword))
+      )
+    ) {
+      return hint;
+    }
+  }
+
+  return null;
 }
