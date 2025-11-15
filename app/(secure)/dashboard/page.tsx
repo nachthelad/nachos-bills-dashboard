@@ -396,7 +396,10 @@ function BreakdownBar({
   accent?: string
   hidden?: boolean
 }) {
-  const widthPercent = maxValue ? Math.max((amount / maxValue) * 100, 4) : 0
+  let widthPercent = maxValue > 0 ? (amount / maxValue) * 100 : 0
+  if (amount > 0 && widthPercent < 2) {
+    widthPercent = 2
+  }
   return (
     <div>
       <div className="flex items-center justify-between text-sm text-slate-300">
