@@ -1,12 +1,12 @@
-import type { CategoryValue } from "./categories"
-import { normalizeSearchValue } from "@/lib/category-utils"
+import type { CategoryValue } from "./categories";
+import { normalizeSearchValue } from "@/lib/category-utils";
 
 export type ProviderHint = {
-  providerId: string
-  providerName: string
-  category: CategoryValue
-  keywords: string[]
-}
+  providerId: string;
+  providerName: string;
+  category: CategoryValue;
+  keywords: string[];
+};
 
 export const PROVIDER_HINTS: ProviderHint[] = [
   {
@@ -103,7 +103,7 @@ export const PROVIDER_HINTS: ProviderHint[] = [
     providerId: "aysa",
     providerName: "AySA",
     category: "water",
-    keywords: ["aysa"],
+    keywords: ["aysa, agua y saneamiento"],
   },
   {
     providerId: "aguas_cordobesas",
@@ -189,15 +189,15 @@ export const PROVIDER_HINTS: ProviderHint[] = [
     category: "other",
     keywords: ["uala"],
   },
-]
+];
 
-export const PROVIDER_HINT_KEYWORD_MAP: Map<string, ProviderHint> = new Map()
+export const PROVIDER_HINT_KEYWORD_MAP: Map<string, ProviderHint> = new Map();
 
 for (const hint of PROVIDER_HINTS) {
   for (const keyword of hint.keywords) {
-    const normalizedKeyword = normalizeSearchValue(keyword)
+    const normalizedKeyword = normalizeSearchValue(keyword);
     if (normalizedKeyword) {
-      PROVIDER_HINT_KEYWORD_MAP.set(normalizedKeyword, hint)
+      PROVIDER_HINT_KEYWORD_MAP.set(normalizedKeyword, hint);
     }
   }
 }
