@@ -1,26 +1,29 @@
 import { NextRequest, NextResponse } from "next/server"
 
-import { adminAuth, adminFirestore } from "@/lib/firebase-admin"
+import { adminFirestore } from "@/lib/firebase-admin"
 import { Timestamp, type DocumentSnapshot } from "firebase-admin/firestore"
 import { incomeEntrySchema } from "@/lib/server/schemas"
 import { ZodError } from "zod"
+import {
+  authenticateRequest,
+  handleAuthError,
+} from "@/lib/server/authenticate-request"
 
 export async function GET(request: NextRequest) {
   try {
-    const authHeader = request.headers.get("authorization") ?? ""
-    if (!authHeader.startsWith("Bearer ")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-    const token = authHeader.slice(7)
-    const decoded = await adminAuth.verifyIdToken(token)
+    const { uid } = await authenticateRequest(request)
 
-    const snapshot = await adminFirestore.collection("incomeEntries").where("userId", "==", decoded.uid).get()
+    const snapshot = await adminFirestore.collection("incomeEntries").where("userId", "==", uid).get()
 
     const entries = snapshot.docs
       .map(serializeIncomeDoc)
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     return NextResponse.json({ entries })
   } catch (error) {
+    const authResponse = handleAuthError(error)
+    if (authResponse) {
+      return authResponse
+    }
     console.error("Income GET error:", error)
     return NextResponse.json({ error: "Failed to load income entries" }, { status: 500 })
   }
@@ -28,12 +31,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const authHeader = request.headers.get("authorization") ?? ""
-    if (!authHeader.startsWith("Bearer ")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-    const token = authHeader.slice(7)
-    const decoded = await adminAuth.verifyIdToken(token)
+    const { uid } = await authenticateRequest(request)
 
     const payload = incomeEntrySchema.parse(await request.json())
     const entryDate = payload.date ?? Timestamp.now()
@@ -42,6 +40,9 @@ export async function POST(request: NextRequest) {
       userId: decoded.uid,
       amount: payload.amount,
       source: payload.source,
+      userId: uid,
+      amount,
+      source,
       currency: "ARS",
       date: entryDate,
       createdAt: Timestamp.now(),
@@ -56,6 +57,9 @@ export async function POST(request: NextRequest) {
         { error: error.issues.map((issue) => issue.message).join(", ") },
         { status: 400 },
       )
+    const authResponse = handleAuthError(error)
+    if (authResponse) {
+      return authResponse
     }
     console.error("Income POST error:", error)
     return NextResponse.json({ error: "Failed to add income entry" }, { status: 500 })

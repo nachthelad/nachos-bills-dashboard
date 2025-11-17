@@ -1,19 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
 
-import { adminAuth, adminFirestore } from "@/lib/firebase-admin"
+import { adminFirestore } from "@/lib/firebase-admin"
 import { Timestamp } from "firebase-admin/firestore"
+import {
+  authenticateRequest,
+  handleAuthError,
+} from "@/lib/server/authenticate-request"
 
 type RouteParams = { id: string }
-
-async function authenticate(request: NextRequest) {
-  const authHeader = request.headers.get("authorization") ?? ""
-  if (!authHeader.startsWith("Bearer ")) {
-    throw new Error("Unauthorized")
-  }
-  const token = authHeader.slice(7)
-  const decoded = await adminAuth.verifyIdToken(token)
-  return decoded.uid
-}
 
 async function resolveParams(params: RouteParams | Promise<RouteParams>): Promise<RouteParams> {
   if (typeof (params as Promise<RouteParams>).then === "function") {
@@ -40,7 +34,7 @@ async function getOwnedIncomeDoc(uid: string, incomeId: string) {
 
 export async function PATCH(request: NextRequest, context: { params: RouteParams } | { params: Promise<RouteParams> }) {
   try {
-    const uid = await authenticate(request)
+    const { uid } = await authenticateRequest(request)
     const params = await resolveParams(context.params)
     const incomeId = params.id
     const { docRef } = await getOwnedIncomeDoc(uid, incomeId)
@@ -81,8 +75,9 @@ export async function PATCH(request: NextRequest, context: { params: RouteParams
       currency: updatedData?.currency ?? "ARS",
     })
   } catch (error: any) {
-    if (error?.message === "Unauthorized") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const authResponse = handleAuthError(error)
+    if (authResponse) {
+      return authResponse
     }
     if (error?.message === "Forbidden") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
@@ -97,15 +92,16 @@ export async function PATCH(request: NextRequest, context: { params: RouteParams
 
 export async function DELETE(request: NextRequest, context: { params: RouteParams } | { params: Promise<RouteParams> }) {
   try {
-    const uid = await authenticate(request)
+    const { uid } = await authenticateRequest(request)
     const params = await resolveParams(context.params)
     const incomeId = params.id
     const { docRef } = await getOwnedIncomeDoc(uid, incomeId)
     await docRef.delete()
     return NextResponse.json({ success: true })
   } catch (error: any) {
-    if (error?.message === "Unauthorized") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const authResponse = handleAuthError(error)
+    if (authResponse) {
+      return authResponse
     }
     if (error?.message === "Forbidden") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })

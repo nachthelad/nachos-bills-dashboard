@@ -1,10 +1,14 @@
 import { type NextRequest, NextResponse } from "next/server";
 
-import { adminAuth, adminFirestore } from "@/lib/firebase-admin";
+import { adminFirestore } from "@/lib/firebase-admin";
 import type { CategoryValue } from "@/config/billing/categories";
 import { PROVIDER_HINTS, type ProviderHint } from "@/config/billing/providerHints";
 import { normalizeCategory, normalizeSearchValue } from "@/lib/category-utils";
 import { parseRequestSchema } from "@/lib/server/schemas";
+import {
+  authenticateRequest,
+  handleAuthError,
+} from "@/lib/server/authenticate-request";
 
 import { parsePdfWithOpenAI, type BillingParseResult } from "./parser";
 import { Timestamp } from "firebase-admin/firestore";
@@ -21,6 +25,15 @@ export async function POST(request: NextRequest) {
     const decoded = await adminAuth.verifyIdToken(token);
 
     const { documentId } = parseRequestSchema.parse(await request.json());
+    const { uid } = await authenticateRequest(request);
+    const { documentId } = await request.json();
+
+    if (!documentId) {
+      return NextResponse.json(
+        { error: "Missing documentId" },
+        { status: 400 }
+      );
+    }
 
     const docRef = adminFirestore.collection("documents").doc(documentId);
     const docSnapshot = await docRef.get();
@@ -32,7 +45,7 @@ export async function POST(request: NextRequest) {
     }
 
     const documentData = docSnapshot.data();
-    if (documentData?.userId && documentData.userId !== decoded.uid) {
+    if (documentData?.userId && documentData.userId !== uid) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
     const pdfUrl = documentData?.pdfUrl ?? documentData?.storageUrl;
@@ -178,6 +191,9 @@ export async function POST(request: NextRequest) {
         { error: error.issues.map((issue) => issue.message).join(", ") },
         { status: 400 }
       );
+    const authResponse = handleAuthError(error);
+    if (authResponse) {
+      return authResponse;
     }
     console.error("Parse route error:", error);
     return NextResponse.json(
