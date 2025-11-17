@@ -5,11 +5,18 @@ import {
   authenticateRequest,
   handleAuthError,
 } from "@/lib/server/authenticate-request"
+import { createRequestLogger } from "@/lib/server/logger"
 import { serializeSnapshot, toIsoDateTime } from "@/lib/server/document-serializer"
 
 export async function GET(request: NextRequest) {
+  const baseLogger = createRequestLogger({
+    request,
+    context: { route: "GET /api/hoa-summaries" },
+  })
+  let log = baseLogger
   try {
     const { uid } = await authenticateRequest(request)
+    log = log.withContext({ userId: uid })
     const { searchParams } = request.nextUrl
     const buildingCode = searchParams.get("buildingCode")
     const unitCode = searchParams.get("unitCode")
@@ -58,7 +65,7 @@ export async function GET(request: NextRequest) {
     if (authResponse) {
       return authResponse
     }
-    console.error("hoaSummaries GET error:", error)
+    log.error("hoaSummaries GET error", { error })
     return NextResponse.json({ error: "Failed to load HOA summaries" }, { status: 500 })
   }
 }

@@ -6,6 +6,7 @@ import {
   authenticateRequest,
   handleAuthError,
 } from "@/lib/server/authenticate-request"
+import { createRequestLogger } from "@/lib/server/logger"
 
 type RouteParams = { id: string }
 
@@ -33,8 +34,14 @@ async function getOwnedIncomeDoc(uid: string, incomeId: string) {
 }
 
 export async function PATCH(request: NextRequest, context: { params: RouteParams } | { params: Promise<RouteParams> }) {
+  const baseLogger = createRequestLogger({
+    request,
+    context: { route: "PATCH /api/income/[id]" },
+  })
+  let log = baseLogger
   try {
     const { uid } = await authenticateRequest(request)
+    log = log.withContext({ userId: uid })
     const params = await resolveParams(context.params)
     const incomeId = params.id
     const { docRef } = await getOwnedIncomeDoc(uid, incomeId)
@@ -85,14 +92,20 @@ export async function PATCH(request: NextRequest, context: { params: RouteParams
     if (error?.message === "NotFound") {
       return NextResponse.json({ error: "Income entry not found" }, { status: 404 })
     }
-    console.error("Income PATCH error:", error)
+    log.error("Income PATCH error", { error })
     return NextResponse.json({ error: "Failed to update income entry" }, { status: 500 })
   }
 }
 
 export async function DELETE(request: NextRequest, context: { params: RouteParams } | { params: Promise<RouteParams> }) {
+  const baseLogger = createRequestLogger({
+    request,
+    context: { route: "DELETE /api/income/[id]" },
+  })
+  let log = baseLogger
   try {
     const { uid } = await authenticateRequest(request)
+    log = log.withContext({ userId: uid })
     const params = await resolveParams(context.params)
     const incomeId = params.id
     const { docRef } = await getOwnedIncomeDoc(uid, incomeId)
@@ -109,7 +122,7 @@ export async function DELETE(request: NextRequest, context: { params: RouteParam
     if (error?.message === "NotFound") {
       return NextResponse.json({ error: "Income entry not found" }, { status: 404 })
     }
-    console.error("Income DELETE error:", error)
+    log.error("Income DELETE error", { error })
     return NextResponse.json({ error: "Failed to delete income entry" }, { status: 500 })
   }
 }

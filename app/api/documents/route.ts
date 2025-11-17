@@ -8,12 +8,19 @@ import {
   authenticateRequest,
   handleAuthError,
 } from "@/lib/server/authenticate-request"
+import { createRequestLogger } from "@/lib/server/logger"
 
 export const runtime = "nodejs"
 
 export async function POST(request: NextRequest) {
+  const baseLogger = createRequestLogger({
+    request,
+    context: { route: "POST /api/documents" },
+  })
+  let log = baseLogger
   try {
     const { uid } = await authenticateRequest(request)
+    log = log.withContext({ userId: uid })
     const payload = await request.json()
     const {
       fileName,
@@ -72,14 +79,20 @@ export async function POST(request: NextRequest) {
     if (authResponse) {
       return authResponse
     }
-    console.error("Server create document error:", error)
+    log.error("Server create document error", { error })
     return NextResponse.json({ error: "Failed to create document" }, { status: 500 })
   }
 }
 
 export async function GET(request: NextRequest) {
+  const baseLogger = createRequestLogger({
+    request,
+    context: { route: "GET /api/documents" },
+  })
+  let log = baseLogger
   try {
     const { uid } = await authenticateRequest(request)
+    log = log.withContext({ userId: uid })
 
     const snapshot = await adminFirestore.collection("documents").where("userId", "==", uid).get()
 
@@ -97,7 +110,7 @@ export async function GET(request: NextRequest) {
     if (authResponse) {
       return authResponse
     }
-    console.error("Server list documents error:", error)
+    log.error("Server list documents error", { error })
     return NextResponse.json({ error: "Failed to load documents" }, { status: 500 })
   }
 }

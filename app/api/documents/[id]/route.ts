@@ -8,6 +8,7 @@ import {
   authenticateRequest,
   handleAuthError,
 } from "@/lib/server/authenticate-request"
+import { createRequestLogger } from "@/lib/server/logger"
 
 type RouteContext = {
   params: Promise<{ id: string }> | { id: string }
@@ -32,15 +33,22 @@ async function getAuthorizedDocument(request: NextRequest, params: RouteContext[
     return { errorResponse: NextResponse.json({ error: "Forbidden" }, { status: 403 }) }
   }
 
-  return { docRef, docSnapshot }
+  return { docRef, docSnapshot, uid }
 }
 
 export async function GET(request: NextRequest, context: RouteContext) {
+  const baseLogger = createRequestLogger({
+    request,
+    context: { route: "GET /api/documents/[id]" },
+  })
+  let log = baseLogger
   try {
     const authResult = await getAuthorizedDocument(request, context.params)
     if ("errorResponse" in authResult && authResult.errorResponse) {
       return authResult.errorResponse
     }
+
+    log = log.withContext({ userId: authResult.uid })
 
     return NextResponse.json(serializeDocumentSnapshot(authResult.docSnapshot))
   } catch (error) {
@@ -48,17 +56,24 @@ export async function GET(request: NextRequest, context: RouteContext) {
     if (authResponse) {
       return authResponse
     }
-    console.error("Document GET error:", error)
+    log.error("Document GET error", { error })
     return NextResponse.json({ error: "Failed to fetch document" }, { status: 500 })
   }
 }
 
 export async function PATCH(request: NextRequest, context: RouteContext) {
+  const baseLogger = createRequestLogger({
+    request,
+    context: { route: "PATCH /api/documents/[id]" },
+  })
+  let log = baseLogger
   try {
     const authResult = await getAuthorizedDocument(request, context.params)
     if ("errorResponse" in authResult && authResult.errorResponse) {
       return authResult.errorResponse
     }
+
+    log = log.withContext({ userId: authResult.uid })
 
     const { docRef } = authResult
     const { provider, amount, dueDate, status, category, issueDate, periodStart, periodEnd } = await request.json()
@@ -91,17 +106,24 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     if (authResponse) {
       return authResponse
     }
-    console.error("Document PATCH error:", error)
+    log.error("Document PATCH error", { error })
     return NextResponse.json({ error: "Failed to update document" }, { status: 500 })
   }
 }
 
 export async function DELETE(request: NextRequest, context: RouteContext) {
+  const baseLogger = createRequestLogger({
+    request,
+    context: { route: "DELETE /api/documents/[id]" },
+  })
+  let log = baseLogger
   try {
     const authResult = await getAuthorizedDocument(request, context.params)
     if ("errorResponse" in authResult && authResult.errorResponse) {
       return authResult.errorResponse
     }
+
+    log = log.withContext({ userId: authResult.uid })
 
     const { docRef } = authResult
     await docRef.delete()
@@ -112,7 +134,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     if (authResponse) {
       return authResponse
     }
-    console.error("Document DELETE error:", error)
+    log.error("Document DELETE error", { error })
     return NextResponse.json({ error: "Failed to delete document" }, { status: 500 })
   }
 }

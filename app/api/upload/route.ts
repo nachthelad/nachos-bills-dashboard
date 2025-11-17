@@ -5,12 +5,19 @@ import {
   authenticateRequest,
   handleAuthError,
 } from "@/lib/server/authenticate-request"
+import { createRequestLogger } from "@/lib/server/logger"
 
 export const runtime = "nodejs"
 
 export async function POST(request: NextRequest) {
+  const baseLogger = createRequestLogger({
+    request,
+    context: { route: "POST /api/upload" },
+  })
+  let log = baseLogger
   try {
     const { uid } = await authenticateRequest(request)
+    log = log.withContext({ userId: uid })
 
     const formData = await request.formData()
     const file = formData.get("file")
@@ -38,7 +45,7 @@ export async function POST(request: NextRequest) {
     if (authResponse) {
       return authResponse
     }
-    console.error("Server upload error:", error)
+    log.error("Server upload error", { error })
     return NextResponse.json({ error: "Failed to upload file" }, { status: 500 })
   }
 }
