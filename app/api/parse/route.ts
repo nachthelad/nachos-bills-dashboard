@@ -11,14 +11,21 @@ import {
   authenticateRequest,
   handleAuthError,
 } from "@/lib/server/authenticate-request";
+import { createRequestLogger } from "@/lib/server/logger";
 
 import { parsePdfWithOpenAI, type BillingParseResult } from "./parser";
 import { Timestamp } from "firebase-admin/firestore";
 import { performance } from "node:perf_hooks";
 
 export async function POST(request: NextRequest) {
+  const baseLogger = createRequestLogger({
+    request,
+    context: { route: "POST /api/parse" },
+  });
+  let log = baseLogger;
   try {
     const { uid } = await authenticateRequest(request);
+    log = log.withContext({ userId: uid });
     const { documentId } = await request.json();
 
     if (!documentId) {
@@ -62,7 +69,11 @@ export async function POST(request: NextRequest) {
       const arrayBuffer = await pdfResponse.arrayBuffer();
       pdfBuffer = Buffer.from(arrayBuffer);
     } catch (error: any) {
-      console.error("PDF download error:", error);
+      log.error("PDF download error", {
+        error,
+        documentId,
+        pdfUrl,
+      });
       await docRef.update({
         status: "needs_review",
         errorMessage: error.message ?? "Failed to download PDF",
@@ -77,13 +88,16 @@ export async function POST(request: NextRequest) {
     let parseResponse: BillingParseResult;
     try {
       const parserStart = performance.now();
-      parseResponse = await parsePdfWithOpenAI(pdfBuffer);
+      parseResponse = await parsePdfWithOpenAI(pdfBuffer, log);
       const parserDuration = performance.now() - parserStart;
-      console.debug(
-        `[parse] OpenAI parser latency: ${parserDuration.toFixed(2)}ms`
-      );
+      log.debug("OpenAI parser latency captured", {
+        durationMs: Number(parserDuration.toFixed(2)),
+      });
     } catch (error: any) {
-      console.error("PDF parsing error:", error);
+      log.error("PDF parsing error", {
+        error,
+        documentId,
+      });
       await docRef.update({
         status: "needs_review",
         errorMessage: error.message ?? "Failed to parse PDF",
@@ -159,9 +173,9 @@ export async function POST(request: NextRequest) {
       providerInferenceCache
     );
     const inferenceDuration = performance.now() - inferenceStart;
-    console.debug(
-      `[parse] Provider inference latency: ${inferenceDuration.toFixed(2)}ms`
-    );
+    log.debug("Provider inference latency captured", {
+      durationMs: Number(inferenceDuration.toFixed(2)),
+    });
 
     if (fallbackProvider) {
       updatePayload.providerId ??= fallbackProvider.providerId;
@@ -197,7 +211,7 @@ export async function POST(request: NextRequest) {
     if (authResponse) {
       return authResponse;
     }
-    console.error("Parse route error:", error);
+    log.error("Parse route error", { error });
     return NextResponse.json(
       { error: "Failed to parse document" },
       { status: 500 }

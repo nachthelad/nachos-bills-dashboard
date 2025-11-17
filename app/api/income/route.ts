@@ -6,11 +6,18 @@ import {
   authenticateRequest,
   handleAuthError,
 } from "@/lib/server/authenticate-request"
+import { createRequestLogger } from "@/lib/server/logger"
 import { serializeSnapshot, toIsoDateTime } from "@/lib/server/document-serializer"
 
 export async function GET(request: NextRequest) {
+  const baseLogger = createRequestLogger({
+    request,
+    context: { route: "GET /api/income" },
+  })
+  let log = baseLogger
   try {
     const { uid } = await authenticateRequest(request)
+    log = log.withContext({ userId: uid })
 
     const snapshot = await adminFirestore.collection("incomeEntries").where("userId", "==", uid).get()
 
@@ -23,14 +30,20 @@ export async function GET(request: NextRequest) {
     if (authResponse) {
       return authResponse
     }
-    console.error("Income GET error:", error)
+    log.error("Income GET error", { error })
     return NextResponse.json({ error: "Failed to load income entries" }, { status: 500 })
   }
 }
 
 export async function POST(request: NextRequest) {
+  const baseLogger = createRequestLogger({
+    request,
+    context: { route: "POST /api/income" },
+  })
+  let log = baseLogger
   try {
     const { uid } = await authenticateRequest(request)
+    log = log.withContext({ userId: uid })
 
     const body = await request.json()
     const amount = Number.parseFloat(body.amount)
@@ -58,7 +71,7 @@ export async function POST(request: NextRequest) {
     if (authResponse) {
       return authResponse
     }
-    console.error("Income POST error:", error)
+    log.error("Income POST error", { error })
     return NextResponse.json({ error: "Failed to add income entry" }, { status: 500 })
   }
 }

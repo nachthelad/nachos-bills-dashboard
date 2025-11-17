@@ -1,4 +1,5 @@
 import type { HoaDetails, HoaRubro } from "@/types/hoa";
+import { logger as baseLogger, type Logger } from "@/lib/server/logger";
 
 export type BillingParseResult = {
   text: string | null;
@@ -467,15 +468,17 @@ async function extractTextWithPdf2Json(pdfBuffer: Buffer): Promise<string> {
   });
 }
 
-async function extractPdfText(pdfBuffer: Buffer): Promise<string> {
+async function extractPdfText(pdfBuffer: Buffer, log: Logger): Promise<string> {
   try {
     const text = await extractTextWithPdf2Json(pdfBuffer);
     if (text.trim().length > 0) {
       return text;
     }
-    console.warn("pdf2json extracted empty text, falling back to pdf-parse");
+    log.warn("pdf2json extracted empty text, falling back to pdf-parse");
   } catch (error) {
-    console.warn("pdf2json text extraction failed, falling back to pdf-parse:", error);
+    log.warn("pdf2json text extraction failed, falling back to pdf-parse", {
+      error,
+    });
   }
   const pdfParse = await loadPdfParse();
   const pdfData = await pdfParse(pdfBuffer);
@@ -483,17 +486,17 @@ async function extractPdfText(pdfBuffer: Buffer): Promise<string> {
 }
 
 export async function parsePdfWithOpenAI(
-  pdfBuffer: Buffer
+  pdfBuffer: Buffer,
+  scopedLogger: Logger = baseLogger
 ): Promise<BillingParseResult> {
-  const parseTimerLabel = `parsePdfWithOpenAI-${Date.now()}`;
-  console.time(parseTimerLabel);
+  const log = scopedLogger;
+  const parseStart = Date.now();
   try {
-    const fullText = await extractPdfText(pdfBuffer);
+    const fullText = await extractPdfText(pdfBuffer, log);
     const relevantText = extractRelevantText(fullText);
 
     const client = getOpenAIClient();
-    const openAiTimerLabel = `openai.responses.create-${Date.now()}`;
-    console.time(openAiTimerLabel);
+    const openAiStart = Date.now();
     const response = await client.responses
       .create({
         model: "gpt-5-mini",
@@ -522,7 +525,8 @@ export async function parsePdfWithOpenAI(
         },
       })
       .finally(() => {
-        console.timeEnd(openAiTimerLabel);
+        const durationMs = Date.now() - openAiStart;
+        log.debug("OpenAI responses.create completed", { durationMs });
       });
 
     const jsonText = extractJsonFromResponse(response);
@@ -533,6 +537,7 @@ export async function parsePdfWithOpenAI(
       text: sanitized.text ?? (fullText.length > 0 ? fullText : null),
     };
   } finally {
-    console.timeEnd(parseTimerLabel);
+    const durationMs = Date.now() - parseStart;
+    log.debug("parsePdfWithOpenAI completed", { durationMs });
   }
 }

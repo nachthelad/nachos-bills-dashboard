@@ -5,13 +5,20 @@ import {
   authenticateRequest,
   handleAuthError,
 } from "@/lib/server/authenticate-request"
+import { createRequestLogger } from "@/lib/server/logger"
 import { Timestamp } from "firebase-admin/firestore"
 
 const COLLECTION = "dashboardSummaries"
 
 export async function GET(request: NextRequest) {
+  const baseLogger = createRequestLogger({
+    request,
+    context: { route: "GET /api/dashboard-summary" },
+  })
+  let log = baseLogger
   try {
     const { uid } = await authenticateRequest(request)
+    log = log.withContext({ userId: uid })
     const docRef = adminFirestore.collection(COLLECTION).doc(uid)
     const snapshot = await docRef.get()
     if (!snapshot.exists) {
@@ -31,14 +38,23 @@ export async function GET(request: NextRequest) {
     if (authResponse) {
       return authResponse
     }
-    console.error("Dashboard summary GET error:", error)
-    return NextResponse.json({ summary: null }, { status: 200 })
+    log.error("Dashboard summary GET error", { error })
+    return NextResponse.json(
+      { error: "Failed to load dashboard summary" },
+      { status: 500 },
+    )
   }
 }
 
 export async function POST(request: NextRequest) {
+  const baseLogger = createRequestLogger({
+    request,
+    context: { route: "POST /api/dashboard-summary" },
+  })
+  let log = baseLogger
   try {
     const { uid } = await authenticateRequest(request)
+    log = log.withContext({ userId: uid })
     const payload = await request.json()
     const docRef = adminFirestore.collection(COLLECTION).doc(uid)
     await docRef.set(
@@ -56,7 +72,7 @@ export async function POST(request: NextRequest) {
     if (authResponse) {
       return authResponse
     }
-    console.error("Dashboard summary POST error:", error)
+    log.error("Dashboard summary POST error", { error })
     return NextResponse.json({ error: "Failed to save summary" }, { status: 500 })
   }
 }
