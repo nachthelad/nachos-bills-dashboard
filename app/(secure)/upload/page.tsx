@@ -13,6 +13,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Upload } from "lucide-react"
 import { storage } from "@/lib/firebase"
 import { FirebaseError } from "firebase/app"
+import {
+  describeAllowedFileTypes,
+  formatMaxUploadSize,
+  validateUploadConstraints,
+} from "@/lib/upload-constraints"
 
 export default function UploadPage() {
   const { user } = useAuth()
@@ -35,17 +40,25 @@ export default function UploadPage() {
   })
 
   const clientStorageAvailable = Boolean(storage)
+  const uploadRequirementsCopy = `${describeAllowedFileTypes()} up to ${formatMaxUploadSize()}.`
 
   const validateFile = useCallback((selectedFile?: File) => {
-    if (selectedFile) {
-      if (selectedFile.type === "application/pdf" || selectedFile.type.startsWith("image/")) {
-        setFile(selectedFile)
-        setError(null)
-        return
-      } else {
-        setError("Please select a PDF or image file")
-      }
+    if (!selectedFile) {
+      setFile(null)
+      return
     }
+    const validation = validateUploadConstraints({
+      size: selectedFile.size,
+      type: selectedFile.type,
+      name: selectedFile.name,
+    })
+    if (!validation.ok) {
+      setFile(null)
+      setError(validation.message)
+      return
+    }
+    setFile(selectedFile)
+    setError(null)
   }, [])
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -92,12 +105,17 @@ export default function UploadPage() {
           body: formData,
         })
 
+        const data = await response.json().catch(() => ({}))
         if (!response.ok) {
-          const data = await response.json().catch(() => ({}))
-          throw new Error(data.error ?? "Server upload failed")
+          const serverError =
+            typeof data.error === "string"
+              ? data.error
+              : typeof data.error?.message === "string"
+                ? data.error.message
+                : null
+          throw new Error(serverError ?? "Server upload failed")
         }
 
-        const data = await response.json()
         return data.storageUrl as string
       }
 
@@ -251,13 +269,21 @@ export default function UploadPage() {
               onDrop={handleDrop}
             >
               <Upload className="w-10 h-10 mx-auto mb-3 text-slate-500" />
-              <input type="file" accept=".pdf,image/*" onChange={handleFileChange} className="hidden" id="file-input" />
+              <input
+                type="file"
+                accept=".pdf,.png,.jpg,.jpeg,.heic,.heif,.webp,.tif,.tiff,image/*"
+                onChange={handleFileChange}
+                className="hidden"
+                id="file-input"
+              />
               <label htmlFor="file-input" className="cursor-pointer">
                 <span className="text-base font-semibold text-slate-100">Click to select</span>
                 {file && <p className="text-sm text-slate-400 mt-2">{file.name}</p>}
                 <p className="text-xs text-slate-500 mt-1">or drag & drop here</p>
               </label>
             </div>
+
+            <p className="text-sm text-slate-400">{uploadRequirementsCopy} Files are hashed before upload and scanned for malware when available.</p>
 
             {error && <div className="text-sm text-red-400">{error}</div>}
 
