@@ -2,7 +2,10 @@ import { type NextRequest, NextResponse } from "next/server";
 
 import { adminFirestore } from "@/lib/firebase-admin";
 import type { CategoryValue } from "@/config/billing/categories";
-import { PROVIDER_HINTS, type ProviderHint } from "@/config/billing/providerHints";
+import {
+  PROVIDER_HINT_KEYWORD_MAP,
+  type ProviderHint,
+} from "@/config/billing/providerHints";
 import { normalizeCategory, normalizeSearchValue } from "@/lib/category-utils";
 import {
   authenticateRequest,
@@ -11,6 +14,7 @@ import {
 
 import { parsePdfWithOpenAI, type BillingParseResult } from "./parser";
 import { Timestamp } from "firebase-admin/firestore";
+import { performance } from "node:perf_hooks";
 
 export async function POST(request: NextRequest) {
   try {
@@ -72,7 +76,12 @@ export async function POST(request: NextRequest) {
 
     let parseResponse: BillingParseResult;
     try {
+      const parserStart = performance.now();
       parseResponse = await parsePdfWithOpenAI(pdfBuffer);
+      const parserDuration = performance.now() - parserStart;
+      console.debug(
+        `[parse] OpenAI parser latency: ${parserDuration.toFixed(2)}ms`
+      );
     } catch (error: any) {
       console.error("PDF parsing error:", error);
       await docRef.update({
@@ -136,14 +145,23 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const fallbackProvider = inferProviderFromContent({
-      fileName: documentData?.fileName,
-      text:
-        updatePayload.textExtract ??
-        documentData?.textExtract ??
-        parseResponse.text ??
-        "",
-    });
+    const providerInferenceCache = new Map<string, ProviderHint | null>();
+    const inferenceStart = performance.now();
+    const fallbackProvider = inferProviderFromContent(
+      {
+        fileName: documentData?.fileName,
+        text:
+          updatePayload.textExtract ??
+          documentData?.textExtract ??
+          parseResponse.text ??
+          "",
+      },
+      providerInferenceCache
+    );
+    const inferenceDuration = performance.now() - inferenceStart;
+    console.debug(
+      `[parse] Provider inference latency: ${inferenceDuration.toFixed(2)}ms`
+    );
 
     if (fallbackProvider) {
       updatePayload.providerId ??= fallbackProvider.providerId;
@@ -264,23 +282,53 @@ async function upsertHoaSummary(userId: string, hoaDetails: any) {
   });
 }
 
-function inferProviderFromContent({
-  fileName,
-  text,
-}: {
-  fileName?: string | null;
-  text?: string | null;
-}): ProviderHint | null {
-  const values = [fileName, text]
-    .filter(Boolean)
-    .map((value) => normalizeSearchValue(value as string));
-  if (!values.length) return null;
+type ProviderInferenceCache = Map<string, ProviderHint | null>;
 
-  for (const hint of PROVIDER_HINTS) {
+function inferProviderFromContent(
+  {
+    fileName,
+    text,
+  }: {
+    fileName?: string | null;
+    text?: string | null;
+  },
+  memo?: ProviderInferenceCache
+): ProviderHint | null {
+  const cacheKey = `${fileName ?? ""}:::${text ?? ""}`;
+  if (memo?.has(cacheKey)) {
+    return memo.get(cacheKey) ?? null;
+  }
+
+  const normalizedFileName = fileName
+    ? normalizeSearchValue(fileName)
+    : null;
+  const normalizedText = text ? normalizeSearchValue(text) : null;
+
+  if (!normalizedFileName && !normalizedText) {
+    memo?.set(cacheKey, null);
+    return null;
+  }
+
+  const match = findProviderByNormalizedContent({
+    normalizedFileName,
+    normalizedText,
+  });
+
+  memo?.set(cacheKey, match);
+  return match;
+}
+
+function findProviderByNormalizedContent({
+  normalizedFileName,
+  normalizedText,
+}: {
+  normalizedFileName: string | null;
+  normalizedText: string | null;
+}): ProviderHint | null {
+  for (const [keyword, hint] of PROVIDER_HINT_KEYWORD_MAP.entries()) {
     if (
-      hint.keywords.some((keyword) =>
-        values.some((value) => value.includes(keyword))
-      )
+      (normalizedFileName && normalizedFileName.includes(keyword)) ||
+      (normalizedText && normalizedText.includes(keyword))
     ) {
       return hint;
     }

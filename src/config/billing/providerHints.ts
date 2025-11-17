@@ -1,4 +1,5 @@
 import type { CategoryValue } from "./categories"
+import { normalizeSearchValue } from "@/lib/category-utils"
 
 export type ProviderHint = {
   providerId: string
@@ -189,3 +190,14 @@ export const PROVIDER_HINTS: ProviderHint[] = [
     keywords: ["uala"],
   },
 ]
+
+export const PROVIDER_HINT_KEYWORD_MAP: Map<string, ProviderHint> = new Map()
+
+for (const hint of PROVIDER_HINTS) {
+  for (const keyword of hint.keywords) {
+    const normalizedKeyword = normalizeSearchValue(keyword)
+    if (normalizedKeyword) {
+      PROVIDER_HINT_KEYWORD_MAP.set(normalizedKeyword, hint)
+    }
+  }
+}
