@@ -11,6 +11,12 @@ import {
   authenticateRequest,
   handleAuthError,
 } from "@/lib/server/authenticate-request";
+import {
+  calculateHoaTotals,
+  isNormalizedHoaDetails,
+  normalizeHoaDetails,
+  normalizeHoaSummaryPayload,
+} from "@/lib/server/hoa";
 import { createRequestLogger } from "@/lib/server/logger";
 import type { Logger } from "@/lib/server/logger";
 
@@ -211,6 +217,8 @@ export async function POST(request: NextRequest) {
         null
     );
 
+    const normalizedHoaDetails = normalizeHoaDetails(parseResponse.hoaDetails);
+
     const updatePayload: Record<string, any> = {
       textExtract:
         fullText ??
@@ -238,13 +246,15 @@ export async function POST(request: NextRequest) {
       errorMessage: null,
     };
 
-    if ("hoaDetails" in parseResponse) {
+    if (normalizedHoaDetails) {
+      updatePayload.hoaDetails = normalizedHoaDetails;
+    } else if ("hoaDetails" in parseResponse) {
       updatePayload.hoaDetails = parseResponse.hoaDetails ?? null;
     }
 
-    if (parseResponse.hoaDetails?.totalToPayUnit != null) {
-      updatePayload.totalAmount = parseResponse.hoaDetails.totalToPayUnit;
-      updatePayload.amount = parseResponse.hoaDetails.totalToPayUnit;
+    if (normalizedHoaDetails?.totalToPayUnit != null) {
+      updatePayload.totalAmount = normalizedHoaDetails.totalToPayUnit;
+      updatePayload.amount = normalizedHoaDetails.totalToPayUnit;
       updatePayload.currency = parseResponse.currency ?? "ARS";
       updatePayload.category = "hoa";
       if (!updatePayload.providerId) {
@@ -301,8 +311,8 @@ export async function POST(request: NextRequest) {
       "parse_success_update"
     );
 
-    if (parseResponse.hoaDetails && documentData?.userId) {
-      await upsertHoaSummary(documentData.userId, parseResponse.hoaDetails);
+    if (normalizedHoaDetails && documentData?.userId) {
+      await upsertHoaSummary(documentData.userId, normalizedHoaDetails);
     }
 
     const updatedDoc = await docRef.get();
@@ -330,55 +340,37 @@ function parseDate(value: string): Date | null {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
-async function upsertHoaSummary(userId: string, hoaDetails: any) {
-  const { buildingCode, unitCode, periodYear, periodMonth } = hoaDetails ?? {};
+async function upsertHoaSummary(
+  userId: string,
+  hoaDetails: unknown
+) {
+  const normalizedHoaDetails = isNormalizedHoaDetails(hoaDetails)
+    ? hoaDetails
+    : normalizeHoaDetails(hoaDetails);
+  const { buildingCode, unitCode, periodYear, periodMonth } =
+    normalizedHoaDetails ?? {};
   if (!userId || !buildingCode || !unitCode || !periodYear || !periodMonth) {
     return;
   }
 
-  const periodKey = `${periodYear}-${String(periodMonth).padStart(2, "0")}`;
+  const periodKey =
+    normalizedHoaDetails?.periodKey ??
+    `${periodYear}-${String(periodMonth).padStart(2, "0")}`;
   const summaryId = `${userId}_${buildingCode}_${unitCode}_${periodKey}`;
   const summaryRef = getAdminFirestore().collection("hoaSummaries").doc(summaryId);
   const now = Timestamp.now();
   const snapshot = await summaryRef.get();
 
+  const totals = calculateHoaTotals(normalizedHoaDetails?.rubros);
+
   const basePayload = {
-    userId,
-    buildingCode,
-    buildingAddress: hoaDetails.buildingAddress ?? null,
-    unitCode,
-    unitLabel: hoaDetails.unitLabel ?? null,
-    ownerName: hoaDetails.ownerName ?? null,
-    periodKey,
-    periodYear,
-    periodMonth,
-    periodLabel:
-      hoaDetails.periodLabel ??
-      `${String(periodMonth).padStart(2, "0")}/${periodYear}`,
-    totalToPayUnit: hoaDetails.totalToPayUnit ?? null,
-    totalBuildingExpenses: hoaDetails.totalBuildingExpenses ?? null,
-    rubros: Array.isArray(hoaDetails.rubros)
-      ? hoaDetails.rubros.map((r: any) => {
-          const hasConvertibleTotal =
-            r?.total !== null && r?.total !== undefined;
-          const numericTotal = hasConvertibleTotal
-            ? Number(r.total)
-            : Number.NaN;
-          const totalValue =
-            typeof r?.total === "number"
-              ? r.total
-              : hasConvertibleTotal && Number.isFinite(numericTotal)
-              ? numericTotal
-              : null;
-          return {
-            rubroNumber:
-              typeof r?.rubroNumber === "number" ? r.rubroNumber : null,
-            label: typeof r?.label === "string" ? r.label : null,
-            total: totalValue,
-          };
-        })
-      : [],
-    updatedAt: now,
+    ...normalizeHoaSummaryPayload({
+      userId,
+      hoaDetails: normalizedHoaDetails,
+      now,
+    }),
+    rubrosTotal: totals.rubrosTotal,
+    rubrosWithTotals: totals.rubrosWithTotals,
   };
 
   if (snapshot.exists) {
