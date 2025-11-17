@@ -5,6 +5,7 @@ import {
   authenticateRequest,
   handleAuthError,
 } from "@/lib/server/authenticate-request"
+import { serializeSnapshot, toIsoDateTime } from "@/lib/server/document-serializer"
 
 export async function GET(request: NextRequest) {
   try {
@@ -24,20 +25,6 @@ export async function GET(request: NextRequest) {
 
     const snapshot = await queryRef.get()
 
-    const toIsoString = (value: unknown): string | null => {
-      if (!value) return null
-      if (value instanceof Date) return value.toISOString()
-      if (typeof value === "string") return value
-      if (typeof value === "object" && value !== null && "toDate" in value) {
-        try {
-          return (value as { toDate: () => Date }).toDate().toISOString()
-        } catch {
-          return null
-        }
-      }
-      return null
-    }
-
     type HoaSummaryResponse = Record<string, unknown> & {
       id: string
       periodKey: string | null
@@ -48,14 +35,14 @@ export async function GET(request: NextRequest) {
     const summaries: HoaSummaryResponse[] = snapshot.docs
       .map((doc) => {
         const data = doc.data() as Record<string, unknown>
+        const base = serializeSnapshot(doc)
         const periodKey = typeof data.periodKey === "string" ? data.periodKey : null
 
         return {
-          id: doc.id,
-          ...data,
+          ...base,
           periodKey,
-          createdAt: toIsoString(data.createdAt),
-          updatedAt: toIsoString(data.updatedAt),
+          createdAt: toIsoDateTime(data.createdAt),
+          updatedAt: toIsoDateTime(data.updatedAt),
         }
       })
       .sort((a, b) => {

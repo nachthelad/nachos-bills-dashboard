@@ -4,7 +4,7 @@ type MaybeTimestamp = {
   toDate?: () => Date
 }
 
-function toDate(value: unknown): Date | null {
+export function toDate(value: unknown): Date | null {
   if (!value) return null
   if (value instanceof Date) return value
   if (typeof value === "string") {
@@ -21,25 +21,35 @@ function toDate(value: unknown): Date | null {
   return null
 }
 
-function toIsoDate(value: unknown): string | null {
+export function toIsoDate(value: unknown, fallback: string | null = null): string | null {
   const parsed = toDate(value)
-  if (!parsed) return null
+  if (!parsed) return fallback
   return parsed.toISOString().slice(0, 10)
 }
 
-function toIsoDateTime(value: unknown): string | null {
+export function toIsoDateTime(value: unknown, fallback: string | null = null): string | null {
   const parsed = toDate(value)
-  if (!parsed) return null
+  if (!parsed) return fallback
   return parsed.toISOString()
+}
+
+export function serializeSnapshot<T extends Record<string, unknown>>(
+  doc: DocumentSnapshot<T>,
+): T & { id: string } {
+  const data = (doc.data() ?? {}) as T & { id?: string }
+  const { id: _ignoredId, ...rest } = data
+  return {
+    ...(rest as T),
+    id: doc.id,
+  }
 }
 
 export function serializeDocumentSnapshot(doc: DocumentSnapshot): Record<string, any> {
   const data = doc.data() ?? {}
-  const { id: _ignoredId, ...rest } = data as Record<string, unknown>
+  const base = serializeSnapshot(doc)
 
   return {
-    ...rest,
-    id: doc.id,
+    ...base,
     uploadedAt: toIsoDateTime(data.uploadedAt),
     issueDate: toIsoDate(data.issueDate),
     dueDate: toIsoDate(data.dueDate),

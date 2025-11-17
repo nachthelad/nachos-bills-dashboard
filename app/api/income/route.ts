@@ -6,6 +6,7 @@ import {
   authenticateRequest,
   handleAuthError,
 } from "@/lib/server/authenticate-request"
+import { serializeSnapshot, toIsoDateTime } from "@/lib/server/document-serializer"
 
 export async function GET(request: NextRequest) {
   try {
@@ -63,13 +64,15 @@ export async function POST(request: NextRequest) {
 }
 
 function serializeIncomeDoc(doc: DocumentSnapshot) {
-  const data = doc.data() ?? {}
-  const dateValue = data.date?.toDate ? data.date.toDate() : data.date ? new Date(data.date) : null
+  const raw = (doc.data() ?? {}) as Record<string, unknown>
+  const base = serializeSnapshot(doc)
+  const fallbackDate = new Date().toISOString()
+
   return {
-    id: doc.id,
-    amount: data.amount ?? 0,
-    source: data.source ?? "Unknown",
-    date: dateValue ? dateValue.toISOString() : new Date().toISOString(),
-    currency: data.currency ?? "ARS",
+    ...base,
+    amount: typeof raw.amount === "number" ? raw.amount : 0,
+    source: typeof raw.source === "string" && raw.source.trim().length > 0 ? raw.source : "Unknown",
+    date: toIsoDateTime(raw.date, fallbackDate) ?? fallbackDate,
+    currency: typeof raw.currency === "string" && raw.currency.trim().length > 0 ? raw.currency : "ARS",
   }
 }

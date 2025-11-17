@@ -7,7 +7,8 @@
     "dev": "next dev",
     "lint": "eslint .",
     "start": "next start",
-    "seed:providers": "tsx scripts/seed-providers.ts"
+    "seed:providers": "tsx scripts/seed-providers.ts",
+    "test": "tsx --test tests/firestore-serializers.test.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
