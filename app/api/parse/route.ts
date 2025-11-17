@@ -12,9 +12,14 @@ import {
   handleAuthError,
 } from "@/lib/server/authenticate-request";
 import { createRequestLogger } from "@/lib/server/logger";
+import type { Logger } from "@/lib/server/logger";
 
-import { parsePdfWithOpenAI, type BillingParseResult } from "./parser";
-import { Timestamp } from "firebase-admin/firestore";
+import {
+  extractPdfText,
+  parseBillingTextWithOpenAI,
+  type BillingParseResult,
+} from "./parser";
+import { Timestamp, type DocumentReference } from "firebase-admin/firestore";
 import { performance } from "node:perf_hooks";
 
 export async function POST(request: NextRequest) {
@@ -57,56 +62,144 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let pdfBuffer: Buffer;
-    try {
-      const pdfResponse = await fetch(pdfUrl);
-      if (!pdfResponse.ok) {
-        const errorBody = await pdfResponse.text();
-        throw new Error(
-          `Failed to download PDF: ${pdfResponse.status} ${errorBody}`
+    const cachedText = getNonEmptyString(documentData?.textExtract);
+    let fullText: string | null = cachedText;
+
+    if (cachedText) {
+      log.debug("PDF download skipped", {
+        durationMs: 0,
+        reason: "cached_text",
+      });
+    }
+
+    if (!fullText) {
+      let pdfBuffer: Buffer;
+      const downloadStart = performance.now();
+      try {
+        const pdfResponse = await fetch(pdfUrl);
+        if (!pdfResponse.ok) {
+          const errorBody = await pdfResponse.text();
+          throw new Error(
+            `Failed to download PDF: ${pdfResponse.status} ${errorBody}`
+          );
+        }
+        const arrayBuffer = await pdfResponse.arrayBuffer();
+        pdfBuffer = Buffer.from(arrayBuffer);
+      } catch (error: any) {
+        const downloadDuration = performance.now() - downloadStart;
+        log.error("PDF download error", {
+          error,
+          documentId,
+          pdfUrl,
+          durationMs: Number(downloadDuration.toFixed(2)),
+        });
+        await updateDocumentWithMetrics(
+          docRef,
+          {
+            status: "needs_review",
+            errorMessage: error.message ?? "Failed to download PDF",
+            updatedAt: new Date(),
+          },
+          log,
+          "pdf_download_error"
+        );
+        return NextResponse.json(
+          { error: "Failed to download PDF" },
+          { status: 502 }
         );
       }
-      const arrayBuffer = await pdfResponse.arrayBuffer();
-      pdfBuffer = Buffer.from(arrayBuffer);
-    } catch (error: any) {
-      log.error("PDF download error", {
-        error,
-        documentId,
-        pdfUrl,
+      const downloadDuration = performance.now() - downloadStart;
+      log.debug("PDF download completed", {
+        durationMs: Number(downloadDuration.toFixed(2)),
       });
-      await docRef.update({
-        status: "needs_review",
-        errorMessage: error.message ?? "Failed to download PDF",
-        updatedAt: new Date(),
+
+      const textExtractionStart = performance.now();
+      try {
+        fullText = await extractPdfText(pdfBuffer, log);
+      } catch (error: any) {
+        const extractionDuration = performance.now() - textExtractionStart;
+        log.error("Text extraction error", {
+          error,
+          documentId,
+          durationMs: Number(extractionDuration.toFixed(2)),
+        });
+        await updateDocumentWithMetrics(
+          docRef,
+          {
+            status: "needs_review",
+            errorMessage: error.message ?? "Failed to extract PDF text",
+            updatedAt: new Date(),
+          },
+          log,
+          "text_extraction_error"
+        );
+        return NextResponse.json(
+          { error: "Failed to extract PDF text" },
+          { status: 502 }
+        );
+      }
+      const extractionDuration = performance.now() - textExtractionStart;
+      log.debug("Text extraction completed", {
+        durationMs: Number(extractionDuration.toFixed(2)),
+        source: "pdf",
       });
+    } else {
+      log.debug("Text extraction completed", {
+        durationMs: 0,
+        source: "cache",
+      });
+    }
+
+    if (!fullText || !fullText.trim()) {
+      const errorMessage = "Extracted text was empty";
+      await updateDocumentWithMetrics(
+        docRef,
+        {
+          status: "needs_review",
+          errorMessage,
+          textExtract: fullText ?? null,
+          updatedAt: new Date(),
+        },
+        log,
+        "empty_text_extract"
+      );
       return NextResponse.json(
-        { error: "Failed to download PDF" },
+        { error: errorMessage },
         { status: 502 }
       );
     }
 
     let parseResponse: BillingParseResult;
+    const parserStart = performance.now();
     try {
-      const parserStart = performance.now();
-      parseResponse = await parsePdfWithOpenAI(pdfBuffer, log);
-      const parserDuration = performance.now() - parserStart;
-      log.debug("OpenAI parser latency captured", {
-        durationMs: Number(parserDuration.toFixed(2)),
-      });
+      parseResponse = await parseBillingTextWithOpenAI(fullText, log);
     } catch (error: any) {
+      const parserDuration = performance.now() - parserStart;
       log.error("PDF parsing error", {
         error,
         documentId,
+        durationMs: Number(parserDuration.toFixed(2)),
       });
-      await docRef.update({
-        status: "needs_review",
-        errorMessage: error.message ?? "Failed to parse PDF",
-        updatedAt: new Date(),
-      });
+      await updateDocumentWithMetrics(
+        docRef,
+        {
+          status: "needs_review",
+          errorMessage: error.message ?? "Failed to parse PDF",
+          textExtract: fullText,
+          updatedAt: new Date(),
+        },
+        log,
+        "parse_error_update"
+      );
       return NextResponse.json(
         { error: "Failed to parse PDF" },
         { status: 502 }
       );
+    } finally {
+      const parserDuration = performance.now() - parserStart;
+      log.debug("OpenAI parser latency captured", {
+        durationMs: Number(parserDuration.toFixed(2)),
+      });
     }
 
     const detectedCategory = normalizeCategory(
@@ -119,7 +212,11 @@ export async function POST(request: NextRequest) {
     );
 
     const updatePayload: Record<string, any> = {
-      textExtract: parseResponse.text ?? documentData?.textExtract ?? null,
+      textExtract:
+        fullText ??
+        parseResponse.text ??
+        documentData?.textExtract ??
+        null,
       providerId: parseResponse.providerId ?? documentData?.providerId ?? null,
       providerNameDetected:
         parseResponse.providerNameDetected ??
@@ -197,7 +294,12 @@ export async function POST(request: NextRequest) {
     assignDate("periodStart", parseResponse.periodStart);
     assignDate("periodEnd", parseResponse.periodEnd);
 
-    await docRef.update(updatePayload);
+    await updateDocumentWithMetrics(
+      docRef,
+      updatePayload,
+      log,
+      "parse_success_update"
+    );
 
     if (parseResponse.hoaDetails && documentData?.userId) {
       await upsertHoaSummary(documentData.userId, parseResponse.hoaDetails);
@@ -297,6 +399,28 @@ async function upsertHoaSummary(userId: string, hoaDetails: any) {
 }
 
 type ProviderInferenceCache = Map<string, ProviderHint | null>;
+
+function getNonEmptyString(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  return value.trim().length > 0 ? value : null;
+}
+
+async function updateDocumentWithMetrics(
+  ref: DocumentReference,
+  payload: Record<string, unknown>,
+  log: Logger,
+  context: string
+) {
+  const start = performance.now();
+  await ref.update(payload);
+  const duration = performance.now() - start;
+  log.debug("Firestore write completed", {
+    durationMs: Number(duration.toFixed(2)),
+    context,
+  });
+}
 
 function inferProviderFromContent(
   {
