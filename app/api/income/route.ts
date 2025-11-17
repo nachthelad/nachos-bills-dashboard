@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server"
 
 import { adminAuth, adminFirestore } from "@/lib/firebase-admin"
 import { Timestamp, type DocumentSnapshot } from "firebase-admin/firestore"
+import { incomeEntrySchema } from "@/lib/server/schemas"
+import { ZodError } from "zod"
 
 export async function GET(request: NextRequest) {
   try {
@@ -33,21 +35,15 @@ export async function POST(request: NextRequest) {
     const token = authHeader.slice(7)
     const decoded = await adminAuth.verifyIdToken(token)
 
-    const body = await request.json()
-    const amount = Number.parseFloat(body.amount)
-    const source = (body.source ?? "").toString().trim() || "Salary"
-    const dateString = body.date as string | undefined
-
-    if (!Number.isFinite(amount) || amount <= 0) {
-      return NextResponse.json({ error: "Invalid amount" }, { status: 400 })
-    }
+    const payload = incomeEntrySchema.parse(await request.json())
+    const entryDate = payload.date ?? Timestamp.now()
 
     const entryRef = await adminFirestore.collection("incomeEntries").add({
       userId: decoded.uid,
-      amount,
-      source,
+      amount: payload.amount,
+      source: payload.source,
       currency: "ARS",
-      date: dateString ? Timestamp.fromDate(new Date(dateString)) : Timestamp.now(),
+      date: entryDate,
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now(),
     })
@@ -55,6 +51,12 @@ export async function POST(request: NextRequest) {
     const entrySnapshot = await entryRef.get()
     return NextResponse.json(serializeIncomeDoc(entrySnapshot), { status: 201 })
   } catch (error) {
+    if (error instanceof ZodError) {
+      return NextResponse.json(
+        { error: error.issues.map((issue) => issue.message).join(", ") },
+        { status: 400 },
+      )
+    }
     console.error("Income POST error:", error)
     return NextResponse.json({ error: "Failed to add income entry" }, { status: 500 })
   }

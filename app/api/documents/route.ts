@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 
-import { Timestamp } from "firebase-admin/firestore"
-
 import { adminAuth, adminFirestore } from "@/lib/firebase-admin"
 import { serializeDocumentSnapshot } from "@/lib/server/document-serializer"
+import { documentCreateSchema } from "@/lib/server/schemas"
+import { ZodError } from "zod"
 
 export const runtime = "nodejs"
 
@@ -17,60 +17,41 @@ export async function POST(request: NextRequest) {
     const token = authHeader.slice(7)
     const decoded = await adminAuth.verifyIdToken(token)
 
-    const payload = await request.json()
-    const {
-      fileName,
-      storageUrl,
-      provider,
-      providerId,
-      category,
-      amount,
-      totalAmount,
-      currency,
-      dueDate,
-      issueDate,
-      periodStart,
-      periodEnd,
-      manualEntry,
-      textExtract,
-    } = payload ?? {}
-
-    if (!fileName) {
-      return NextResponse.json({ error: "Missing fileName" }, { status: 400 })
-    }
-
-    const toTimestamp = (value?: string | null) => {
-      if (!value) return null
-      return Timestamp.fromDate(new Date(`${value}T00:00:00Z`))
-    }
+    const payload = documentCreateSchema.parse(await request.json())
 
     const docData: Record<string, unknown> = {
       userId: decoded.uid,
-      fileName,
-      storageUrl: storageUrl ?? null,
-      pdfUrl: storageUrl ?? null,
-      status: storageUrl ? "pending" : "needs_review",
+      fileName: payload.fileName,
+      storageUrl: payload.storageUrl ?? null,
+      pdfUrl: payload.storageUrl ?? null,
+      status: payload.storageUrl ? "pending" : "needs_review",
       uploadedAt: new Date(),
-      manualEntry: Boolean(manualEntry),
+      manualEntry: payload.manualEntry ?? false,
     }
 
-    if (provider !== undefined) docData.provider = provider || null
-    if (providerId !== undefined) docData.providerId = providerId || null
-    if (category !== undefined) docData.category = category || null
-    if (amount !== undefined) docData.amount = amount ?? null
-    if (totalAmount !== undefined) docData.totalAmount = totalAmount ?? null
-    if (currency !== undefined) docData.currency = currency || null
-    if (textExtract !== undefined) docData.textExtract = textExtract ?? null
+    if (payload.provider !== undefined) docData.provider = payload.provider ?? null
+    if (payload.providerId !== undefined) docData.providerId = payload.providerId ?? null
+    if (payload.category !== undefined) docData.category = payload.category ?? null
+    if (payload.amount !== undefined) docData.amount = payload.amount ?? null
+    if (payload.totalAmount !== undefined) docData.totalAmount = payload.totalAmount ?? null
+    if (payload.currency !== undefined) docData.currency = payload.currency ?? null
+    if (payload.textExtract !== undefined) docData.textExtract = payload.textExtract ?? null
 
-    docData.dueDate = toTimestamp(dueDate)
-    docData.issueDate = toTimestamp(issueDate)
-    docData.periodStart = toTimestamp(periodStart)
-    docData.periodEnd = toTimestamp(periodEnd)
+    docData.dueDate = payload.dueDate ?? null
+    docData.issueDate = payload.issueDate ?? null
+    docData.periodStart = payload.periodStart ?? null
+    docData.periodEnd = payload.periodEnd ?? null
 
     const docRef = await adminFirestore.collection("documents").add(docData)
 
     return NextResponse.json({ documentId: docRef.id })
   } catch (error) {
+    if (error instanceof ZodError) {
+      return NextResponse.json(
+        { error: error.issues.map((issue) => issue.message).join(", ") },
+        { status: 400 },
+      )
+    }
     console.error("Server create document error:", error)
     return NextResponse.json({ error: "Failed to create document" }, { status: 500 })
   }

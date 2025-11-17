@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 
-import { Timestamp } from "firebase-admin/firestore"
-
 import { adminAuth, adminFirestore } from "@/lib/firebase-admin"
 import { serializeDocumentSnapshot } from "@/lib/server/document-serializer"
+import { documentUpdateSchema } from "@/lib/server/schemas"
+import { ZodError } from "zod"
 
 type RouteContext = {
   params: Promise<{ id: string }> | { id: string }
@@ -60,24 +60,20 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     }
 
     const { docRef } = authResult
-    const { provider, amount, dueDate, status, category, issueDate, periodStart, periodEnd } = await request.json()
+    const payload = documentUpdateSchema.parse(await request.json())
 
     const updates: Record<string, any> = {}
 
-    if (provider !== undefined) updates.provider = provider || null
-    if (amount !== undefined) updates.amount = amount ?? null
-    if (status) updates.status = status
-    if (category !== undefined) updates.category = category || null
-
-    const assignDate = (field: string, value: any) => {
-      if (value === undefined) return
-      updates[field] = value ? Timestamp.fromDate(new Date(`${value}T00:00:00Z`)) : null
-    }
-
-    assignDate("dueDate", dueDate)
-    assignDate("issueDate", issueDate)
-    assignDate("periodStart", periodStart)
-    assignDate("periodEnd", periodEnd)
+    if (payload.provider !== undefined) updates.provider = payload.provider ?? null
+    if (payload.amount !== undefined) updates.amount = payload.amount ?? null
+    if (payload.status) updates.status = payload.status
+    if (payload.category !== undefined) updates.category = payload.category ?? null
+    if (payload.totalAmount !== undefined) updates.totalAmount = payload.totalAmount ?? null
+    if (payload.currency !== undefined) updates.currency = payload.currency ?? null
+    if (payload.dueDate !== undefined) updates.dueDate = payload.dueDate
+    if (payload.issueDate !== undefined) updates.issueDate = payload.issueDate
+    if (payload.periodStart !== undefined) updates.periodStart = payload.periodStart
+    if (payload.periodEnd !== undefined) updates.periodEnd = payload.periodEnd
 
     updates.updatedAt = new Date()
 
@@ -86,6 +82,12 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
     return NextResponse.json(serializeDocumentSnapshot(updatedSnapshot))
   } catch (error) {
+    if (error instanceof ZodError) {
+      return NextResponse.json(
+        { error: error.issues.map((issue) => issue.message).join(", ") },
+        { status: 400 },
+      )
+    }
     console.error("Document PATCH error:", error)
     return NextResponse.json({ error: "Failed to update document" }, { status: 500 })
   }

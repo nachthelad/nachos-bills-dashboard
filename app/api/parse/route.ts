@@ -4,9 +4,11 @@ import { adminAuth, adminFirestore } from "@/lib/firebase-admin";
 import type { CategoryValue } from "@/config/billing/categories";
 import { PROVIDER_HINTS, type ProviderHint } from "@/config/billing/providerHints";
 import { normalizeCategory, normalizeSearchValue } from "@/lib/category-utils";
+import { parseRequestSchema } from "@/lib/server/schemas";
 
 import { parsePdfWithOpenAI, type BillingParseResult } from "./parser";
 import { Timestamp } from "firebase-admin/firestore";
+import { ZodError } from "zod";
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,14 +20,7 @@ export async function POST(request: NextRequest) {
     const token = authHeader.slice(7);
     const decoded = await adminAuth.verifyIdToken(token);
 
-    const { documentId } = await request.json();
-
-    if (!documentId) {
-      return NextResponse.json(
-        { error: "Missing documentId" },
-        { status: 400 }
-      );
-    }
+    const { documentId } = parseRequestSchema.parse(await request.json());
 
     const docRef = adminFirestore.collection("documents").doc(documentId);
     const docSnapshot = await docRef.get();
@@ -178,6 +173,12 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ id: updatedDoc.id, ...updatedDoc.data() });
   } catch (error) {
+    if (error instanceof ZodError) {
+      return NextResponse.json(
+        { error: error.issues.map((issue) => issue.message).join(", ") },
+        { status: 400 }
+      );
+    }
     console.error("Parse route error:", error);
     return NextResponse.json(
       { error: "Failed to parse document" },
