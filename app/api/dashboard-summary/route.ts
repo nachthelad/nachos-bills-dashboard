@@ -1,13 +1,17 @@
 import { NextRequest, NextResponse } from "next/server"
 
-import { adminAuth, adminFirestore } from "@/lib/firebase-admin"
+import { adminFirestore } from "@/lib/firebase-admin"
+import {
+  authenticateRequest,
+  handleAuthError,
+} from "@/lib/server/authenticate-request"
 import { Timestamp } from "firebase-admin/firestore"
 
 const COLLECTION = "dashboardSummaries"
 
 export async function GET(request: NextRequest) {
   try {
-    const { uid } = await authenticate(request)
+    const { uid } = await authenticateRequest(request)
     const docRef = adminFirestore.collection(COLLECTION).doc(uid)
     const snapshot = await docRef.get()
     if (!snapshot.exists) {
@@ -23,6 +27,10 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
+    const authResponse = handleAuthError(error)
+    if (authResponse) {
+      return authResponse
+    }
     console.error("Dashboard summary GET error:", error)
     return NextResponse.json({ summary: null }, { status: 200 })
   }
@@ -30,7 +38,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { uid } = await authenticate(request)
+    const { uid } = await authenticateRequest(request)
     const payload = await request.json()
     const docRef = adminFirestore.collection(COLLECTION).doc(uid)
     await docRef.set(
@@ -44,17 +52,11 @@ export async function POST(request: NextRequest) {
     )
     return NextResponse.json({ success: true })
   } catch (error) {
+    const authResponse = handleAuthError(error)
+    if (authResponse) {
+      return authResponse
+    }
     console.error("Dashboard summary POST error:", error)
     return NextResponse.json({ error: "Failed to save summary" }, { status: 500 })
   }
-}
-
-async function authenticate(request: NextRequest) {
-  const authHeader = request.headers.get("authorization") ?? ""
-  if (!authHeader.startsWith("Bearer ")) {
-    throw new Error("Unauthorized")
-  }
-  const token = authHeader.slice(7)
-  const decoded = await adminAuth.verifyIdToken(token)
-  return { uid: decoded.uid }
 }

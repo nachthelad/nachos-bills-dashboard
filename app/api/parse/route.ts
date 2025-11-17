@@ -1,23 +1,20 @@
 import { type NextRequest, NextResponse } from "next/server";
 
-import { adminAuth, adminFirestore } from "@/lib/firebase-admin";
+import { adminFirestore } from "@/lib/firebase-admin";
 import type { CategoryValue } from "@/config/billing/categories";
 import { PROVIDER_HINTS, type ProviderHint } from "@/config/billing/providerHints";
 import { normalizeCategory, normalizeSearchValue } from "@/lib/category-utils";
+import {
+  authenticateRequest,
+  handleAuthError,
+} from "@/lib/server/authenticate-request";
 
 import { parsePdfWithOpenAI, type BillingParseResult } from "./parser";
 import { Timestamp } from "firebase-admin/firestore";
 
 export async function POST(request: NextRequest) {
   try {
-    const authHeader = request.headers.get("authorization") ?? "";
-    if (!authHeader.startsWith("Bearer ")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const token = authHeader.slice(7);
-    const decoded = await adminAuth.verifyIdToken(token);
-
+    const { uid } = await authenticateRequest(request);
     const { documentId } = await request.json();
 
     if (!documentId) {
@@ -37,7 +34,7 @@ export async function POST(request: NextRequest) {
     }
 
     const documentData = docSnapshot.data();
-    if (documentData?.userId && documentData.userId !== decoded.uid) {
+    if (documentData?.userId && documentData.userId !== uid) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
     const pdfUrl = documentData?.pdfUrl ?? documentData?.storageUrl;
@@ -178,6 +175,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ id: updatedDoc.id, ...updatedDoc.data() });
   } catch (error) {
+    const authResponse = handleAuthError(error);
+    if (authResponse) {
+      return authResponse;
+    }
     console.error("Parse route error:", error);
     return NextResponse.json(
       { error: "Failed to parse document" },

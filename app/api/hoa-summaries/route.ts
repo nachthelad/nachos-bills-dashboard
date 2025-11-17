@@ -1,22 +1,19 @@
 import { NextRequest, NextResponse } from "next/server"
 
-import { adminAuth, adminFirestore } from "@/lib/firebase-admin"
+import { adminFirestore } from "@/lib/firebase-admin"
+import {
+  authenticateRequest,
+  handleAuthError,
+} from "@/lib/server/authenticate-request"
 
 export async function GET(request: NextRequest) {
   try {
-    const authHeader = request.headers.get("authorization") ?? ""
-    if (!authHeader.startsWith("Bearer ")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
-    const token = authHeader.slice(7)
-    const decoded = await adminAuth.verifyIdToken(token)
-
+    const { uid } = await authenticateRequest(request)
     const { searchParams } = request.nextUrl
     const buildingCode = searchParams.get("buildingCode")
     const unitCode = searchParams.get("unitCode")
 
-    let queryRef = adminFirestore.collection("hoaSummaries").where("userId", "==", decoded.uid)
+    let queryRef = adminFirestore.collection("hoaSummaries").where("userId", "==", uid)
 
     if (buildingCode) {
       queryRef = queryRef.where("buildingCode", "==", buildingCode)
@@ -70,6 +67,10 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ summaries })
   } catch (error) {
+    const authResponse = handleAuthError(error)
+    if (authResponse) {
+      return authResponse
+    }
     console.error("hoaSummaries GET error:", error)
     return NextResponse.json({ error: "Failed to load HOA summaries" }, { status: 500 })
   }
