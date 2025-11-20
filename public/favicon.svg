@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" width="1000" height="1000"><style>
+    #light-icon {
+      display: inline;
+    }
+    #dark-icon {
+      display: none;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      #light-icon {
+        display: none;
+      }
+      #dark-icon {
+        display: inline;
+      }
+    }
+  </style><g id="light-icon"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" width="1000" height="1000"><g><g transform="matrix(2.6439638305747977,0,0,2.6439638305747977,160.7133414414891,0)"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" width="256.65" height="378.22"><svg id="Capa_1" data-name="Capa 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256.65 378.22"><defs><style>.cls-1{fill:#1b5e68;}.cls-2{fill:#529e9d;}</style></defs><rect class="cls-1" x="33.77" y="33.77" width="33.77" height="33.77"></rect><rect class="cls-1" x="101.31" y="47.28" width="37.82" height="37.82"></rect><rect class="cls-1" x="78.35" width="32.42" height="32.42"></rect><rect class="cls-1" x="155.34" y="20.26" width="33.77" height="33.77"></rect><path class="cls-1" d="M59.68,119H316.32L215,247.28v33.77l-54,27V247.28Z" transform="translate(-59.68 -10.89)"></path><path class="cls-2" d="M161,328.32l54-27v20.26l-54,27Z" transform="translate(-59.68 -10.89)"></path><path class="cls-2" d="M161,368.85l54-27v20.26l-54,27Z" transform="translate(-59.68 -10.89)"></path></svg></svg></g></g></svg></g><g id="dark-icon"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" width="1000" height="1000"><g clip-path="url(#SvgjsClipPath1033)"><rect width="1000" height="1000" fill="#ffffff"></rect><g transform="matrix(2.3795674475173176,0,0,2.3795674475173176,194.64200729734023,50.00000000000006)"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" width="256.65" height="378.22"><svg id="Capa_1" data-name="Capa 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256.65 378.22"><defs><style>.cls-1{fill:#1b5e68;}.cls-2{fill:#529e9d;}</style><clipPath id="SvgjsClipPath1033"><rect width="1000" height="1000" x="0" y="0" rx="200" ry="200"></rect></clipPath></defs><rect class="cls-1" x="33.77" y="33.77" width="33.77" height="33.77"></rect><rect class="cls-1" x="101.31" y="47.28" width="37.82" height="37.82"></rect><rect class="cls-1" x="78.35" width="32.42" height="32.42"></rect><rect class="cls-1" x="155.34" y="20.26" width="33.77" height="33.77"></rect><path class="cls-1" d="M59.68,119H316.32L215,247.28v33.77l-54,27V247.28Z" transform="translate(-59.68 -10.89)"></path><path class="cls-2" d="M161,328.32l54-27v20.26l-54,27Z" transform="translate(-59.68 -10.89)"></path><path class="cls-2" d="M161,368.85l54-27v20.26l-54,27Z" transform="translate(-59.68 -10.89)"></path></svg></svg></g></g></svg></g></svg>
