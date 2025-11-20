@@ -212,15 +212,15 @@ export default function IncomePage() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-6 space-y-8">
       <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-2">
           <div>
             <p className="text-sm uppercase tracking-wide text-slate-400">
               Income
             </p>
-            <h1 className="text-3xl font-bold">Manage your salaries</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-3xl font-bold">Manage your salaries</h1>
+              <AmountVisibilityToggle />
+            </div>
           </div>
-          <AmountVisibilityToggle className="inline-flex h-8 w-8 items-center justify-center text-slate-300 hover:text-white" />
-        </div>
         <div className="text-slate-400 max-w-2xl">
           <p>Add or update your income entries. Changes here are reflected on the dashboard breakdown.</p>
           {headerError && <p className="text-sm text-red-400 mt-2">{headerError}</p>}

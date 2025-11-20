@@ -106,13 +106,13 @@ export default function DocumentsPage() {
   return (
     <div className="p-6 lg:p-8 bg-slate-950 text-slate-100 min-h-screen space-y-8">
       <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-2">
           <div>
             <p className="text-sm uppercase tracking-wide text-slate-500">Library</p>
-            <h1 className="text-3xl font-bold">Documents</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-3xl font-bold">Documents</h1>
+              <AmountVisibilityToggle />
+            </div>
           </div>
-          <AmountVisibilityToggle className="inline-flex h-8 w-8 items-center justify-center text-slate-300 hover:text-white" />
-        </div>
         <p className="text-slate-400">View and manage your uploaded bills.</p>
       </div>
 
