@@ -6,23 +6,31 @@
  * - Income: incomeEntries collection filtered by userId for the current year to drive cards + right-hand breakdown.
  * - Cards: Total Expenses (year), Total Income (year), Net = income - expenses, This Month (expenses in current month).
  * - Expenses Breakdown: yearly totals grouped by provider category mapping (electricity/water/etc).
+"use client"
+
+/**
+ * Dashboard summary:
+ * - Expenses: documents collection filtered by userId, statuses parsed/needs_review, using totalAmount + due/issue dates.
+ * - Income: incomeEntries collection filtered by userId for the current year to drive cards + right-hand breakdown.
+ * - Cards: Total Expenses (year), Total Income (year), Net = income - expenses, This Month (expenses in current month).
+ * - Expenses Breakdown: yearly totals grouped by provider category mapping (electricity/water/etc).
  * - Income Breakdown: yearly totals grouped by source; includes quick form to add income (stored in incomeEntries).
  */
 
 import { useAuth } from "@/lib/auth-context"
 import { useEffect, useMemo, useState } from "react"
 import type { BillDocument } from "@/lib/firestore-helpers"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
-import { cn } from "@/lib/utils"
 import { fetchIncomeEntries, type IncomeEntry } from "@/lib/income-client"
 import { CATEGORY_OPTIONS, type CategoryValue } from "@/config/billing/categories"
 import { normalizeCategory } from "@/lib/category-utils"
 import { createApiClient, type DashboardSummary } from "@/lib/api-client"
 import { AmountVisibilityToggle, useAmountVisibility } from "@/components/amount-visibility"
+import { DashboardCard } from "@/components/dashboard/dashboard-card"
+import { BreakdownBar } from "@/components/dashboard/breakdown-bar"
+import { resolveDocDate, labelForCategory, defaultCategoryTotals } from "@/lib/billing-utils"
 type DashboardDocument = Omit<BillDocument, "uploadedAt"> & { uploadedAt: Date }
 
-const formatter = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" })
 const categoryOrder = CATEGORY_OPTIONS.map((option) => option.value) as CategoryValue[]
 
 export default function DashboardPage() {
@@ -206,13 +214,13 @@ export default function DashboardPage() {
   return (
     <div className="p-6 space-y-8 bg-slate-950 min-h-screen text-slate-100">
       <header className="flex flex-col gap-2">
-        <div className="flex items-center gap-2">
           <div>
             <p className="text-sm uppercase tracking-wide text-slate-400">Finance overview</p>
-            <h1 className="text-3xl font-bold">Expense Dashboard</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-3xl font-bold">Expense Dashboard</h1>
+              <AmountVisibilityToggle />
+            </div>
           </div>
-          <AmountVisibilityToggle className="inline-flex h-10 w-10 items-center justify-center text-slate-300 hover:text-white" />
-        </div>
         <div>
           <p className="text-slate-400">Monitor and analyze your utility expenses across all services.</p>
           {error && <p className="text-sm text-red-400 mt-1">{error}</p>}
@@ -308,99 +316,3 @@ export default function DashboardPage() {
     </div>
   )
 }
-
-function DashboardCard({
-  title,
-  subtitle,
-  amount,
-  accent = "text-slate-100",
-  hidden = false,
-}: {
-  title: string
-  subtitle: string
-  amount: number
-  accent?: string
-  hidden?: boolean
-}) {
-  return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-5">
-      <p className="text-sm uppercase tracking-wide text-slate-400">{title}</p>
-      <p className={cn("text-3xl font-semibold mt-2", accent)}>{hidden ? "****" : formatter.format(amount || 0)}</p>
-      <p className="text-xs text-slate-500 mt-1">{subtitle}</p>
-    </div>
-  )
-}
-
-function BreakdownBar({
-  label,
-  amount,
-  maxValue,
-  accent = "bg-indigo-500",
-  hidden = false,
-}: {
-  label: string
-  amount: number
-  maxValue: number
-  accent?: string
-  hidden?: boolean
-}) {
-  let widthPercent = maxValue > 0 ? (amount / maxValue) * 100 : 0
-  if (amount > 0 && widthPercent < 2) {
-    widthPercent = 2
-  }
-  return (
-    <div>
-      <div className="flex items-center justify-between text-sm text-slate-300">
-        <span>{label}</span>
-        <span>{hidden ? "****" : formatter.format(amount || 0)}</span>
-      </div>
-      <div className="mt-2 h-2 rounded-full bg-slate-800">
-        <div className={cn("h-full rounded-full transition-all", accent)} style={{ width: `${widthPercent}%` }} />
-      </div>
-    </div>
-  )
-}
-
-function resolveDocDate(doc: BillDocument): Date | null {
-  const candidates: (Date | string | null | undefined)[] = [doc.dueDate, doc.issueDate, doc.periodEnd, doc.periodStart, doc.uploadedAt]
-  for (const candidate of candidates) {
-    const parsed = candidate instanceof Date ? candidate : candidate ? new Date(candidate) : null
-    if (parsed && !Number.isNaN(parsed.getTime())) {
-      return parsed
-    }
-  }
-  return null
-}
-
-function labelForCategory(category: (typeof categoryOrder)[number]) {
-  switch (category) {
-    case "electricity":
-      return "Electricity"
-    case "water":
-      return "Water"
-    case "gas":
-      return "Gas"
-    case "internet":
-      return "Mobile / Internet"
-    case "hoa":
-      return "Home / HOA"
-    case "credit_card":
-      return "Credit Card"
-    default:
-      return "Other"
-  }
-}
-
-function defaultCategoryTotals(): Record<CategoryValue, number> {
-  return categoryOrder.reduce((acc, key) => {
-    acc[key] = 0
-    return acc
-  }, {} as Record<CategoryValue, number>)
-}
-
-function formatDisplayDate(value: Date | string) {
-  const date = value instanceof Date ? value : new Date(value)
-  return date.toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })
-}
-
-

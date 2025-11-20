@@ -1,4 +1,5 @@
 import type { Timestamp } from "firebase-admin/firestore"
+import { toNonEmptyString, toNumber, toInteger } from "@/lib/utils"
 
 export type HoaTotals = {
   rubrosTotal: number | null
@@ -160,35 +161,4 @@ function normalizeHoaRubro(input: unknown): NormalizedHoaRubro {
   }
 }
 
-function toNonEmptyString(value: unknown): string | null {
-  if (typeof value !== "string") {
-    return null
-  }
-  const trimmed = value.trim()
-  return trimmed.length > 0 ? trimmed : null
-}
 
-function toNumber(value: unknown): number | null {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return value
-  }
-  if (typeof value === "string" && value.trim().length > 0) {
-    const parsed = Number(value)
-    return Number.isFinite(parsed) ? parsed : null
-  }
-  if (typeof value === "bigint") {
-    return Number(value)
-  }
-  return null
-}
-
-function toInteger(value: unknown): number | null {
-  if (typeof value === "number" && Number.isInteger(value)) {
-    return value
-  }
-  if (typeof value === "string" && value.trim().length > 0) {
-    const parsed = Number.parseInt(value, 10)
-    return Number.isFinite(parsed) ? parsed : null
-  }
-  return null
-}

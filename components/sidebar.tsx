@@ -22,7 +22,7 @@ export function Sidebar() {
   return (
     <aside className="w-64 bg-slate-950 border-r border-slate-900 flex flex-col min-h-screen text-slate-100">
       <div className="p-6 border-b border-slate-900">
-        <h1 className="text-xl font-bold tracking-tight">Bills</h1>
+        <h1 className="text-xl font-bold tracking-tight">TOLVA</h1>
         <p className="text-sm text-slate-400 mt-1">Keep your utilities in sync</p>
       </div>
 

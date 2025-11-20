@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react"
 import { Eye, EyeOff } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 
 type AmountVisibilityContextValue = {
   showAmounts: boolean
@@ -58,7 +59,10 @@ export function AmountVisibilityToggle({ className }: { className?: string }) {
       aria-pressed={!showAmounts}
       title={showAmounts ? "Hide amounts" : "Show amounts"}
       onClick={toggle}
-      className={className}
+      className={cn(
+        "inline-flex h-8 w-8 items-center justify-center text-slate-300 hover:text-white hover:bg-slate-900",
+        className,
+      )}
     >
       {showAmounts ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
     </Button>

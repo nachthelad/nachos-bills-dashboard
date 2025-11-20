@@ -264,10 +264,12 @@ export default function DocumentDetailPage() {
         <CardHeader className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-2">
             <div>
-              <CardTitle>{document.fileName}</CardTitle>
+              <div className="flex items-center gap-2">
+                <CardTitle>{document.fileName}</CardTitle>
+                <AmountVisibilityToggle />
+              </div>
               <p className="text-sm text-muted-foreground">Status: {document.status}</p>
             </div>
-            <AmountVisibilityToggle className="inline-flex h-8 w-8 items-center justify-center text-slate-300 hover:text-white" />
           </div>
           {shouldShowParseButton && (
             <Button

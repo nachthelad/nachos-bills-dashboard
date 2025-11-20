@@ -167,7 +167,6 @@ export default function HoaPage() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-6 lg:p-10 space-y-8">
       <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-2">
           <div>
             <p className="text-sm uppercase tracking-wide text-slate-500">HOA</p>
             <div className="flex flex-wrap items-center gap-3">
@@ -176,10 +175,9 @@ export default function HoaPage() {
                 <LineChartIcon className="w-3.5 h-3.5" />
                 Comparison
               </span>
+              <AmountVisibilityToggle />
             </div>
           </div>
-          <AmountVisibilityToggle className="inline-flex h-8 w-8 items-center justify-center text-slate-300 hover:text-white" />
-        </div>
         <p className="text-slate-400 max-w-3xl">
           Track monthly HOA fees, spot unusual increases, and highlight new charges for your unit.
         </p>

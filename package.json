@@ -1,5 +1,5 @@
 {
-  "name": "bill-dashboard",
+  "name": "tolva",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -66,11 +66,14 @@
     "zod": "3.25.76"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.1",
     "@tailwindcss/postcss": "^4.1.9",
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "dotenv": "^16.4.5",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^16.0.3",
     "postcss": "^8.5",
     "tailwindcss": "^4.1.9",
     "tsx": "^4.19.2",

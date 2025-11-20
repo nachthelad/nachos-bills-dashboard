@@ -53,7 +53,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-slate-950 text-slate-100 p-4">
       <Card className="w-full max-w-md bg-slate-900/70">
         <CardHeader>
-          <CardTitle>Bills Dashboard</CardTitle>
+          <CardTitle>TOLVA</CardTitle>
           <CardDescription>
             Sign in to manage your recurring bills
           </CardDescription>
