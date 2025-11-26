@@ -9,7 +9,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { ChevronLeft, Trash2 } from "lucide-react";
 import { CATEGORY_OPTIONS } from "@/config/billing/categories";
-import { AmountVisibilityToggle, useAmountVisibility } from "@/components/amount-visibility";
+import {
+  AmountVisibilityToggle,
+  useAmountVisibility,
+} from "@/components/amount-visibility";
 
 export default function DocumentDetailPage() {
   const { user } = useAuth();
@@ -206,16 +209,18 @@ export default function DocumentDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-100 p-8 flex items-center justify-center">
-        <div className="text-slate-400">Loading document...</div>
+      <div className="min-h-screen bg-background text-foreground p-8 flex items-center justify-center">
+        <div className="text-muted-foreground">Loading document...</div>
       </div>
     );
   }
 
   if (!document) {
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-100 p-8">
-        <p className={actionError ? "text-destructive" : "text-slate-400"}>
+      <div className="min-h-screen bg-background text-foreground p-8">
+        <p
+          className={actionError ? "text-destructive" : "text-muted-foreground"}
+        >
           {actionError ?? "Document not found"}
         </p>
       </div>
@@ -234,7 +239,7 @@ export default function DocumentDetailPage() {
     value?: string | number | null;
   }) => (
     <div>
-      <p className="text-sm text-slate-400">{label}</p>
+      <p className="text-sm text-muted-foreground">{label}</p>
       <p className="text-base font-medium break-words">{value ?? "-"}</p>
     </div>
   );
@@ -251,7 +256,7 @@ export default function DocumentDetailPage() {
   const formatDate = (value?: string | null) => value ?? "—";
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-6 lg:p-10 space-y-8">
+    <div className="space-y-8">
       <Link
         href="/documents"
         className="flex items-center gap-2 mb-8 text-emerald-300 hover:underline"
@@ -260,7 +265,7 @@ export default function DocumentDetailPage() {
         Back to Documents
       </Link>
 
-      <Card className="mb-6 bg-slate-900/70 border border-slate-800/80 text-slate-100">
+      <Card className="mb-6 border border-border text-foreground">
         <CardHeader className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-2">
             <div>
@@ -268,7 +273,9 @@ export default function DocumentDetailPage() {
                 <CardTitle>{document.fileName}</CardTitle>
                 <AmountVisibilityToggle />
               </div>
-              <p className="text-sm text-muted-foreground">Status: {document.status}</p>
+              <p className="text-sm text-muted-foreground">
+                Status: {document.status}
+              </p>
             </div>
           </div>
           {shouldShowParseButton && (
@@ -331,7 +338,7 @@ export default function DocumentDetailPage() {
         </CardContent>
       </Card>
 
-      <Card className="mb-6 bg-slate-900/70 border border-slate-800/80 text-slate-100">
+      <Card className="mb-6 border border-border text-foreground">
         <CardHeader>
           <CardTitle>Manual Overrides</CardTitle>
         </CardHeader>
@@ -346,7 +353,7 @@ export default function DocumentDetailPage() {
                   setFormData((prev) => ({ ...prev, provider: e.target.value }))
                 }
                 disabled={!editing}
-                className="w-full px-3 py-2 border border-slate-800 rounded-md bg-slate-900/40 text-slate-100 placeholder:text-slate-500 disabled:opacity-60 disabled:bg-slate-900/20"
+                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground placeholder:text-muted-foreground disabled:opacity-60 disabled:bg-muted/20"
               />
             </div>
 
@@ -361,7 +368,7 @@ export default function DocumentDetailPage() {
                   }))
                 }
                 disabled={!editing}
-                className="w-full px-3 py-2 border border-slate-800 rounded-md bg-slate-900/40 text-slate-100 disabled:opacity-60 disabled:bg-slate-900/20"
+                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground disabled:opacity-60 disabled:bg-muted/20"
               >
                 <option value="">Select category</option>
                 {CATEGORY_OPTIONS.map((option) => (
@@ -386,7 +393,7 @@ export default function DocumentDetailPage() {
                   }))
                 }
                 disabled={!editing}
-                className="w-full px-3 py-2 border border-slate-800 rounded-md bg-slate-900/40 text-slate-100 placeholder:text-slate-500 disabled:opacity-60 disabled:bg-slate-900/20"
+                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground placeholder:text-muted-foreground disabled:opacity-60 disabled:bg-muted/20"
               />
             </div>
 
@@ -404,7 +411,7 @@ export default function DocumentDetailPage() {
                   }))
                 }
                 disabled={!editing}
-                className="w-full px-3 py-2 border border-slate-800 rounded-md bg-slate-900/40 text-slate-100 placeholder:text-slate-500 disabled:opacity-60 disabled:bg-slate-900/20"
+                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground placeholder:text-muted-foreground disabled:opacity-60 disabled:bg-muted/20"
               />
             </div>
 
@@ -417,7 +424,7 @@ export default function DocumentDetailPage() {
                   setFormData((prev) => ({ ...prev, dueDate: e.target.value }))
                 }
                 disabled={!editing}
-                className="w-full px-3 py-2 border border-slate-800 rounded-md bg-slate-900/40 text-slate-100 placeholder:text-slate-500 disabled:opacity-60 disabled:bg-slate-900/20"
+                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground placeholder:text-muted-foreground disabled:opacity-60 disabled:bg-muted/20"
               />
             </div>
 
@@ -432,7 +439,7 @@ export default function DocumentDetailPage() {
                   }))
                 }
                 disabled={!editing}
-                className="w-full px-3 py-2 border border-slate-800 rounded-md bg-slate-900/40 text-slate-100 disabled:opacity-60 disabled:bg-slate-900/20"
+                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground disabled:opacity-60 disabled:bg-muted/20"
               >
                 <option value="pending">Pending</option>
                 <option value="parsed">Parsed</option>
@@ -455,7 +462,7 @@ export default function DocumentDetailPage() {
                   }))
                 }
                 disabled={!editing}
-                className="w-full px-3 py-2 border border-slate-800 rounded-md bg-slate-900/40 text-slate-100 placeholder:text-slate-500 disabled:opacity-60 disabled:bg-slate-900/20"
+                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground placeholder:text-muted-foreground disabled:opacity-60 disabled:bg-muted/20"
               />
             </div>
 
@@ -473,7 +480,7 @@ export default function DocumentDetailPage() {
                   }))
                 }
                 disabled={!editing}
-                className="w-full px-3 py-2 border border-slate-800 rounded-md bg-slate-900/40 text-slate-100 placeholder:text-slate-500 disabled:opacity-60 disabled:bg-slate-900/20"
+                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground placeholder:text-muted-foreground disabled:opacity-60 disabled:bg-muted/20"
               />
             </div>
           </div>
@@ -503,22 +510,22 @@ export default function DocumentDetailPage() {
         </CardContent>
       </Card>
 
-      <Card className="bg-slate-900/70 border border-slate-800/80 text-slate-100">
+      <Card className="border border-border text-foreground">
         <CardHeader>
           <CardTitle>Extracted Text</CardTitle>
         </CardHeader>
         <CardContent>
           {document.textExtract ? (
-            <div className="max-h-[400px] max-w-full overflow-auto rounded-md border border-slate-800 bg-slate-900/50">
+            <div className="max-h-[400px] max-w-full overflow-auto rounded-md border border-border">
               <pre
-                className="w-full max-w-full min-w-0 whitespace-pre-wrap text-sm text-slate-100 p-4"
+                className="w-full max-w-full min-w-0 whitespace-pre-wrap text-sm text-foreground p-4"
                 style={{ wordBreak: "break-word", overflowWrap: "break-word" }}
               >
                 {document.textExtract}
               </pre>
             </div>
           ) : (
-            <p className="text-slate-400 text-sm">
+            <p className="text-muted-foreground text-sm">
               No text extracted yet. Run the parser to see results.
             </p>
           )}
@@ -526,12 +533,12 @@ export default function DocumentDetailPage() {
       </Card>
 
       {deleteDialogOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-xl border border-slate-800 bg-slate-900/90 p-6 space-y-4">
-            <h3 className="text-xl font-semibold text-slate-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-xl border border-border bg-background p-6 space-y-4">
+            <h3 className="text-xl font-semibold text-foreground">
               Delete document?
             </h3>
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-muted-foreground">
               This action will remove the bill and its parsing history. You
               can’t undo this operation.
             </p>

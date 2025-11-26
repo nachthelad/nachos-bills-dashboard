@@ -1,162 +1,169 @@
-"use client"
+"use client";
 
-import { useCallback, useMemo, useState } from "react"
-import { useAuth } from "@/lib/auth-context"
-import { uploadBillFile } from "@/lib/storage-helpers"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Upload, X, FileText, CheckCircle, AlertCircle } from "lucide-react"
-import { FirebaseClientInitializationError } from "@/lib/firebase"
-import { FirebaseError } from "firebase/app"
+import { useCallback, useMemo, useState } from "react";
+import { useAuth } from "@/lib/auth-context";
+import { uploadBillFile } from "@/lib/storage-helpers";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Upload, X, FileText, CheckCircle, AlertCircle } from "lucide-react";
+import { FirebaseClientInitializationError } from "@/lib/firebase";
+import { FirebaseError } from "firebase/app";
 import {
   describeAllowedFileTypes,
   formatMaxUploadSize,
   validateUploadConstraints,
-} from "@/lib/upload-constraints"
-import { createApiClient } from "@/lib/api-client"
-import { Progress } from "@/components/ui/progress"
+} from "@/lib/upload-constraints";
+import { createApiClient } from "@/lib/api-client";
+import { Progress } from "@/components/ui/progress";
 
 interface UploadPanelProps {
-  onUploadComplete: () => void
+  onUploadComplete: () => void;
 }
 
 export function UploadPanel({ onUploadComplete }: UploadPanelProps) {
-  const { user } = useAuth()
-  const [file, setFile] = useState<File | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [isDragActive, setIsDragActive] = useState(false)
-  const [progress, setProgress] = useState(0)
+  const { user } = useAuth();
+  const [file, setFile] = useState<File | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isDragActive, setIsDragActive] = useState(false);
+  const [progress, setProgress] = useState(0);
 
   const apiClient = useMemo(() => {
-    if (!user) return null
-    return createApiClient({ getToken: () => user.getIdToken() })
-  }, [user])
+    if (!user) return null;
+    return createApiClient({ getToken: () => user.getIdToken() });
+  }, [user]);
 
   const validateFile = useCallback((selectedFile?: File) => {
     if (!selectedFile) {
-      setFile(null)
-      return
+      setFile(null);
+      return;
     }
     const validation = validateUploadConstraints({
       size: selectedFile.size,
       type: selectedFile.type,
       name: selectedFile.name,
-    })
+    });
     if (!validation.ok) {
-      setFile(null)
-      setError(validation.message)
-      return
+      setFile(null);
+      setError(validation.message);
+      return;
     }
-    setFile(selectedFile)
-    setError(null)
-  }, [])
+    setFile(selectedFile);
+    setError(null);
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0]
-    validateFile(selectedFile)
-  }
+    const selectedFile = e.target.files?.[0];
+    validateFile(selectedFile);
+  };
 
   const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault()
-    setIsDragActive(false)
-    const droppedFile = event.dataTransfer.files?.[0]
-    validateFile(droppedFile)
-  }
+    event.preventDefault();
+    setIsDragActive(false);
+    const droppedFile = event.dataTransfer.files?.[0];
+    validateFile(droppedFile);
+  };
 
   const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault()
-    setIsDragActive(true)
-  }
+    event.preventDefault();
+    setIsDragActive(true);
+  };
 
   const handleDragLeave = (event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault()
-    setIsDragActive(false)
-  }
+    event.preventDefault();
+    setIsDragActive(false);
+  };
 
   const handleUpload = async () => {
-    if (!file || !user || !apiClient) return
-    setLoading(true)
-    setError(null)
-    setProgress(10)
+    if (!file || !user || !apiClient) return;
+    setLoading(true);
+    setError(null);
+    setProgress(10);
 
     try {
-      let storageUrl: string | null = null
+      let storageUrl: string | null = null;
 
       const uploadViaApi = async () => {
-        return apiClient.uploadFile(file, file.name)
-      }
+        return apiClient.uploadFile(file, file.name);
+      };
 
       const createDocumentViaApi = async (storageUrlValue: string) => {
         return apiClient.createDocument({
           fileName: file.name,
           storageUrl: storageUrlValue,
-        })
-      }
+        });
+      };
 
       try {
-        storageUrl = await uploadBillFile(user.uid, file)
-        setProgress(50)
+        storageUrl = await uploadBillFile(user.uid, file);
+        setProgress(50);
       } catch (uploadError) {
         const shouldFallback =
           uploadError instanceof FirebaseClientInitializationError ||
-          (uploadError instanceof FirebaseError && uploadError.code === "storage/unauthorized")
+          (uploadError instanceof FirebaseError &&
+            uploadError.code === "storage/unauthorized");
 
         if (!shouldFallback) {
-          throw uploadError
+          throw uploadError;
         }
 
         console.warn(
           "Client storage upload unavailable, falling back to server-side upload.",
-          uploadError,
-        )
-        storageUrl = await uploadViaApi()
-        setProgress(50)
+          uploadError
+        );
+        storageUrl = await uploadViaApi();
+        setProgress(50);
       }
 
       if (!storageUrl) {
-        throw new Error("Unable to upload file")
+        throw new Error("Unable to upload file");
       }
 
       // Create document record via server
-      const docId = await createDocumentViaApi(storageUrl)
-      setProgress(80)
+      const docId = await createDocumentViaApi(storageUrl);
+      setProgress(80);
 
       // Trigger parsing (call API route) - fire and forget
       void (async () => {
         try {
-          await apiClient.triggerParse(docId)
+          await apiClient.triggerParse(docId);
         } catch (parseError) {
-          console.warn("Parser request failed:", parseError)
+          console.warn("Parser request failed:", parseError);
         }
-      })()
+      })();
 
-      setProgress(100)
-      setFile(null)
-      onUploadComplete()
+      setProgress(100);
+      setFile(null);
+      onUploadComplete();
     } catch (err) {
-      console.error("Upload error:", err)
-      setError(err instanceof Error ? err.message : "Upload failed")
-      setProgress(0)
+      console.error("Upload error:", err);
+      setError(err instanceof Error ? err.message : "Upload failed");
+      setProgress(0);
     } finally {
-      setLoading(false)
-      setTimeout(() => setProgress(0), 2000)
+      setLoading(false);
+      setTimeout(() => setProgress(0), 2000);
     }
-  }
+  };
 
   return (
-    <Card className="h-full">
+    <Card className="h-full flex flex-col border-dashed border-2 border-border">
       <CardHeader>
         <CardTitle>Upload Bill</CardTitle>
         <CardDescription>
           Drag and drop your PDF bill here to parse it automatically.
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 flex flex-col items-center justify-center flex-1 min-h-[200px]">
         {!file ? (
           <div
-            className={`border-2 border-dashed rounded-xl p-8 text-center transition h-64 flex flex-col items-center justify-center cursor-pointer ${
-              isDragActive ? "border-primary bg-primary/10" : "border-muted bg-muted/40 hover:bg-muted/60"
+            className={`transition-colors w-full h-full flex flex-col items-center justify-center cursor-pointer ${
+              isDragActive ? "bg-primary/10" : "hover:bg-muted/40"
             }`}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
@@ -186,27 +193,36 @@ export function UploadPanel({ onUploadComplete }: UploadPanelProps) {
                   <FileText className="w-5 h-5" />
                 </div>
                 <div className="grid gap-0.5">
-                  <p className="text-sm font-medium truncate max-w-[200px]">{file.name}</p>
+                  <p className="text-sm font-medium truncate max-w-[200px]">
+                    {file.name}
+                  </p>
                   <p className="text-xs text-muted-foreground">
                     {(file.size / 1024 / 1024).toFixed(2)} MB
                   </p>
                 </div>
               </div>
-              <Button variant="ghost" size="icon" onClick={() => setFile(null)} disabled={loading}>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setFile(null)}
+                disabled={loading}
+              >
                 <X className="w-4 h-4" />
               </Button>
             </div>
-            
+
             {loading && (
               <div className="space-y-1">
                 <Progress value={progress} className="h-2" />
-                <p className="text-xs text-muted-foreground text-center">Uploading and processing...</p>
+                <p className="text-xs text-muted-foreground text-center">
+                  Uploading and processing...
+                </p>
               </div>
             )}
 
-            <Button 
-              className="w-full" 
-              onClick={handleUpload} 
+            <Button
+              className="w-full"
+              onClick={handleUpload}
               disabled={loading}
             >
               {loading ? "Processing..." : "Confirm Upload"}
@@ -222,5 +238,5 @@ export function UploadPanel({ onUploadComplete }: UploadPanelProps) {
         )}
       </CardContent>
     </Card>
-  )
+  );
 }

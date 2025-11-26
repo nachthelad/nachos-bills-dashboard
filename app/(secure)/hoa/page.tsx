@@ -1,55 +1,59 @@
-"use client"
+"use client";
 
-import { useAuth } from "@/lib/auth-context"
-import { useEffect, useMemo, useState } from "react"
-import type { HoaSummary } from "@/types/hoa"
-import { compareHoaSummaries } from "@/lib/hoaComparison"
-import { Card, CardContent } from "@/components/ui/card"
+import { useAuth } from "@/lib/auth-context";
+import { useEffect, useMemo, useState } from "react";
+import type { HoaSummary } from "@/types/hoa";
+import { compareHoaSummaries } from "@/lib/hoaComparison";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   AlertTriangle,
   Building2,
   LineChart as LineChartIcon,
   Loader2,
-} from "lucide-react"
-import { AmountVisibilityToggle, useAmountVisibility } from "@/components/amount-visibility"
-import { HoaSummaryCards } from "@/components/hoa/hoa-summary-cards"
-import { HoaTable } from "@/components/hoa/hoa-table"
+} from "lucide-react";
+import {
+  AmountVisibilityToggle,
+  useAmountVisibility,
+} from "@/components/amount-visibility";
+import { HoaSummaryCards } from "@/components/hoa/hoa-summary-cards";
+import { HoaTable } from "@/components/hoa/hoa-table";
 
 type SelectionOption = {
-  key: string
-  buildingCode: string
-  unitCode: string
-  label: string
-}
+  key: string;
+  buildingCode: string;
+  unitCode: string;
+  label: string;
+};
 
-const PRIMARY_UNIT_CODE = "0005"
+const PRIMARY_UNIT_CODE = "0005";
 
 export default function HoaPage() {
-  const { user } = useAuth()
-  const [summaries, setSummaries] = useState<HoaSummary[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [selectedUnitKey, setSelectedUnitKey] = useState<string>(PRIMARY_UNIT_CODE)
-  const { showAmounts } = useAmountVisibility()
+  const { user } = useAuth();
+  const [summaries, setSummaries] = useState<HoaSummary[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedUnitKey, setSelectedUnitKey] =
+    useState<string>(PRIMARY_UNIT_CODE);
+  const { showAmounts } = useAmountVisibility();
 
   useEffect(() => {
-    if (!user) return
+    if (!user) return;
     setLoading(true);
     (async () => {
       try {
-        const token = await user.getIdToken()
+        const token = await user.getIdToken();
         const response = await fetch("/api/hoa-summaries", {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        })
+        });
 
         if (!response.ok) {
           const body = await response.json().catch(() => ({}));
-          throw new Error(body.error ?? "Failed to load HOA summaries")
+          throw new Error(body.error ?? "Failed to load HOA summaries");
         }
 
-        const payload = await response.json()
+        const payload = await response.json();
         const normalized: HoaSummary[] = (payload.summaries ?? []).map(
           (summary: any) => ({
             ...summary,
@@ -57,26 +61,26 @@ export default function HoaPage() {
             updatedAt: summary.updatedAt ? new Date(summary.updatedAt) : null,
             rubros: Array.isArray(summary.rubros) ? summary.rubros : [],
           })
-        )
+        );
 
-        setSummaries(normalized)
-        setError(null)
+        setSummaries(normalized);
+        setError(null);
       } catch (err) {
-        console.error(err)
-        setError((err as Error).message ?? "Unexpected error")
+        console.error(err);
+        setError((err as Error).message ?? "Unexpected error");
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    })()
-  }, [user])
+    })();
+  }, [user]);
 
   const unitOptions = useMemo<SelectionOption[]>(() => {
-    const map = new Map<string, SelectionOption>()
+    const map = new Map<string, SelectionOption>();
     summaries.forEach((summary) => {
-      if (!summary.unitCode) return
-      if (PRIMARY_UNIT_CODE && summary.unitCode !== PRIMARY_UNIT_CODE) return
-      const key = summary.unitCode
-      if (map.has(key)) return
+      if (!summary.unitCode) return;
+      if (PRIMARY_UNIT_CODE && summary.unitCode !== PRIMARY_UNIT_CODE) return;
+      const key = summary.unitCode;
+      if (map.has(key)) return;
       map.set(key, {
         key,
         buildingCode: summary.buildingCode ?? "N/A",
@@ -84,32 +88,32 @@ export default function HoaPage() {
         label: `${
           summary.buildingAddress ?? summary.buildingCode ?? "Building"
         } - Unit ${summary.unitLabel ?? summary.unitCode}`,
-      })
-    })
-    return Array.from(map.values())
-  }, [summaries])
+      });
+    });
+    return Array.from(map.values());
+  }, [summaries]);
 
   useEffect(() => {
     const preferredOption = unitOptions.find(
       (option) => option.unitCode === PRIMARY_UNIT_CODE
-    )
+    );
     if (preferredOption && selectedUnitKey !== preferredOption.key) {
-      setSelectedUnitKey(preferredOption.key)
-      return
+      setSelectedUnitKey(preferredOption.key);
+      return;
     }
     if (!selectedUnitKey && unitOptions.length > 0) {
-      setSelectedUnitKey(unitOptions[0].key)
+      setSelectedUnitKey(unitOptions[0].key);
     }
-  }, [selectedUnitKey, unitOptions])
+  }, [selectedUnitKey, unitOptions]);
 
   const filteredSummaries = useMemo(() => {
-    const unitCodeFilter = selectedUnitKey || PRIMARY_UNIT_CODE || ""
+    const unitCodeFilter = selectedUnitKey || PRIMARY_UNIT_CODE || "";
     return summaries
       .filter((summary) =>
         unitCodeFilter ? summary.unitCode === unitCodeFilter : true
       )
-      .sort((a, b) => (b.periodKey ?? "").localeCompare(a.periodKey ?? ""))
-  }, [summaries, selectedUnitKey])
+      .sort((a, b) => (b.periodKey ?? "").localeCompare(a.periodKey ?? ""));
+  }, [summaries, selectedUnitKey]);
 
   const chartData = useMemo(
     () =>
@@ -120,15 +124,15 @@ export default function HoaPage() {
           total: summary.totalToPayUnit ?? 0,
         })),
     [filteredSummaries]
-  )
+  );
 
-  const currentSummary = filteredSummaries[0] ?? null
-  const previousSummary = filteredSummaries[1] ?? null
+  const currentSummary = filteredSummaries[0] ?? null;
+  const previousSummary = filteredSummaries[1] ?? null;
 
   const comparison = useMemo(
     () => compareHoaSummaries(currentSummary, previousSummary),
     [currentSummary, previousSummary]
-  )
+  );
 
   const alerts = useMemo(
     () =>
@@ -138,7 +142,7 @@ export default function HoaPage() {
           (diff.status === "increased" && (diff.diffPercent ?? 0) >= 20)
       ),
     [comparison]
-  )
+  );
 
   if (loading) {
     return (
@@ -146,14 +150,16 @@ export default function HoaPage() {
         <Loader2 className="w-5 h-5 mr-2 animate-spin text-muted-foreground" />
         <div className="text-muted-foreground">Loading HOA data...</div>
       </div>
-    )
+    );
   }
 
   return (
     <div className="space-y-8">
       <div className="flex flex-col gap-2">
         <div>
-          <p className="text-sm uppercase tracking-wide text-muted-foreground">HOA</p>
+          <p className="text-sm uppercase tracking-wide text-muted-foreground">
+            HOA
+          </p>
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-3xl font-bold">HOA insights</h1>
             <span className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs uppercase tracking-wide text-emerald-300">
@@ -164,7 +170,8 @@ export default function HoaPage() {
           </div>
         </div>
         <p className="text-muted-foreground max-w-3xl">
-          Track monthly HOA fees, spot unusual increases, and highlight new charges for your unit.
+          Track monthly HOA fees, spot unusual increases, and highlight new
+          charges for your unit.
         </p>
       </div>
 
@@ -198,16 +205,20 @@ export default function HoaPage() {
       )}
 
       {summaries.length === 0 ? (
-        <Card className="border-slate-800 bg-slate-900/70">
-          <CardContent className="pt-12 pb-12 text-center text-slate-400">
-            <LineChartIcon className="w-12 h-12 mx-auto mb-4 text-slate-600" />
+        <Card className="border-border bg-card">
+          <CardContent className="pt-12 pb-12 text-center text-muted-foreground">
+            <LineChartIcon className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
             <p className="text-lg font-medium mb-2">No HOA statements yet.</p>
             <p>Upload a "Mis Expensas" PDF to activate this module.</p>
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-6">
-          <HoaSummaryCards chartData={chartData} alerts={alerts} showAmounts={showAmounts} />
+          <HoaSummaryCards
+            chartData={chartData}
+            alerts={alerts}
+            showAmounts={showAmounts}
+          />
           <HoaTable
             currentSummary={currentSummary}
             previousSummary={previousSummary}
@@ -217,5 +228,5 @@ export default function HoaPage() {
         </div>
       )}
     </div>
-  )
+  );
 }

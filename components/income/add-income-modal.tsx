@@ -1,9 +1,9 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useAuth } from "@/lib/auth-context"
-import { addIncomeEntry } from "@/lib/income-client"
-import { Button } from "@/components/ui/button"
+import { useState } from "react";
+import { useAuth } from "@/lib/auth-context";
+import { addIncomeEntry } from "@/lib/income-client";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -12,55 +12,61 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Plus } from "lucide-react"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Plus } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface AddIncomeModalProps {
-  onSuccess: () => void
+  onSuccess: () => void;
 }
 
 export function AddIncomeModal({ onSuccess }: AddIncomeModalProps) {
-  const { user } = useAuth()
-  const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { user } = useAuth();
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     source: "",
     amount: "",
     date: new Date().toISOString().split("T")[0],
-  })
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!user) return
+    e.preventDefault();
+    if (!user) return;
 
-    setLoading(true)
-    setError(null)
+    setLoading(true);
+    setError(null);
 
     try {
-      const token = await user.getIdToken()
+      const token = await user.getIdToken();
       await addIncomeEntry(token, {
         amount: Number.parseFloat(formData.amount),
         source: formData.source,
         date: new Date(formData.date),
-      })
-      setOpen(false)
+      });
+      setOpen(false);
       setFormData({
         source: "",
         amount: "",
         date: new Date().toISOString().split("T")[0],
-      })
-      onSuccess()
+      });
+      onSuccess();
     } catch (err) {
-      console.error("Failed to add income:", err)
-      setError("Failed to add income entry. Please try again.")
+      console.error("Failed to add income:", err);
+      setError("Failed to add income entry. Please try again.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -70,24 +76,28 @@ export function AddIncomeModal({ onSuccess }: AddIncomeModalProps) {
           Add Income
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px] bg-slate-900 border-slate-800 text-slate-100">
+      <DialogContent className="sm:max-w-[425px] bg-card border-border text-foreground">
         <DialogHeader>
           <DialogTitle>Add Income</DialogTitle>
-          <DialogDescription className="text-slate-400">
+          <DialogDescription className="text-muted-foreground">
             Record a new income entry.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="source" className="text-slate-200">Source</Label>
+            <Label htmlFor="source" className="text-foreground">
+              Source
+            </Label>
             <Select
               value={formData.source}
-              onValueChange={(value) => setFormData({ ...formData, source: value })}
+              onValueChange={(value) =>
+                setFormData({ ...formData, source: value })
+              }
             >
-              <SelectTrigger className="bg-slate-950/50 border-slate-800 text-slate-100">
+              <SelectTrigger className="bg-background border-border text-foreground">
                 <SelectValue placeholder="Select source" />
               </SelectTrigger>
-              <SelectContent className="bg-slate-900 border-slate-800 text-slate-100">
+              <SelectContent className="bg-popover border-border text-popover-foreground">
                 <SelectItem value="Salary">Salary</SelectItem>
                 <SelectItem value="Freelance">Freelance</SelectItem>
                 <SelectItem value="Investments">Investments</SelectItem>
@@ -96,26 +106,34 @@ export function AddIncomeModal({ onSuccess }: AddIncomeModalProps) {
             </Select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="amount" className="text-slate-200">Amount (ARS)</Label>
+            <Label htmlFor="amount" className="text-foreground">
+              Amount (ARS)
+            </Label>
             <Input
               id="amount"
               type="number"
               step="0.01"
               placeholder="0.00"
               value={formData.amount}
-              onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-              className="bg-slate-950/50 border-slate-800 text-slate-100 placeholder:text-slate-500"
+              onChange={(e) =>
+                setFormData({ ...formData, amount: e.target.value })
+              }
+              className="bg-background border-border text-foreground placeholder:text-muted-foreground"
               required
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="date" className="text-slate-200">Date</Label>
+            <Label htmlFor="date" className="text-foreground">
+              Date
+            </Label>
             <Input
               id="date"
               type="date"
               value={formData.date}
-              onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-              className="bg-slate-950/50 border-slate-800 text-slate-100"
+              onChange={(e) =>
+                setFormData({ ...formData, date: e.target.value })
+              }
+              className="bg-background border-border text-foreground"
               required
             />
           </div>
@@ -132,5 +150,5 @@ export function AddIncomeModal({ onSuccess }: AddIncomeModalProps) {
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

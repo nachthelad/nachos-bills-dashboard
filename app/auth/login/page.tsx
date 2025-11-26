@@ -3,7 +3,10 @@
 import { useState } from "react";
 import { signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 import { persistAuthCookie } from "@/lib/client/auth-cookie";
-import { FirebaseClientInitializationError, getFirebaseAuth } from "@/lib/firebase";
+import {
+  FirebaseClientInitializationError,
+  getFirebaseAuth,
+} from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -50,8 +53,8 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-950 text-slate-100 p-4">
-      <Card className="w-full max-w-md bg-slate-900/70">
+    <div className="min-h-screen flex items-center justify-center bg-background text-foreground p-4">
+      <Card className="w-full max-w-md bg-card border border-border">
         <CardHeader>
           <CardTitle>TOLVA</CardTitle>
           <CardDescription>

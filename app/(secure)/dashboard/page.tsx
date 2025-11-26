@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 /**
  * Dashboard summary:
@@ -17,150 +17,179 @@
  * - Income Breakdown: yearly totals grouped by source; includes quick form to add income (stored in incomeEntries).
  */
 
-import { useAuth } from "@/lib/auth-context"
-import { useEffect, useMemo, useState } from "react"
-import type { BillDocument } from "@/lib/firestore-helpers"
-import { fetchIncomeEntries, type IncomeEntry } from "@/lib/income-client"
-import { type CategoryValue } from "@/config/billing/categories"
-import { normalizeCategory } from "@/lib/category-utils"
-import { createApiClient, type DashboardSummary } from "@/lib/api-client"
-import { useAmountVisibility } from "@/components/amount-visibility"
-import { resolveDocDate, labelForCategory, defaultCategoryTotals } from "@/lib/billing-utils"
-import { KpiCards } from "@/components/dashboard/kpi-cards"
-import { DashboardCharts } from "@/components/dashboard/charts"
-import { RecentActivity, type ActivityItem } from "@/components/dashboard/recent-activity"
+import { useAuth } from "@/lib/auth-context";
+import { useEffect, useMemo, useState } from "react";
+import type { BillDocument } from "@/lib/firestore-helpers";
+import { fetchIncomeEntries, type IncomeEntry } from "@/lib/income-client";
+import { type CategoryValue } from "@/config/billing/categories";
+import { normalizeCategory } from "@/lib/category-utils";
+import { createApiClient, type DashboardSummary } from "@/lib/api-client";
+import {
+  AmountVisibilityToggle,
+  useAmountVisibility,
+} from "@/components/amount-visibility";
+import {
+  resolveDocDate,
+  labelForCategory,
+  defaultCategoryTotals,
+} from "@/lib/billing-utils";
+import { KpiCards } from "@/components/dashboard/kpi-cards";
+import { DashboardCharts } from "@/components/dashboard/charts";
+import {
+  RecentActivity,
+  type ActivityItem,
+} from "@/components/dashboard/recent-activity";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "lucide-react";
 
-type DashboardDocument = Omit<BillDocument, "uploadedAt"> & { uploadedAt: Date }
+type DashboardDocument = Omit<BillDocument, "uploadedAt"> & {
+  uploadedAt: Date;
+};
 
 export default function DashboardPage() {
-  const { user } = useAuth()
-  const [loading, setLoading] = useState(true)
-  const [expenseDocs, setExpenseDocs] = useState<DashboardDocument[]>([])
-  const [incomeEntries, setIncomeEntries] = useState<IncomeEntry[]>([])
-  const [error, setError] = useState<string | null>(null)
-  const [summaryFallback, setSummaryFallback] = useState<DashboardSummary | null>(null)
-  const { showAmounts } = useAmountVisibility()
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [expenseDocs, setExpenseDocs] = useState<DashboardDocument[]>([]);
+  const [incomeEntries, setIncomeEntries] = useState<IncomeEntry[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [summaryFallback, setSummaryFallback] =
+    useState<DashboardSummary | null>(null);
+  const { showAmounts } = useAmountVisibility();
 
   const apiClient = useMemo(() => {
-    if (!user) return null
-    return createApiClient({ getToken: () => user.getIdToken() })
-  }, [user])
+    if (!user) return null;
+    return createApiClient({ getToken: () => user.getIdToken() });
+  }, [user]);
 
   useEffect(() => {
-    if (!user || !apiClient) return
-    setLoading(true)
-    let cancelled = false
-    ;(async () => {
+    if (!user || !apiClient) return;
+    setLoading(true);
+    let cancelled = false;
+    (async () => {
       try {
         const [docs, incomes] = await Promise.all([
           apiClient.listDocuments(),
           (async () => {
-            const token = await user.getIdToken()
-            return fetchIncomeEntries(token)
+            const token = await user.getIdToken();
+            return fetchIncomeEntries(token);
           })(),
-        ])
+        ]);
         if (!cancelled) {
-          setExpenseDocs(docs)
-          setIncomeEntries(incomes)
-          setError(null)
+          setExpenseDocs(docs);
+          setIncomeEntries(incomes);
+          setError(null);
         }
       } catch (err) {
-        console.error("Dashboard load error", err)
+        console.error("Dashboard load error", err);
         if (!cancelled) {
-          setError("Failed to load dashboard data.")
+          setError("Failed to load dashboard data.");
         }
       } finally {
         if (!cancelled) {
-          setLoading(false)
+          setLoading(false);
         }
       }
-    })()
+    })();
     return () => {
-      cancelled = true
-    }
-  }, [apiClient, user])
+      cancelled = true;
+    };
+  }, [apiClient, user]);
 
   // Auto-refresh for pending documents
   useEffect(() => {
-    const hasPendingDocs = expenseDocs.some(doc => doc.status === "pending")
-    if (!hasPendingDocs || !apiClient) return
+    const hasPendingDocs = expenseDocs.some((doc) => doc.status === "pending");
+    if (!hasPendingDocs || !apiClient) return;
 
     const interval = setInterval(() => {
-      apiClient.listDocuments().then(docs => {
-        setExpenseDocs(docs)
-      }).catch(console.error)
-    }, 5000)
+      apiClient
+        .listDocuments()
+        .then((docs) => {
+          setExpenseDocs(docs);
+        })
+        .catch(console.error);
+    }, 5000);
 
-    return () => clearInterval(interval)
-  }, [expenseDocs, apiClient])
+    return () => clearInterval(interval);
+  }, [expenseDocs, apiClient]);
 
   useEffect(() => {
-    if (!user || !apiClient) return
-    let cancelled = false
-    ;(async () => {
+    if (!user || !apiClient) return;
+    let cancelled = false;
+    (async () => {
       try {
-        const summary = await apiClient.fetchDashboardSummary()
+        const summary = await apiClient.fetchDashboardSummary();
         if (!cancelled && summary) {
-          setSummaryFallback(summary)
+          setSummaryFallback(summary);
         }
       } catch (err) {
-        console.warn("Dashboard summary fetch failed:", err)
+        console.warn("Dashboard summary fetch failed:", err);
       }
-    })()
+    })();
     return () => {
-      cancelled = true
-    }
-  }, [apiClient, user])
+      cancelled = true;
+    };
+  }, [apiClient, user]);
 
-  const currentYear = new Date().getFullYear()
+  const currentYear = new Date().getFullYear();
 
   const expenseMetrics = useMemo(() => {
-    const docs = expenseDocs.filter((doc) => ["parsed", "needs_review"].includes(doc.status))
+    const docs = expenseDocs.filter((doc) =>
+      ["parsed", "needs_review"].includes(doc.status)
+    );
     const totals = {
       year: 0,
       month: 0,
-    }
-    const categoryTotals: Record<CategoryValue, number> = defaultCategoryTotals()
+    };
+    const categoryTotals: Record<CategoryValue, number> =
+      defaultCategoryTotals();
 
     docs.forEach((doc) => {
-      const amount = doc.totalAmount ?? 0
-      if (!amount) return
-      const docDate = resolveDocDate(doc)
-      if (!docDate) return
+      const amount = doc.totalAmount ?? 0;
+      if (!amount) return;
+      const docDate = resolveDocDate(doc);
+      if (!docDate) return;
       if (docDate.getFullYear() === currentYear) {
-        totals.year += amount
+        totals.year += amount;
         if (docDate.getMonth() === new Date().getMonth()) {
-          totals.month += amount
+          totals.month += amount;
         }
         const categoryKey = normalizeCategory(
           doc.providerId,
           doc.category,
-          doc.provider ?? doc.providerNameDetected ?? null,
-        )
-        categoryTotals[categoryKey] += amount
+          doc.provider ?? doc.providerNameDetected ?? null
+        );
+        categoryTotals[categoryKey] += amount;
       }
-    })
+    });
 
-    return { totals, categoryTotals }
-  }, [expenseDocs, currentYear])
+    return { totals, categoryTotals };
+  }, [expenseDocs, currentYear]);
 
   const incomeMetrics = useMemo(() => {
-    const yearEntries = incomeEntries.filter((entry) => entry.date.getFullYear() === currentYear)
-    const totalIncomeYear = yearEntries.reduce((sum, entry) => sum + entry.amount, 0)
-    const perSource = yearEntries.reduce<Record<string, number>>((acc, entry) => {
-      acc[entry.source] = (acc[entry.source] ?? 0) + entry.amount
-      return acc
-    }, {})
-    return { totalIncomeYear, perSource }
-  }, [incomeEntries, currentYear])
+    const yearEntries = incomeEntries.filter(
+      (entry) => entry.date.getFullYear() === currentYear
+    );
+    const totalIncomeYear = yearEntries.reduce(
+      (sum, entry) => sum + entry.amount,
+      0
+    );
+    const perSource = yearEntries.reduce<Record<string, number>>(
+      (acc, entry) => {
+        acc[entry.source] = (acc[entry.source] ?? 0) + entry.amount;
+        return acc;
+      },
+      {}
+    );
+    return { totalIncomeYear, perSource };
+  }, [incomeEntries, currentYear]);
 
-  const netAmount = incomeMetrics.totalIncomeYear - expenseMetrics.totals.year
+  const netAmount = incomeMetrics.totalIncomeYear - expenseMetrics.totals.year;
 
   useEffect(() => {
-    if (!user || !apiClient) return
-    if (loading) return
-    const hasLiveData = expenseDocs.length > 0 || incomeEntries.length > 0
-    if (!hasLiveData) return
+    if (!user || !apiClient) return;
+    if (loading) return;
+    const hasLiveData = expenseDocs.length > 0 || incomeEntries.length > 0;
+    if (!hasLiveData) return;
 
     const payload: DashboardSummary = {
       totals: {
@@ -172,97 +201,119 @@ export default function DashboardPage() {
       categories: { ...expenseMetrics.categoryTotals },
       incomeSources: { ...incomeMetrics.perSource },
       updatedAt: new Date().toISOString(),
-    }
+    };
 
-    ;(async () => {
+    (async () => {
       try {
-        await apiClient.saveDashboardSummary(payload)
+        await apiClient.saveDashboardSummary(payload);
       } catch (err) {
-        console.warn("Dashboard summary save failed:", err)
+        console.warn("Dashboard summary save failed:", err);
       }
-    })()
-  }, [apiClient, user, loading, expenseDocs, incomeEntries, expenseMetrics, incomeMetrics, netAmount])
+    })();
+  }, [
+    apiClient,
+    user,
+    loading,
+    expenseDocs,
+    incomeEntries,
+    expenseMetrics,
+    incomeMetrics,
+    netAmount,
+  ]);
 
   const fallbackTotals = summaryFallback?.totals ?? {
     totalExpensesYear: 0,
     totalIncomeYear: 0,
     netAmount: 0,
     monthExpenses: 0,
-  }
-  const fallbackCategories = summaryFallback?.categories ?? defaultCategoryTotals()
+  };
+  const fallbackCategories =
+    summaryFallback?.categories ?? defaultCategoryTotals();
 
-  const hasLiveExpenses = expenseDocs.length > 0
-  const hasLiveIncome = incomeEntries.length > 0
+  const hasLiveExpenses = expenseDocs.length > 0;
+  const hasLiveIncome = incomeEntries.length > 0;
 
   const displayTotals = {
-    totalExpensesYear: hasLiveExpenses ? expenseMetrics.totals.year : fallbackTotals.totalExpensesYear,
-    totalIncomeYear: hasLiveIncome ? incomeMetrics.totalIncomeYear : fallbackTotals.totalIncomeYear,
-    netAmount: hasLiveExpenses || hasLiveIncome ? netAmount : fallbackTotals.netAmount,
-    monthExpenses: hasLiveExpenses ? expenseMetrics.totals.month : fallbackTotals.monthExpenses,
-  }
+    totalExpensesYear: hasLiveExpenses
+      ? expenseMetrics.totals.year
+      : fallbackTotals.totalExpensesYear,
+    totalIncomeYear: hasLiveIncome
+      ? incomeMetrics.totalIncomeYear
+      : fallbackTotals.totalIncomeYear,
+    netAmount:
+      hasLiveExpenses || hasLiveIncome ? netAmount : fallbackTotals.netAmount,
+    monthExpenses: hasLiveExpenses
+      ? expenseMetrics.totals.month
+      : fallbackTotals.monthExpenses,
+  };
 
-  const displayCategoryTotals = hasLiveExpenses ? expenseMetrics.categoryTotals : fallbackCategories
+  const displayCategoryTotals = hasLiveExpenses
+    ? expenseMetrics.categoryTotals
+    : fallbackCategories;
 
   const recentActivity: ActivityItem[] = useMemo(() => {
     const expenses: ActivityItem[] = expenseDocs
-      .filter(doc => ["parsed", "needs_review", "pending"].includes(doc.status))
-      .map(doc => ({
+      .filter((doc) =>
+        ["parsed", "needs_review", "pending"].includes(doc.status)
+      )
+      .map((doc) => ({
         id: doc.id,
         type: "expense",
         date: doc.updatedAt || doc.uploadedAt,
         amount: doc.totalAmount || 0,
-        description: doc.providerNameDetected || doc.providerId || "Unknown Bill",
+        description:
+          doc.providerNameDetected || doc.providerId || "Unknown Bill",
         category: labelForCategory(doc.category),
-        status: doc.status as any
-      }))
+        status: doc.status as any,
+      }));
 
-    const incomes: ActivityItem[] = incomeEntries.map(entry => ({
+    const incomes: ActivityItem[] = incomeEntries.map((entry) => ({
       id: entry.id,
       type: "income",
       date: entry.date,
       amount: entry.amount,
       description: entry.source,
       category: "Income",
-    }))
+    }));
 
     return [...expenses, ...incomes]
       .sort((a, b) => b.date.getTime() - a.date.getTime())
-      .slice(0, 10)
-  }, [expenseDocs, incomeEntries])
+      .slice(0, 10);
+  }, [expenseDocs, incomeEntries]);
 
   const monthlyMetrics = useMemo(() => {
     const months = Array.from({ length: 12 }, (_, i) => {
-      const date = new Date(currentYear, i, 1)
+      const date = new Date(currentYear, i, 1);
       return {
         name: date.toLocaleString("default", { month: "short" }),
         expenses: 0,
         income: 0,
-      }
-    })
+      };
+    });
 
     expenseDocs.forEach((doc) => {
-      if (!["parsed", "needs_review"].includes(doc.status)) return
-      const amount = doc.totalAmount ?? 0
-      if (!amount) return
-      const docDate = resolveDocDate(doc)
-      if (!docDate || docDate.getFullYear() !== currentYear) return
-      months[docDate.getMonth()].expenses += amount
-    })
+      if (!["parsed", "needs_review"].includes(doc.status)) return;
+      const amount = doc.totalAmount ?? 0;
+      if (!amount) return;
+      const docDate = resolveDocDate(doc);
+      if (!docDate || docDate.getFullYear() !== currentYear) return;
+      months[docDate.getMonth()].expenses += amount;
+    });
 
     incomeEntries.forEach((entry) => {
-      if (entry.date.getFullYear() !== currentYear) return
-      months[entry.date.getMonth()].income += entry.amount
-    })
+      if (entry.date.getFullYear() !== currentYear) return;
+      months[entry.date.getMonth()].income += entry.amount;
+    });
 
-    return months
-  }, [expenseDocs, incomeEntries, currentYear])
+    return months;
+  }, [expenseDocs, incomeEntries, currentYear]);
 
   if (!user) {
     return (
       <div className="p-8 text-center text-muted-foreground">
         Please sign in to view your dashboard.
       </div>
-    )
+    );
   }
 
   if (loading) {
@@ -270,18 +321,25 @@ export default function DashboardPage() {
       <div className="flex items-center justify-center h-full">
         <div className="text-muted-foreground">Loading dashboard...</div>
       </div>
-    )
+    );
   }
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between space-y-2">
-        <div>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
           <h2 className="text-2xl font-bold tracking-tight">Dashboard</h2>
-          <p className="text-muted-foreground">
-            Overview of your financial status and recent activity.
-          </p>
+          <AmountVisibilityToggle />
         </div>
+        <Button variant="ghost" size="sm" className="h-8 gap-1">
+          <Calendar className="h-4 w-4" />
+          <span>This Year</span>
+        </Button>
+      </div>
+      <div>
+        <p className="text-muted-foreground">
+          Overview of your financial status and recent activity.
+        </p>
       </div>
 
       {error && (
@@ -298,13 +356,13 @@ export default function DashboardPage() {
         showAmounts={showAmounts}
       />
 
-      <DashboardCharts 
-        categoryTotals={displayCategoryTotals} 
+      <DashboardCharts
+        categoryTotals={displayCategoryTotals}
         monthlyData={monthlyMetrics}
-        showAmounts={showAmounts} 
+        showAmounts={showAmounts}
       />
 
       <RecentActivity items={recentActivity} showAmounts={showAmounts} />
     </div>
-  )
+  );
 }

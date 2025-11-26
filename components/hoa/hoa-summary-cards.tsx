@@ -1,11 +1,7 @@
-"use client"
+"use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import {
-  AlertTriangle,
-  ArrowUpRight,
-  PlusCircle,
-} from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AlertTriangle, ArrowUpRight, PlusCircle } from "lucide-react";
 import {
   CartesianGrid,
   Line,
@@ -14,30 +10,34 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-} from "recharts"
+} from "recharts";
 
 interface HoaSummaryCardsProps {
-  chartData: { periodLabel: string; total: number }[]
-  alerts: any[]
-  showAmounts: boolean
+  chartData: { periodLabel: string; total: number }[];
+  alerts: any[];
+  showAmounts: boolean;
 }
 
-export function HoaSummaryCards({ chartData, alerts, showAmounts }: HoaSummaryCardsProps) {
+export function HoaSummaryCards({
+  chartData,
+  alerts,
+  showAmounts,
+}: HoaSummaryCardsProps) {
   const formatCurrency = (value: number) => {
-    if (!showAmounts) return "****"
+    if (!showAmounts) return "****";
     return new Intl.NumberFormat("es-AR", {
       style: "currency",
       currency: "ARS",
       maximumFractionDigits: 0,
-    }).format(value)
-  }
+    }).format(value);
+  };
 
   return (
     <div className="space-y-6">
-      <Card className="border-slate-800 bg-slate-900/70">
+      <Card className="border-border bg-muted">
         <CardHeader className="pb-2">
           <CardTitle className="text-lg">Monthly totals</CardTitle>
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-muted-foreground">
             Track how much your unit owes each period.
           </p>
         </CardHeader>
@@ -51,8 +51,12 @@ export function HoaSummaryCards({ chartData, alerts, showAmounts }: HoaSummaryCa
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                  <XAxis dataKey="periodLabel" stroke="#94a3b8" />
-                  <YAxis stroke="#94a3b8" />
+                  <XAxis
+                    dataKey="periodLabel"
+                    stroke="#94a3b8"
+                    tick={{ fontSize: 13 }}
+                  />
+                  <YAxis stroke="#94a3b8" tick={{ fontSize: 13 }} width={55} />
                   <Tooltip
                     contentStyle={{
                       background: "#0f172a",
@@ -90,16 +94,12 @@ export function HoaSummaryCards({ chartData, alerts, showAmounts }: HoaSummaryCa
                 className="flex items-center justify-between rounded-lg bg-amber-500/10 px-3 py-2"
               >
                 <div>
-                  <p className="font-medium text-amber-100">
-                    {alert.label}
-                  </p>
+                  <p className="font-medium text-amber-100">{alert.label}</p>
                   <p className="text-xs text-amber-200/80">
                     {alert.status === "new"
                       ? "New charge this period"
                       : alert.diffPercent != null
-                      ? `+${alert.diffPercent.toFixed(
-                          1
-                        )}% vs previous month`
+                      ? `+${alert.diffPercent.toFixed(1)}% vs previous month`
                       : "Higher than the previous month"}
                   </p>
                 </div>
@@ -119,5 +119,5 @@ export function HoaSummaryCards({ chartData, alerts, showAmounts }: HoaSummaryCa
         </Card>
       )}
     </div>
-  )
+  );
 }

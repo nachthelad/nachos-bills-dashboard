@@ -1,15 +1,22 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { useAuth } from "@/lib/auth-context"
-import { FileText, Upload, BarChart3, LogOut, Building2, Wallet } from "lucide-react"
-import { cn } from "@/lib/utils"
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/lib/auth-context";
+import {
+  FileText,
+  Upload,
+  BarChart3,
+  LogOut,
+  Building2,
+  Wallet,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export function Sidebar() {
-  const pathname = usePathname()
-  const { signOut } = useAuth()
+  const pathname = usePathname();
+  const { signOut } = useAuth();
 
   const links = [
     { href: "/dashboard", label: "Dashboard", icon: BarChart3 },
@@ -17,13 +24,15 @@ export function Sidebar() {
     { href: "/income", label: "Income", icon: Wallet },
     { href: "/upload", label: "Upload Bill", icon: Upload },
     { href: "/documents", label: "Documents", icon: FileText },
-  ]
+  ];
 
   return (
-    <aside className="w-64 bg-slate-950 border-r border-slate-900 flex flex-col min-h-screen text-slate-100">
-      <div className="p-6 border-b border-slate-900">
+    <aside className="w-64 bg-sidebar border-r border-sidebar-border flex flex-col min-h-screen text-sidebar-foreground">
+      <div className="p-6 border-b border-sidebar-border">
         <h1 className="text-xl font-bold tracking-tight">TOLVA</h1>
-        <p className="text-sm text-slate-400 mt-1">Keep your utilities in sync</p>
+        <p className="text-sm text-sidebar-foreground/70 mt-1">
+          Keep your utilities in sync
+        </p>
       </div>
 
       <nav className="flex-1 p-4 space-y-1">
@@ -34,8 +43,8 @@ export function Sidebar() {
             className={cn(
               "flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium transition-colors",
               pathname === href
-                ? "bg-slate-900 text-white shadow-inner shadow-slate-900/60"
-                : "text-slate-400 hover:text-white hover:bg-slate-900"
+                ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-inner shadow-black/10"
+                : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
             )}
           >
             <Icon className="w-5 h-5" />
@@ -44,16 +53,16 @@ export function Sidebar() {
         ))}
       </nav>
 
-      <div className="p-4 border-t border-slate-900">
+      <div className="p-4 border-t border-sidebar-border">
         <Button
           onClick={signOut}
           variant="ghost"
-          className="w-full justify-start gap-2 text-slate-300 hover:text-white hover:bg-slate-900"
+          className="w-full justify-start gap-2 text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
         >
           <LogOut className="w-4 h-4" />
           Sign Out
         </Button>
       </div>
     </aside>
-  )
+  );
 }

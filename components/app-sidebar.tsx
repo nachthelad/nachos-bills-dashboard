@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import * as React from "react"
+import * as React from "react";
 import {
   LayoutDashboard,
   Receipt,
@@ -8,9 +8,9 @@ import {
   Building2,
   Settings,
   Command,
-} from "lucide-react"
-import { usePathname } from "next/navigation"
-import Link from "next/link"
+} from "lucide-react";
+import { usePathname } from "next/navigation";
+import Link from "next/link";
 
 import {
   Sidebar,
@@ -24,7 +24,8 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
-} from "@/components/ui/sidebar"
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
 
 const navMain = [
   {
@@ -47,7 +48,7 @@ const navMain = [
     url: "/hoa",
     icon: Building2,
   },
-]
+];
 
 const navSecondary = [
   {
@@ -55,25 +56,32 @@ const navSecondary = [
     url: "/settings",
     icon: Settings,
   },
-]
+];
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const pathname = usePathname()
+  const pathname = usePathname();
 
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild>
-              <Link href="/dashboard">
-                <img src="/icon.svg" alt="TOLVA" className="size-6 self-start" />
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">TOLVA</span>
-                  <span className="truncate text-xs">Finance Tracker</span>
-                </div>
-              </Link>
-            </SidebarMenuButton>
+            <div className="flex items-center gap-2 px-2 py-2">
+              <SidebarTrigger className="-ml-1" />
+              <SidebarMenuButton size="lg" asChild className="flex-1">
+                <Link href="/dashboard">
+                  <img
+                    src="/icon.svg"
+                    alt="TOLVA"
+                    className="size-6 self-start"
+                  />
+                  <div className="grid flex-1 text-left text-sm leading-tight">
+                    <span className="truncate font-semibold">TOLVA</span>
+                    <span className="truncate text-xs">Finance Tracker</span>
+                  </div>
+                </Link>
+              </SidebarMenuButton>
+            </div>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
@@ -84,7 +92,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <SidebarMenu>
               {navMain.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={pathname === item.url} tooltip={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={pathname === item.url}
+                    tooltip={item.title}
+                  >
                     <Link href={item.url}>
                       <item.icon />
                       <span>{item.title}</span>
@@ -100,7 +112,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <SidebarMenu>
               {navSecondary.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={pathname === item.url} tooltip={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={pathname === item.url}
+                    tooltip={item.title}
+                  >
                     <Link href={item.url}>
                       <item.icon />
                       <span>{item.title}</span>
@@ -112,10 +128,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter>
-        {/* User menu can go here later */}
-      </SidebarFooter>
+      <SidebarFooter>{/* User menu can go here later */}</SidebarFooter>
       <SidebarRail />
     </Sidebar>
-  )
+  );
 }
