@@ -64,24 +64,24 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <div className="flex items-center gap-2 px-2 py-2">
-          <SidebarTrigger className="-ml-1" />
-        </div>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild>
-              <Link href="/dashboard">
-                <img
-                  src="/icon.svg"
-                  alt="TOLVA"
-                  className="size-6 self-start"
-                />
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">TOLVA</span>
-                  <span className="truncate text-xs">Finance Tracker</span>
-                </div>
-              </Link>
-            </SidebarMenuButton>
+            <div className="flex items-center gap-2 px-2 py-2">
+              <SidebarTrigger className="-ml-1" />
+              <SidebarMenuButton size="lg" asChild className="flex-1">
+                <Link href="/dashboard">
+                  <img
+                    src="/icon.svg"
+                    alt="TOLVA"
+                    className="size-6 self-start"
+                  />
+                  <div className="grid flex-1 text-left text-sm leading-tight">
+                    <span className="truncate font-semibold">TOLVA</span>
+                    <span className="truncate text-xs">Finance Tracker</span>
+                  </div>
+                </Link>
+              </SidebarMenuButton>
+            </div>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
