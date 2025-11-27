@@ -93,7 +93,11 @@ export default function DocumentsPage() {
           <UploadPanel onUploadComplete={fetchDocuments} />
         </div>
         <div className="xl:col-span-2">
-          <DocumentsTable documents={documents} showAmounts={showAmounts} />
+          <DocumentsTable
+            documents={documents}
+            showAmounts={showAmounts}
+            onDeleteComplete={fetchDocuments}
+          />
         </div>
       </div>
     </div>

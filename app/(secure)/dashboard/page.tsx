@@ -32,6 +32,7 @@ import {
   resolveDocDate,
   labelForCategory,
   defaultCategoryTotals,
+  parseLocalDay,
 } from "@/lib/billing-utils";
 import { KpiCards } from "@/components/dashboard/kpi-cards";
 import { DashboardCharts } from "@/components/dashboard/charts";
@@ -260,6 +261,7 @@ export default function DashboardPage() {
         id: doc.id,
         type: "expense",
         date: doc.updatedAt || doc.uploadedAt,
+        dueDate: parseLocalDay(doc.dueDate),
         amount: doc.totalAmount || 0,
         description:
           doc.providerNameDetected || doc.providerId || "Unknown Bill",
