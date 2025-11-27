@@ -1,60 +1,69 @@
-"use client"
+"use client";
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef } from "react";
 
-import { useAuth } from "@/lib/auth-context"
-import { persistAuthCookie, clearAuthCookie } from "@/lib/client/auth-cookie"
-import { AUTH_COOKIE_REFRESH_BUFFER_MS } from "@/lib/constants/auth"
+import { useAuth } from "@/lib/auth-context";
+import { persistAuthCookie, clearAuthCookie } from "@/lib/client/auth-cookie";
+import { AUTH_COOKIE_REFRESH_BUFFER_MS } from "@/lib/constants/auth";
 
 export function AuthSessionSync() {
-  const { user, loading } = useAuth()
-  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const { user, loading } = useAuth();
+  const refreshTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
-    let cancelled = false
+    let cancelled = false;
 
     const clearRefreshTimer = () => {
       if (refreshTimerRef.current) {
-        window.clearTimeout(refreshTimerRef.current)
-        refreshTimerRef.current = null
+        window.clearTimeout(refreshTimerRef.current);
+        refreshTimerRef.current = null;
       }
-    }
+    };
 
-    const scheduleRefresh = (expirationTime: string, sync: (forceRefresh?: boolean) => void) => {
-      const expiresAt = new Date(expirationTime).getTime()
-      const delay = Math.max(0, expiresAt - Date.now() - AUTH_COOKIE_REFRESH_BUFFER_MS)
+    const scheduleRefresh = (
+      expirationTime: string,
+      sync: (forceRefresh?: boolean) => void
+    ) => {
+      const expiresAt = new Date(expirationTime).getTime();
+      const delay = Math.max(
+        0,
+        expiresAt - Date.now() - AUTH_COOKIE_REFRESH_BUFFER_MS
+      );
       refreshTimerRef.current = window.setTimeout(() => {
-        sync(true)
-      }, delay)
-    }
+        sync(true);
+      }, delay);
+    };
 
     const syncSession = async (forceRefresh = false) => {
-      clearRefreshTimer()
+      clearRefreshTimer();
       if (!user) {
-        clearAuthCookie()
-        return
+        console.log("AuthSessionSync: No user, clearing cookie");
+        clearAuthCookie();
+        return;
       }
+
+      console.log("AuthSessionSync: Syncing session for user", user.uid);
 
       try {
-        const tokenResult = await user.getIdTokenResult(forceRefresh)
-        persistAuthCookie(tokenResult.token, tokenResult.expirationTime)
+        const tokenResult = await user.getIdTokenResult(forceRefresh);
+        persistAuthCookie(tokenResult.token, tokenResult.expirationTime);
         if (!cancelled) {
-          scheduleRefresh(tokenResult.expirationTime, syncSession)
+          scheduleRefresh(tokenResult.expirationTime, syncSession);
         }
       } catch (error) {
-        console.error("Failed to sync auth session cookie:", error)
+        console.error("Failed to sync auth session cookie:", error);
       }
-    }
+    };
 
     if (!loading) {
-      void syncSession()
+      void syncSession();
     }
 
     return () => {
-      cancelled = true
-      clearRefreshTimer()
-    }
-  }, [user, loading])
+      cancelled = true;
+      clearRefreshTimer();
+    };
+  }, [user, loading]);
 
-  return null
+  return null;
 }

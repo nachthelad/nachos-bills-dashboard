@@ -1,77 +1,121 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { createContext, useContext, useEffect, useMemo, useState } from "react"
-import { onAuthStateChanged, signOut as firebaseSignOut, type User } from "firebase/auth"
+import type React from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import {
+  browserLocalPersistence,
+  onAuthStateChanged,
+  setPersistence,
+  signOut as firebaseSignOut,
+  type User,
+} from "firebase/auth";
 
-import { clearAuthCookie } from "@/lib/client/auth-cookie"
+import { clearAuthCookie } from "@/lib/client/auth-cookie";
 
-import { FirebaseClientInitializationError, getFirebaseAuth } from "./firebase"
+import { FirebaseClientInitializationError, getFirebaseAuth } from "./firebase";
 
 interface AuthContextType {
-  user: User | null
-  loading: boolean
-  signOut: () => Promise<void>
+  user: User | null;
+  loading: boolean;
+  signOut: () => Promise<void>;
 }
 
-export const AuthContext = createContext<AuthContextType | undefined>(undefined)
+export const AuthContext = createContext<AuthContextType | undefined>(
+  undefined
+);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const getAuthInstance = useMemo(() => {
     return () => {
       try {
-        return getFirebaseAuth()
+        return getFirebaseAuth();
       } catch (error) {
         if (error instanceof FirebaseClientInitializationError) {
-          console.warn("Firebase auth unavailable:", error.message)
-          return null
+          console.warn("Firebase auth unavailable:", error.message);
+          return null;
         }
-        throw error
+        throw error;
       }
-    }
-  }, [])
+    };
+  }, []);
 
   useEffect(() => {
-    const auth = getAuthInstance()
+    const auth = getAuthInstance();
     if (!auth) {
-      setLoading(false)
-      setUser(null)
-      return
+      setLoading(false);
+      setUser(null);
+      return;
     }
 
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser)
-      setLoading(false)
-    })
+    let unsubscribe: (() => void) | undefined;
 
-    return () => unsubscribe()
-  }, [getAuthInstance])
+    const initAuth = async () => {
+      try {
+        // Explicitly set persistence to LOCAL (persists across browser restarts)
+        await setPersistence(auth, browserLocalPersistence);
+        console.log("Firebase auth persistence set to LOCAL");
+      } catch (error) {
+        console.error("Failed to set auth persistence:", error);
+      }
+
+      // Check if user is already logged in (e.g. from IndexedDB restoration)
+      if (auth.currentUser) {
+        console.log(
+          "AuthProvider: User already found in auth instance:",
+          auth.currentUser.uid
+        );
+        setUser(auth.currentUser);
+        setLoading(false);
+      }
+
+      unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+        console.log(
+          "Auth state changed:",
+          currentUser
+            ? `User logged in (${currentUser.uid})`
+            : "User logged out"
+        );
+        setUser(currentUser);
+        setLoading(false);
+      });
+    };
+
+    void initAuth();
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [getAuthInstance]);
 
   const signOut = async () => {
-    const auth = getAuthInstance()
+    const auth = getAuthInstance();
     if (!auth) {
-      console.warn("Attempted to sign out without Firebase auth configured.")
-      return
+      console.warn("Attempted to sign out without Firebase auth configured.");
+      return;
     }
 
     try {
-      await firebaseSignOut(auth)
-      clearAuthCookie()
+      await firebaseSignOut(auth);
+      clearAuthCookie();
     } catch (error) {
-      console.error("Sign out error:", error)
+      console.error("Sign out error:", error);
     }
-  }
+  };
 
-  return <AuthContext.Provider value={{ user, loading, signOut }}>{children}</AuthContext.Provider>
+  return (
+    <AuthContext.Provider value={{ user, loading, signOut }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {
-  const context = useContext(AuthContext)
+  const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error("useAuth must be used within AuthProvider")
+    throw new Error("useAuth must be used within AuthProvider");
   }
-  return context
+  return context;
 }

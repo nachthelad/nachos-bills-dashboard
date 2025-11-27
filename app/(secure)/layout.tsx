@@ -17,9 +17,9 @@ export default async function ProtectedLayout({
   children: React.ReactNode;
 }) {
   const auth = await verifyAuthFromCookies();
-  if (!auth) {
-    redirect("/auth/login");
-  }
+  // We allow the layout to render even if auth is missing on the server,
+  // so that the client-side SDK can restore the session from IndexedDB.
+  // The ProtectedRoute component will handle the redirect if the user is truly not authenticated.
 
   return (
     <AmountVisibilityProvider>
