@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 import { persistAuthCookie } from "@/lib/client/auth-cookie";
+import { useAuth } from "@/lib/auth-context";
 import {
   FirebaseClientInitializationError,
   getFirebaseAuth,
@@ -20,6 +21,21 @@ import {
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.push("/dashboard");
+    }
+  }, [user, authLoading, router]);
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background text-foreground p-4">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   const handleGoogleLogin = async () => {
     setLoading(true);
@@ -38,9 +54,7 @@ export default function LoginPage() {
 
     try {
       const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({
-        prompt: "select_account",
-      });
+      // Removed prompt: "select_account" to allow automatic login if only one account exists
       const credential = await signInWithPopup(auth, provider);
       const tokenResult = await credential.user.getIdTokenResult();
       persistAuthCookie(tokenResult.token, tokenResult.expirationTime);
