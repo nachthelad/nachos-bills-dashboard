@@ -10,6 +10,7 @@ import {
 } from "@/components/amount-visibility";
 import { UploadPanel } from "@/components/bills/upload-panel";
 import { DocumentsTable } from "@/components/bills/documents-table";
+import { MobileDocumentsList } from "@/components/bills/mobile-documents-list";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Upload } from "lucide-react";
@@ -93,11 +94,20 @@ export default function DocumentsPage() {
           <UploadPanel onUploadComplete={fetchDocuments} />
         </div>
         <div className="xl:col-span-2">
-          <DocumentsTable
-            documents={documents}
-            showAmounts={showAmounts}
-            onDeleteComplete={fetchDocuments}
-          />
+          <div className="hidden md:block">
+            <DocumentsTable
+              documents={documents}
+              showAmounts={showAmounts}
+              onDeleteComplete={fetchDocuments}
+            />
+          </div>
+          <div className="md:hidden">
+            <MobileDocumentsList
+              documents={documents}
+              showAmounts={showAmounts}
+              onDeleteComplete={fetchDocuments}
+            />
+          </div>
         </div>
       </div>
     </div>

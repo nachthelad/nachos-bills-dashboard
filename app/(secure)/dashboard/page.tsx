@@ -40,6 +40,7 @@ import {
   RecentActivity,
   type ActivityItem,
 } from "@/components/dashboard/recent-activity";
+import { MobileRecentActivity } from "@/components/dashboard/mobile-recent-activity";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "lucide-react";
 
@@ -364,7 +365,15 @@ export default function DashboardPage() {
         showAmounts={showAmounts}
       />
 
-      <RecentActivity items={recentActivity} showAmounts={showAmounts} />
+      <div className="hidden md:block">
+        <RecentActivity items={recentActivity} showAmounts={showAmounts} />
+      </div>
+      <div className="md:hidden">
+        <MobileRecentActivity
+          items={recentActivity}
+          showAmounts={showAmounts}
+        />
+      </div>
     </div>
   );
 }

@@ -1,4 +1,10 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Bar,
   BarChart,
@@ -11,12 +17,12 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-} from "recharts"
+} from "recharts";
 
 interface ChartsProps {
-  categoryTotals: Record<string, number>
-  monthlyData: { name: string; expenses: number; income: number }[]
-  showAmounts: boolean
+  categoryTotals: Record<string, number>;
+  monthlyData: { name: string; expenses: number; income: number }[];
+  showAmounts: boolean;
 }
 
 const COLORS = [
@@ -25,48 +31,54 @@ const COLORS = [
   "var(--chart-3)",
   "var(--chart-4)",
   "var(--chart-5)",
-]
+];
 
-import { labelForCategory } from "@/lib/billing-utils"
+import { labelForCategory } from "@/lib/billing-utils";
 
 // ... existing imports ...
 
-export function DashboardCharts({ categoryTotals, monthlyData, showAmounts }: ChartsProps) {
+export function DashboardCharts({
+  categoryTotals,
+  monthlyData,
+  showAmounts,
+}: ChartsProps) {
   const data = Object.entries(categoryTotals)
     .map(([name, value]) => ({ name: labelForCategory(name), value }))
     .filter((item) => item.value > 0)
-    .sort((a, b) => b.value - a.value)
+    .sort((a, b) => b.value - a.value);
 
   const formatCurrency = (value: number) => {
-    if (!showAmounts) return "••••••"
+    if (!showAmounts) return "••••••";
     return new Intl.NumberFormat("es-AR", {
       style: "currency",
       currency: "ARS",
       maximumFractionDigits: 0,
-    }).format(value)
-  }
+    }).format(value);
+  };
 
   const formatYAxis = (value: number) => {
     if (value >= 1000000) {
-      return `$${(value / 1000000).toFixed(1).replace(/\.0$/, "")}M`
+      return `$${(value / 1000000).toFixed(1).replace(/\.0$/, "")}M`;
     }
-    return `$${value}`
-  }
+    return `$${value}`;
+  };
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-      <Card className="col-span-4">
+    <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-7">
+      <Card className="col-span-1 md:col-span-2 lg:col-span-4">
         <CardHeader>
           <CardTitle>Overview</CardTitle>
-          <CardDescription>
-            Expenses vs Income over time
-          </CardDescription>
+          <CardDescription>Expenses vs Income over time</CardDescription>
         </CardHeader>
         <CardContent className="pl-2">
           <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={monthlyData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="#1e293b"
+                  vertical={false}
+                />
                 <XAxis
                   dataKey="name"
                   stroke="#94a3b8"
@@ -110,12 +122,10 @@ export function DashboardCharts({ categoryTotals, monthlyData, showAmounts }: Ch
           </div>
         </CardContent>
       </Card>
-      <Card className="col-span-3">
+      <Card className="col-span-1 md:col-span-2 lg:col-span-3">
         <CardHeader>
           <CardTitle>Expenses Breakdown</CardTitle>
-          <CardDescription>
-            Distribution by category
-          </CardDescription>
+          <CardDescription>Distribution by category</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="h-[300px]">
@@ -131,7 +141,10 @@ export function DashboardCharts({ categoryTotals, monthlyData, showAmounts }: Ch
                   dataKey="value"
                 >
                   {data.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={COLORS[index % COLORS.length]}
+                    />
                   ))}
                 </Pie>
                 <Tooltip
@@ -151,5 +164,5 @@ export function DashboardCharts({ categoryTotals, monthlyData, showAmounts }: Ch
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

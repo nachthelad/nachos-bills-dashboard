@@ -17,6 +17,7 @@ import {
 } from "@/components/amount-visibility";
 import { HoaSummaryCards } from "@/components/hoa/hoa-summary-cards";
 import { HoaTable } from "@/components/hoa/hoa-table";
+import { MobileHoaList } from "@/components/hoa/mobile-hoa-list";
 
 type SelectionOption = {
   key: string;
@@ -219,12 +220,22 @@ export default function HoaPage() {
             alerts={alerts}
             showAmounts={showAmounts}
           />
-          <HoaTable
-            currentSummary={currentSummary}
-            previousSummary={previousSummary}
-            comparison={comparison}
-            showAmounts={showAmounts}
-          />
+          <div className="hidden md:block">
+            <HoaTable
+              currentSummary={currentSummary}
+              previousSummary={previousSummary}
+              comparison={comparison}
+              showAmounts={showAmounts}
+            />
+          </div>
+          <div className="md:hidden">
+            <MobileHoaList
+              currentSummary={currentSummary}
+              previousSummary={previousSummary}
+              comparison={comparison}
+              showAmounts={showAmounts}
+            />
+          </div>
         </div>
       )}
     </div>
