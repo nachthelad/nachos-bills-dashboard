@@ -169,10 +169,7 @@ export async function POST(request: NextRequest) {
         log,
         "empty_text_extract"
       );
-      return NextResponse.json(
-        { error: errorMessage },
-        { status: 502 }
-      );
+      return NextResponse.json({ error: errorMessage }, { status: 502 });
     }
 
     let parseResponse: BillingParseResult;
@@ -221,10 +218,7 @@ export async function POST(request: NextRequest) {
 
     const updatePayload: Record<string, any> = {
       textExtract:
-        fullText ??
-        parseResponse.text ??
-        documentData?.textExtract ??
-        null,
+        fullText ?? parseResponse.text ?? documentData?.textExtract ?? null,
       providerId: parseResponse.providerId ?? documentData?.providerId ?? null,
       providerNameDetected:
         parseResponse.providerNameDetected ??
@@ -285,10 +279,18 @@ export async function POST(request: NextRequest) {
     });
 
     if (fallbackProvider) {
-      updatePayload.providerId ??= fallbackProvider.providerId;
-      updatePayload.provider ??= fallbackProvider.providerName;
-      updatePayload.category =
-        fallbackProvider.category ?? updatePayload.category;
+      const currentCategory = updatePayload.category;
+      const shouldApplyFallback =
+        currentCategory === "other" ||
+        !currentCategory ||
+        fallbackProvider.category === currentCategory;
+
+      if (shouldApplyFallback) {
+        updatePayload.providerId ??= fallbackProvider.providerId;
+        updatePayload.provider ??= fallbackProvider.providerName;
+        updatePayload.category =
+          fallbackProvider.category ?? updatePayload.category;
+      }
     }
 
     const assignDate = (field: string, value?: string | null) => {
@@ -340,16 +342,20 @@ function parseDate(value: string): Date | null {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
-async function upsertHoaSummary(
-  userId: string,
-  hoaDetails: unknown
-) {
+async function upsertHoaSummary(userId: string, hoaDetails: unknown) {
   const normalizedHoaDetails = isNormalizedHoaDetails(hoaDetails)
     ? hoaDetails
     : normalizeHoaDetails(hoaDetails);
   const { buildingCode, unitCode, periodYear, periodMonth } =
     normalizedHoaDetails ?? {};
-  if (!userId || !buildingCode || !unitCode || !periodYear || !periodMonth) {
+  if (
+    !normalizedHoaDetails ||
+    !userId ||
+    !buildingCode ||
+    !unitCode ||
+    !periodYear ||
+    !periodMonth
+  ) {
     return;
   }
 
@@ -357,7 +363,9 @@ async function upsertHoaSummary(
     normalizedHoaDetails?.periodKey ??
     `${periodYear}-${String(periodMonth).padStart(2, "0")}`;
   const summaryId = `${userId}_${buildingCode}_${unitCode}_${periodKey}`;
-  const summaryRef = getAdminFirestore().collection("hoaSummaries").doc(summaryId);
+  const summaryRef = getAdminFirestore()
+    .collection("hoaSummaries")
+    .doc(summaryId);
   const now = Timestamp.now();
   const snapshot = await summaryRef.get();
 
@@ -429,9 +437,7 @@ function inferProviderFromContent(
     return memo.get(cacheKey) ?? null;
   }
 
-  const normalizedFileName = fileName
-    ? normalizeSearchValue(fileName)
-    : null;
+  const normalizedFileName = fileName ? normalizeSearchValue(fileName) : null;
   const normalizedText = text ? normalizeSearchValue(text) : null;
 
   if (!normalizedFileName && !normalizedText) {
