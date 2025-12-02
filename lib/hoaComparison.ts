@@ -1,59 +1,67 @@
-import type { HoaRubro, HoaSummary } from "@/types/hoa"
+import type { HoaRubro, HoaSummary } from "@/types/hoa";
 
-export type Rubro = HoaRubro
+export type Rubro = HoaRubro;
 
 export type RubroDiff = {
-  rubroKey: string
-  label: string
-  currentTotal: number | null
-  previousTotal: number | null
-  diffAmount: number
-  diffPercent: number | null
-  status: "new" | "removed" | "increased" | "decreased" | "unchanged"
-}
+  rubroKey: string;
+  label: string;
+  currentTotal: number | null;
+  previousTotal: number | null;
+  diffAmount: number;
+  diffPercent: number | null;
+  status: "new" | "removed" | "increased" | "decreased" | "unchanged";
+};
 
 export type HoaComparisonResult = {
-  current: HoaSummary | null
+  current: HoaSummary | null;
+  previous: HoaSummary | null;
+  rubroDiffs: RubroDiff[];
+};
+
+const EPSILON = 0.01;
+
+export function compareHoaSummaries(
+  current: HoaSummary | null,
   previous: HoaSummary | null
-  rubroDiffs: RubroDiff[]
-}
+): HoaComparisonResult {
+  const currentMap = buildRubroMap(current);
+  const previousMap = buildRubroMap(previous);
 
-const EPSILON = 0.01
-
-export function compareHoaSummaries(current: HoaSummary | null, previous: HoaSummary | null): HoaComparisonResult {
-  const currentMap = buildRubroMap(current)
-  const previousMap = buildRubroMap(previous)
-
-  const keys = new Set([...currentMap.keys(), ...previousMap.keys()])
-  const rubroDiffs: RubroDiff[] = []
+  const keys = new Set([...currentMap.keys(), ...previousMap.keys()]);
+  const rubroDiffs: RubroDiff[] = [];
 
   for (const key of keys) {
-    const currentRubro = currentMap.get(key)
-    const previousRubro = previousMap.get(key)
+    const currentRubro = currentMap.get(key);
+    const previousRubro = previousMap.get(key);
 
-    const label = currentRubro?.label ?? previousRubro?.label ?? "Sin etiqueta"
-    const rubroNumber = currentRubro?.rubroNumber ?? previousRubro?.rubroNumber ?? null
-    const currentTotal = currentRubro?.total ?? null
-    const previousTotal = previousRubro?.total ?? null
-    const currentValue = currentTotal ?? 0
-    const previousValue = previousTotal ?? 0
+    const label = currentRubro?.label ?? previousRubro?.label ?? "Sin etiqueta";
+    const rubroNumber =
+      currentRubro?.rubroNumber ?? previousRubro?.rubroNumber ?? null;
+    const currentTotal = currentRubro?.total ?? null;
+    const previousTotal = previousRubro?.total ?? null;
+    const currentValue = currentTotal ?? 0;
+    const previousValue = previousTotal ?? 0;
 
-    let status: RubroDiff["status"]
+    let status: RubroDiff["status"];
     if (currentRubro && !previousRubro) {
-      status = "new"
+      status = "new";
     } else if (!currentRubro && previousRubro) {
-      status = "removed"
+      status = "removed";
     } else if (Math.abs(currentValue - previousValue) <= EPSILON) {
-      status = "unchanged"
+      status = "unchanged";
     } else if (currentValue > previousValue) {
-      status = "increased"
+      status = "increased";
     } else {
-      status = "decreased"
+      status = "decreased";
     }
 
-    const diffAmount = currentValue - previousValue
+    const diffAmount = currentValue - previousValue;
     const diffPercent =
-      previousValue > EPSILON ? Number((((currentValue - previousValue) / previousValue) * 100).toFixed(2)) : null
+      previousValue > EPSILON
+        ? Number(
+            (((currentValue - previousValue) / previousValue) * 100).toFixed(2)
+          )
+        : null;
 
     rubroDiffs.push({
       rubroKey: buildRubroKey(rubroNumber, label),
@@ -63,34 +71,37 @@ export function compareHoaSummaries(current: HoaSummary | null, previous: HoaSum
       diffAmount,
       diffPercent,
       status,
-    })
+    });
   }
 
-  rubroDiffs.sort((a, b) => Math.abs(b.diffAmount) - Math.abs(a.diffAmount))
+  rubroDiffs.sort((a, b) => Math.abs(b.diffAmount) - Math.abs(a.diffAmount));
 
   return {
     current,
     previous,
     rubroDiffs,
-  }
+  };
 }
 
 function buildRubroMap(summary: HoaSummary | null): Map<string, Rubro> {
-  const map = new Map<string, Rubro>()
+  const map = new Map<string, Rubro>();
   if (!summary?.rubros) {
-    return map
+    return map;
   }
   summary.rubros.forEach((rubro) => {
-    if (!rubro) return
-    const key = buildRubroKey(rubro.rubroNumber ?? null, rubro.label ?? "")
+    if (!rubro) return;
+    const key = buildRubroKey(rubro.rubroNumber ?? null, rubro.label ?? "");
     if (!map.has(key)) {
-      map.set(key, rubro)
+      map.set(key, rubro);
     }
-  })
-  return map
+  });
+  return map;
 }
 
 function buildRubroKey(rubroNumber: number | null, label: string | null) {
-  const normalizedLabel = (label ?? "").trim().toLowerCase()
-  return `${rubroNumber ?? "na"}::${normalizedLabel}`
+  if (rubroNumber !== null) {
+    return `${rubroNumber}::`;
+  }
+  const normalizedLabel = (label ?? "").trim().toLowerCase();
+  return `na::${normalizedLabel}`;
 }

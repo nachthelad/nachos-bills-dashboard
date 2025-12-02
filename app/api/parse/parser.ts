@@ -314,10 +314,16 @@ function sanitizeHoaRubros(value: unknown): HoaRubro[] {
     const rubro = item as Record<string, unknown>;
     return {
       rubroNumber: sanitizeInteger(rubro.rubroNumber),
-      label: sanitizeString(rubro.label),
+      label: normalizeRubroLabel(sanitizeString(rubro.label)),
       total: sanitizeNumber(rubro.total),
     };
   });
+}
+
+function normalizeRubroLabel(label: string | null): string | null {
+  if (!label) return null;
+  // Remove " (Rubro X)" or "(Rubro X)" case insensitive
+  return label.replace(/\s*\(Rubro\s*\d+\)/i, "").trim();
 }
 
 function sanitizeHoaDetails(value: unknown): HoaDetails | null {
@@ -454,7 +460,9 @@ async function loadPdf2Json(): Promise<Pdf2JsonConstructor> {
     PDFParser?: Pdf2JsonConstructor;
   };
   const ParserClass =
-    module?.default ?? module?.PDFParser ?? (module as unknown as Pdf2JsonConstructor);
+    module?.default ??
+    module?.PDFParser ??
+    (module as unknown as Pdf2JsonConstructor);
   if (typeof ParserClass !== "function") {
     throw new Error("Invalid pdf2json module");
   }
