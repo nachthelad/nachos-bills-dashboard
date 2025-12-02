@@ -43,6 +43,13 @@ import {
 import { MobileRecentActivity } from "@/components/dashboard/mobile-recent-activity";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type DashboardDocument = Omit<BillDocument, "uploadedAt"> & {
   uploadedAt: Date;
@@ -132,7 +139,23 @@ export default function DashboardPage() {
     };
   }, [apiClient, user]);
 
-  const currentYear = new Date().getFullYear();
+  const [selectedYear, setSelectedYear] = useState<number>(
+    new Date().getFullYear()
+  );
+
+  const availableYears = useMemo(() => {
+    const years = new Set<number>([new Date().getFullYear()]);
+    expenseDocs.forEach((doc) => {
+      const date = resolveDocDate(doc);
+      if (date) years.add(date.getFullYear());
+    });
+    incomeEntries.forEach((entry) => {
+      years.add(entry.date.getFullYear());
+    });
+    return Array.from(years).sort((a, b) => b - a);
+  }, [expenseDocs, incomeEntries]);
+
+  const currentYear = selectedYear;
 
   const expenseMetrics = useMemo(() => {
     const docs = expenseDocs.filter((doc) =>
@@ -334,10 +357,24 @@ export default function DashboardPage() {
           <h2 className="text-2xl font-bold tracking-tight">Dashboard</h2>
           <AmountVisibilityToggle />
         </div>
-        <Button variant="ghost" size="sm" className="h-8 gap-1">
-          <Calendar className="h-4 w-4" />
-          <span>This Year</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Calendar className="h-4 w-4 text-muted-foreground" />
+          <Select
+            value={String(selectedYear)}
+            onValueChange={(val) => setSelectedYear(Number(val))}
+          >
+            <SelectTrigger className="w-[120px] h-8">
+              <SelectValue placeholder="Select year" />
+            </SelectTrigger>
+            <SelectContent>
+              {availableYears.map((year) => (
+                <SelectItem key={year} value={String(year)}>
+                  {year}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
       <div>
         <p className="text-muted-foreground">

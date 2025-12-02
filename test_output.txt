@@ -1,0 +1,37 @@
+TAP version 13
+# D:\\Cosas\\Dev\\tolva\\__tests__\\lib\\hoaComparison.test.ts:7
+# describe("compareHoaSummaries", () => {
+# ^
+# ReferenceError: describe is not defined
+#     at <anonymous> (D:\\Cosas\\Dev\\tolva\\__tests__\\lib\\hoaComparison.test.ts:7:1)
+#     at Object.<anonymous> (D:\\Cosas\\Dev\\tolva\\__tests__\\lib\\hoaComparison.test.ts:86:2)
+#     at Module._compile (node:internal/modules/cjs/loader:1730:14)
+#     at Object.transformer (D:\\Cosas\\Dev\\tolva\\node_modules\\.pnpm\\tsx@4.20.6\\node_modules\\tsx\\dist\\register-D46fvsV_.cjs:3:1104)
+#     at Module.load (node:internal/modules/cjs/loader:1465:32)
+#     at Function._load (node:internal/modules/cjs/loader:1282:12)
+#     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+#     at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
+#     at cjsLoader (node:internal/modules/esm/translators:266:5)
+#     at ModuleWrap.<anonymous> (node:internal/modules/esm/translators:200:7)
+# Node.js v22.17.1
+# Subtest: __tests__\\lib\\hoaComparison.test.ts
+not ok 1 - __tests__\\lib\\hoaComparison.test.ts
+  ---
+  duration_ms: 298.3984
+  type: 'test'
+  location: 'D:\\Cosas\\Dev\\tolva\\__tests__\\lib\\hoaComparison.test.ts:1:1'
+  failureType: 'testCodeFailure'
+  exitCode: 1
+  signal: ~
+  error: 'test failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 311.9822
