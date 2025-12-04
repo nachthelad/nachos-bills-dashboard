@@ -85,7 +85,9 @@ export function HoaTable({
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <div className="flex-1">
-            <CardTitle className="text-lg">Details by category</CardTitle>
+            <CardTitle className="text-lg">
+              Details by {sortBy === "category" ? "category" : "difference"}
+            </CardTitle>
             <p className="text-sm text-muted-foreground">
               Comparison between{" "}
               {currentSummary?.periodLabel ?? "the last period"} and{" "}

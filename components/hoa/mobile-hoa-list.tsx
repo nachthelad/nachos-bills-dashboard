@@ -134,7 +134,7 @@ export function MobileHoaList({
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h3 className="font-semibold text-sm text-muted-foreground">
-          Comparison Details
+          Details by {sortBy === "category" ? "category" : "difference"}
         </h3>
         <Button
           variant="outline"
