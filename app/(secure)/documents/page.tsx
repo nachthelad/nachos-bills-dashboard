@@ -32,7 +32,16 @@ export default function DocumentsPage() {
     apiClient
       .listDocuments()
       .then((docs) => {
-        setDocuments(docs);
+        const sortedDocs = docs.sort((a, b) => {
+          const dateA = a.dueDate
+            ? new Date(a.dueDate).getTime()
+            : a.uploadedAt.getTime();
+          const dateB = b.dueDate
+            ? new Date(b.dueDate).getTime()
+            : b.uploadedAt.getTime();
+          return dateB - dateA;
+        });
+        setDocuments(sortedDocs);
       })
       .catch((error) => {
         console.error("Error fetching documents:", error);
@@ -79,7 +88,7 @@ export default function DocumentsPage() {
             <Button asChild variant="outline" size="sm" className="ml-2 gap-2">
               <Link href="/upload">
                 <Upload className="w-4 h-4" />
-                Upload Bill
+                Add manually
               </Link>
             </Button>
           </div>

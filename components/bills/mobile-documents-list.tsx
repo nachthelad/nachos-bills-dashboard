@@ -56,8 +56,8 @@ export function MobileDocumentsList({
 
   const filteredDocuments = documents.filter((doc) => {
     const matchesSearch = (
-      doc.providerNameDetected ||
       doc.provider ||
+      doc.providerNameDetected ||
       doc.fileName ||
       ""
     )
@@ -184,8 +184,8 @@ export function MobileDocumentsList({
                     </div>
                     <div className="flex-1 min-w-0">
                       <CardTitle className="text-base">
-                        {doc.providerNameDetected ||
-                          doc.provider ||
+                        {doc.provider ||
+                          doc.providerNameDetected ||
                           doc.fileName}
                       </CardTitle>
                       <div className="flex items-center gap-2 mt-1">

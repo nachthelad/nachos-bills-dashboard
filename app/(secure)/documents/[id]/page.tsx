@@ -312,7 +312,7 @@ export default function DocumentDetailPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <InfoItem
               label="Provider"
-              value={document.providerNameDetected ?? document.provider}
+              value={document.provider ?? document.providerNameDetected}
             />
             <InfoItem label="Provider ID" value={document.providerId} />
             <InfoItem label="Category" value={document.category} />
