@@ -32,9 +32,9 @@ export function MobileIncomeList({
   const [sourceFilter, setSourceFilter] = useState<string>("all");
 
   const filteredEntries = entries.filter((entry) => {
-    const matchesSearch = entry.source
-      .toLowerCase()
-      .includes(search.toLowerCase());
+    const matchesSearch =
+      entry.name.toLowerCase().includes(search.toLowerCase()) ||
+      entry.source.toLowerCase().includes(search.toLowerCase());
     const matchesSource =
       sourceFilter === "all" || entry.source === sourceFilter;
     return matchesSearch && matchesSource;
@@ -103,8 +103,11 @@ export function MobileIncomeList({
                       </div>
                       <div className="min-w-0 flex-1">
                         <CardTitle className="text-base truncate">
-                          {entry.source}
+                          {entry.name}
                         </CardTitle>
+                        <CardDescription className="text-xs mt-0.5">
+                          {entry.source}
+                        </CardDescription>
                       </div>
                     </div>
                   </div>

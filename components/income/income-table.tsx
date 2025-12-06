@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import type { IncomeEntry } from "@/lib/income-client"
+import { useState } from "react";
+import type { IncomeEntry } from "@/lib/income-client";
 import {
   Table,
   TableBody,
@@ -9,44 +9,53 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, TrendingUp } from "lucide-react"
+} from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Search, TrendingUp } from "lucide-react";
 
 interface IncomeTableProps {
-  entries: IncomeEntry[]
-  showAmounts: boolean
+  entries: IncomeEntry[];
+  showAmounts: boolean;
 }
 
 export function IncomeTable({ entries, showAmounts }: IncomeTableProps) {
-  const [search, setSearch] = useState("")
-  const [sourceFilter, setSourceFilter] = useState<string>("all")
+  const [search, setSearch] = useState("");
+  const [sourceFilter, setSourceFilter] = useState<string>("all");
 
   const filteredEntries = entries.filter((entry) => {
-    const matchesSearch = entry.source.toLowerCase().includes(search.toLowerCase())
-    const matchesSource = sourceFilter === "all" || entry.source === sourceFilter
-    return matchesSearch && matchesSource
-  })
+    const matchesSearch =
+      entry.name.toLowerCase().includes(search.toLowerCase()) ||
+      entry.source.toLowerCase().includes(search.toLowerCase());
+    const matchesSource =
+      sourceFilter === "all" || entry.source === sourceFilter;
+    return matchesSearch && matchesSource;
+  });
 
   const formatCurrency = (amount: number) => {
-    if (!showAmounts) return "••••••"
+    if (!showAmounts) return "••••••";
     return new Intl.NumberFormat("es-AR", {
       style: "currency",
       currency: "ARS",
       maximumFractionDigits: 0,
-    }).format(amount)
-  }
+    }).format(amount);
+  };
 
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat("es-AR", {
       day: "numeric",
       month: "short",
       year: "numeric",
-    }).format(date)
-  }
+    }).format(date);
+  };
 
-  const sources = Array.from(new Set(entries.map((e) => e.source)))
+  const sources = Array.from(new Set(entries.map((e) => e.source)));
 
   return (
     <div className="space-y-4">
@@ -79,6 +88,7 @@ export function IncomeTable({ entries, showAmounts }: IncomeTableProps) {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>Name</TableHead>
               <TableHead>Source</TableHead>
               <TableHead>Date</TableHead>
               <TableHead className="text-right">Amount</TableHead>
@@ -87,7 +97,10 @@ export function IncomeTable({ entries, showAmounts }: IncomeTableProps) {
           <TableBody>
             {filteredEntries.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={3} className="h-24 text-center text-muted-foreground">
+                <TableCell
+                  colSpan={4}
+                  className="h-24 text-center text-muted-foreground"
+                >
                   No income entries found.
                 </TableCell>
               </TableRow>
@@ -99,8 +112,11 @@ export function IncomeTable({ entries, showAmounts }: IncomeTableProps) {
                       <div className="p-1.5 rounded-full bg-emerald-500/10 text-emerald-500">
                         <TrendingUp className="w-4 h-4" />
                       </div>
-                      {entry.source}
+                      {entry.name}
                     </div>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {entry.source}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {formatDate(entry.date)}
@@ -115,5 +131,5 @@ export function IncomeTable({ entries, showAmounts }: IncomeTableProps) {
         </Table>
       </div>
     </div>
-  )
+  );
 }

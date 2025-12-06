@@ -34,6 +34,7 @@ export function AddIncomeModal({ onSuccess }: AddIncomeModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
+    name: "",
     source: "",
     amount: "",
     date: new Date().toISOString().split("T")[0],
@@ -49,12 +50,14 @@ export function AddIncomeModal({ onSuccess }: AddIncomeModalProps) {
     try {
       const token = await user.getIdToken();
       await addIncomeEntry(token, {
+        name: formData.name,
         amount: Number.parseFloat(formData.amount),
         source: formData.source,
         date: new Date(formData.date),
       });
       setOpen(false);
       setFormData({
+        name: "",
         source: "",
         amount: "",
         date: new Date().toISOString().split("T")[0],
@@ -84,6 +87,22 @@ export function AddIncomeModal({ onSuccess }: AddIncomeModalProps) {
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="name" className="text-foreground">
+              Name
+            </Label>
+            <Input
+              id="name"
+              type="text"
+              placeholder="e.g., December Salary, Freelance Project"
+              value={formData.name}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
+              className="bg-background border-border text-foreground placeholder:text-muted-foreground"
+              required
+            />
+          </div>
           <div className="space-y-2">
             <Label htmlFor="source" className="text-foreground">
               Source

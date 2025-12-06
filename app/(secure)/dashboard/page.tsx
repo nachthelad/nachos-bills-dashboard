@@ -298,7 +298,7 @@ export default function DashboardPage() {
       type: "income",
       date: entry.date,
       amount: entry.amount,
-      description: entry.source,
+      description: entry.name,
       category: "Income",
     }));
 
