@@ -53,7 +53,7 @@ export function AddIncomeModal({ onSuccess }: AddIncomeModalProps) {
         name: formData.name,
         amount: Number.parseFloat(formData.amount),
         source: formData.source,
-        date: new Date(formData.date),
+        date: new Date(`${formData.date}T12:00:00Z`),
       });
       setOpen(false);
       setFormData({
