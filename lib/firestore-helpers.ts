@@ -12,7 +12,7 @@ import {
 
 import type { HoaDetails } from "@/types/hoa";
 
-import { firestore } from "./firebase";
+import { getFirebaseFirestore } from "./firebase";
 
 export interface Provider {
   id: string;
@@ -50,12 +50,7 @@ export interface BillDocument {
 
 // Providers
 function getDb() {
-  if (!firestore) {
-    throw new Error(
-      "Firestore is not configured. Check your Firebase environment variables."
-    );
-  }
-  return firestore;
+  return getFirebaseFirestore();
 }
 
 export async function getProviders(): Promise<Provider[]> {
