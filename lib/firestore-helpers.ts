@@ -8,112 +8,121 @@ import {
   addDoc,
   updateDoc,
   deleteDoc,
-} from "firebase/firestore"
+} from "firebase/firestore";
 
-import type { HoaDetails } from "@/types/hoa"
+import type { HoaDetails } from "@/types/hoa";
 
-import { firestore } from "./firebase"
+import { getFirebaseFirestore } from "./firebase";
 
 export interface Provider {
-  id: string
-  name: string
-  category: string
+  id: string;
+  name: string;
+  category: string;
 }
 
 export interface BillDocument {
-  id: string
-  userId: string
-  fileName: string
-  storageUrl: string | null
-  pdfUrl?: string
-  uploadedAt: Date
-  provider?: string | null
-  providerId?: string | null
-  providerNameDetected?: string | null
-  category?: string | null
-  amount?: number | null
-  totalAmount?: number | null
-  currency?: string | null
-  dueDate?: string | null
-  issueDate?: string | null
-  periodStart?: string | null
-  periodEnd?: string | null
-  status: "pending" | "parsed" | "needs_review" | "error"
-  textExtract?: string | null
-  errorMessage?: string | null
-  lastParsedAt?: Date | null
-  parsedData?: Record<string, any>
-  hoaDetails?: HoaDetails | null
-  manualEntry?: boolean
-  updatedAt?: Date | null
+  id: string;
+  userId: string;
+  fileName: string;
+  storageUrl: string | null;
+  pdfUrl?: string;
+  uploadedAt: Date;
+  provider?: string | null;
+  providerId?: string | null;
+  providerNameDetected?: string | null;
+  category?: string | null;
+  amount?: number | null;
+  totalAmount?: number | null;
+  currency?: string | null;
+  dueDate?: string | null;
+  issueDate?: string | null;
+  periodStart?: string | null;
+  periodEnd?: string | null;
+  status: "pending" | "parsed" | "needs_review" | "error" | "paid";
+  textExtract?: string | null;
+  errorMessage?: string | null;
+  lastParsedAt?: Date | null;
+  parsedData?: Record<string, any>;
+  hoaDetails?: HoaDetails | null;
+  manualEntry?: boolean;
+  updatedAt?: Date | null;
 }
 
 // Providers
 function getDb() {
-  if (!firestore) {
-    throw new Error("Firestore is not configured. Check your Firebase environment variables.")
-  }
-  return firestore
+  return getFirebaseFirestore();
 }
 
 export async function getProviders(): Promise<Provider[]> {
   try {
-    const querySnapshot = await getDocs(collection(getDb(), "providers"))
+    const querySnapshot = await getDocs(collection(getDb(), "providers"));
     return querySnapshot.docs.map(
       (doc) =>
         ({
           id: doc.id,
           ...doc.data(),
-        }) as Provider,
-    )
+        } as Provider)
+    );
   } catch (error) {
-    console.error("Error fetching providers:", error)
-    return []
+    console.error("Error fetching providers:", error);
+    return [];
   }
 }
 
 // Documents
-export async function createDocument(userId: string, documentData: Omit<BillDocument, "id">): Promise<string> {
+export async function createDocument(
+  userId: string,
+  documentData: Omit<BillDocument, "id">
+): Promise<string> {
   const docRef = await addDoc(collection(getDb(), "documents"), {
     ...documentData,
     uploadedAt: new Date(),
-  })
-  return docRef.id
+  });
+  return docRef.id;
 }
 
-type HasToDate = { toDate: () => Date }
+type HasToDate = { toDate: () => Date };
 
 function hasToDate(value: unknown): value is HasToDate {
-  return Boolean(value && typeof value === "object" && "toDate" in (value as Record<string, unknown>))
+  return Boolean(
+    value &&
+      typeof value === "object" &&
+      "toDate" in (value as Record<string, unknown>)
+  );
 }
 
 function toDateString(value: unknown): string | null {
-  if (!value) return null
+  if (!value) return null;
   if (typeof value === "string") {
-    return value
+    return value;
   }
   if (value instanceof Date) {
-    return value.toISOString().slice(0, 10)
+    return value.toISOString().slice(0, 10);
   }
   if (hasToDate(value)) {
-    return value.toDate().toISOString().slice(0, 10)
+    return value.toDate().toISOString().slice(0, 10);
   }
-  return null
+  return null;
 }
 
 function toDate(value: unknown): Date | null {
-  if (!value) return null
-  if (value instanceof Date) return value
+  if (!value) return null;
+  if (value instanceof Date) return value;
   if (hasToDate(value)) {
-    return value.toDate()
+    return value.toDate();
   }
-  const parsed = new Date(value as string)
-  return Number.isNaN(parsed.getTime()) ? null : parsed
+  const parsed = new Date(value as string);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
-export async function getUserDocuments(userId: string): Promise<BillDocument[]> {
-  const q = query(collection(getDb(), "documents"), where("userId", "==", userId))
-  const querySnapshot = await getDocs(q)
+export async function getUserDocuments(
+  userId: string
+): Promise<BillDocument[]> {
+  const q = query(
+    collection(getDb(), "documents"),
+    where("userId", "==", userId)
+  );
+  const querySnapshot = await getDocs(q);
   return querySnapshot.docs.map(
     (doc) =>
       ({
@@ -125,13 +134,13 @@ export async function getUserDocuments(userId: string): Promise<BillDocument[]> 
         periodStart: toDateString(doc.data().periodStart),
         periodEnd: toDateString(doc.data().periodEnd),
         lastParsedAt: toDate(doc.data().lastParsedAt),
-      }) as BillDocument,
-  )
+      } as BillDocument)
+  );
 }
 
 export async function getDocument(docId: string): Promise<BillDocument | null> {
-  const docRef = doc(getDb(), "documents", docId)
-  const docSnapshot = await getDoc(docRef)
+  const docRef = doc(getDb(), "documents", docId);
+  const docSnapshot = await getDoc(docRef);
   if (docSnapshot.exists()) {
     return {
       id: docSnapshot.id,
@@ -142,17 +151,20 @@ export async function getDocument(docId: string): Promise<BillDocument | null> {
       periodStart: toDateString(docSnapshot.data().periodStart),
       periodEnd: toDateString(docSnapshot.data().periodEnd),
       lastParsedAt: toDate(docSnapshot.data().lastParsedAt),
-    } as BillDocument
+    } as BillDocument;
   }
-  return null
+  return null;
 }
 
-export async function updateDocument(docId: string, updates: Partial<BillDocument>) {
-  const docRef = doc(getDb(), "documents", docId)
-  await updateDoc(docRef, updates)
+export async function updateDocument(
+  docId: string,
+  updates: Partial<BillDocument>
+) {
+  const docRef = doc(getDb(), "documents", docId);
+  await updateDoc(docRef, updates);
 }
 
 export async function deleteDocument(docId: string) {
-  const docRef = doc(getDb(), "documents", docId)
-  await deleteDoc(docRef)
+  const docRef = doc(getDb(), "documents", docId);
+  await deleteDoc(docRef);
 }
