@@ -159,7 +159,7 @@ export default function DashboardPage() {
 
   const expenseMetrics = useMemo(() => {
     const docs = expenseDocs.filter((doc) =>
-      ["parsed", "needs_review"].includes(doc.status)
+      ["parsed", "needs_review", "paid"].includes(doc.status)
     );
     const totals = {
       year: 0,
@@ -279,7 +279,7 @@ export default function DashboardPage() {
   const recentActivity: ActivityItem[] = useMemo(() => {
     const expenses: ActivityItem[] = expenseDocs
       .filter((doc) =>
-        ["parsed", "needs_review", "pending"].includes(doc.status)
+        ["parsed", "needs_review", "pending", "paid"].includes(doc.status)
       )
       .map((doc) => ({
         id: doc.id,
@@ -323,7 +323,7 @@ export default function DashboardPage() {
     });
 
     expenseDocs.forEach((doc) => {
-      if (!["parsed", "needs_review"].includes(doc.status)) return;
+      if (!["parsed", "needs_review", "paid"].includes(doc.status)) return;
       const amount = doc.totalAmount ?? 0;
       if (!amount) return;
       const docDate = resolveDocDate(doc);

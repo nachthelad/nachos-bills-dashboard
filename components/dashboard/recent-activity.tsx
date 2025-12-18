@@ -20,7 +20,7 @@ export interface ActivityItem {
   amount: number;
   description: string;
   category: string;
-  status?: "parsed" | "pending" | "error" | "completed";
+  status?: "parsed" | "pending" | "error" | "completed" | "paid";
 }
 
 interface RecentActivityProps {
@@ -101,8 +101,15 @@ export function RecentActivity({ items, showAmounts }: RecentActivityProps) {
                     <div className="flex flex-col">
                       <span>{item.description}</span>
                       {item.status && item.status !== "completed" && (
-                        <span className="text-xs text-muted-foreground capitalize">
+                        <span
+                          className={`text-xs capitalize ${
+                            item.status === "paid"
+                              ? "text-emerald-600 font-medium"
+                              : "text-muted-foreground"
+                          }`}
+                        >
                           {item.status}
+                          {item.status === "paid" && " ✓"}
                         </span>
                       )}
                     </div>

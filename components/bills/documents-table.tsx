@@ -26,6 +26,8 @@ import {
   ExternalLink,
   ChevronRight,
   Trash2,
+  Calendar,
+  CheckCircle,
 } from "lucide-react";
 import { labelForCategory, parseLocalDay } from "@/lib/billing-utils";
 import { CATEGORY_OPTIONS } from "@/config/billing/categories";
@@ -52,6 +54,8 @@ export function DocumentsTable({
     null
   );
   const [isDeleting, setIsDeleting] = useState(false);
+  const [markAllDialogOpen, setMarkAllDialogOpen] = useState(false);
+  const [isMarkingAll, setIsMarkingAll] = useState(false);
 
   const filteredDocuments = documents.filter((doc) => {
     const matchesSearch = (
@@ -115,6 +119,94 @@ export function DocumentsTable({
     setDeleteDialogOpen(true);
   };
 
+  const markAsPaid = async (docId: string) => {
+    if (!user) return;
+    const doc = documents.find((d) => d.id === docId);
+    if (!doc) return;
+
+    const newStatus = doc.status === "paid" ? "pending" : "paid";
+
+    try {
+      const token = await user.getIdToken();
+      const response = await fetch(`/api/documents/${docId}`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update document");
+      }
+
+      onDeleteComplete?.(); // Re-fetch documents
+    } catch (error) {
+      console.error("Error updating document status:", error);
+    }
+  };
+
+  const handleMarkAllClick = () => {
+    const pendingDocs = filteredDocuments.filter(
+      (doc) => doc.status !== "paid"
+    );
+    if (pendingDocs.length === 0) return;
+    setMarkAllDialogOpen(true);
+  };
+
+  const confirmMarkAll = async () => {
+    if (!user) return;
+    setIsMarkingAll(true);
+    const pendingDocs = filteredDocuments.filter(
+      (doc) => doc.status !== "paid"
+    );
+
+    try {
+      for (const doc of pendingDocs) {
+        await markAsPaid(doc.id);
+      }
+    } finally {
+      setIsMarkingAll(false);
+      setMarkAllDialogOpen(false);
+    }
+  };
+
+  const addToCalendar = (doc: BillDocument) => {
+    const title = `Pagar ${
+      doc.provider || doc.providerNameDetected || "Bill"
+    } $${doc.amount ?? doc.totalAmount ?? 0}`;
+    const details = `Document Link: ${doc.storageUrl || ""}`;
+
+    // Format dates as YYYYMMDD
+    // If no due date, default to tomorrow? Or just let Google Calendar decide (it defaults to current time)
+    // Google Calendar URL format: dates=20201231/20201231
+    // Let's use current time if no due date, or due date if available.
+
+    let datesParam = "";
+    if (doc.dueDate) {
+      const dueDate = parseLocalDay(doc.dueDate);
+      if (dueDate) {
+        const yyyymmdd = dueDate.toISOString().replace(/-/g, "").split("T")[0];
+        // Set for all day event? or specific time?
+        // "dates" parameter requires start/end.
+        // For all day: YYYYMMDD/YYYYMMDD+1
+        const nextDay = new Date(dueDate);
+        nextDay.setDate(nextDay.getDate() + 1);
+        const nextDayStr = nextDay
+          .toISOString()
+          .replace(/-/g, "")
+          .split("T")[0];
+        datesParam = `&dates=${yyyymmdd}/${nextDayStr}`;
+      }
+    }
+
+    const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(
+      title
+    )}&details=${encodeURIComponent(details)}${datesParam}`;
+    window.open(url, "_blank");
+  };
+
   const statusStyles = {
     parsed:
       "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 border-emerald-500/20",
@@ -123,6 +215,7 @@ export function DocumentsTable({
     needs_review:
       "bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 border-amber-500/20",
     error: "bg-red-500/10 text-red-500 hover:bg-red-500/20 border-red-500/20",
+    paid: "bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 border-blue-500/20",
   };
 
   return (
@@ -160,8 +253,17 @@ export function DocumentsTable({
             <SelectItem value="pending">Pending</SelectItem>
             <SelectItem value="needs_review">Needs Review</SelectItem>
             <SelectItem value="error">Error</SelectItem>
+            <SelectItem value="paid">Paid</SelectItem>
           </SelectContent>
         </Select>
+        <Button
+          variant="outline"
+          onClick={handleMarkAllClick}
+          disabled={filteredDocuments.every((doc) => doc.status === "paid")}
+          title="Mark all visible documents as paid"
+        >
+          Mark All Paid
+        </Button>
       </div>
 
       <div className="rounded-md border">
@@ -174,6 +276,7 @@ export function DocumentsTable({
               <TableHead>Due Date</TableHead>
               <TableHead className="text-right">Amount</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead className="text-center w-[100px]">Paid?</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -181,7 +284,7 @@ export function DocumentsTable({
             {filteredDocuments.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={7}
+                  colSpan={8}
                   className="h-24 text-center text-muted-foreground"
                 >
                   No documents found.
@@ -224,8 +327,40 @@ export function DocumentsTable({
                         {doc.status === "needs_review" ? "Review" : doc.status}
                       </Badge>
                     </TableCell>
+                    <TableCell className="text-center">
+                      {doc.status !== "paid" && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => markAsPaid(doc.id)}
+                          title="Mark as Paid"
+                          className="text-muted-foreground hover:text-emerald-500 hover:bg-emerald-50"
+                        >
+                          <CheckCircle className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {doc.status === "paid" && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => markAsPaid(doc.id)}
+                          title="Mark as Unpaid"
+                          className="text-emerald-500 hover:text-amber-500 hover:bg-amber-50"
+                        >
+                          <CheckCircle className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => addToCalendar(doc)}
+                          title="Add to Google Calendar"
+                        >
+                          <Calendar className="h-4 w-4" />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -283,6 +418,33 @@ export function DocumentsTable({
                 disabled={isDeleting}
               >
                 {isDeleting ? "Deleting..." : "Delete"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {markAllDialogOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-xl border border-border bg-background p-6 space-y-4 shadow-lg">
+            <h3 className="text-xl font-semibold text-foreground">
+              Mark all as paid?
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              Are you sure you want to mark{" "}
+              {filteredDocuments.filter((doc) => doc.status !== "paid").length}{" "}
+              documents as paid?
+            </p>
+            <div className="flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setMarkAllDialogOpen(false)}
+                disabled={isMarkingAll}
+              >
+                Cancel
+              </Button>
+              <Button onClick={confirmMarkAll} disabled={isMarkingAll}>
+                {isMarkingAll ? "Processing..." : "Confirm"}
               </Button>
             </div>
           </div>
