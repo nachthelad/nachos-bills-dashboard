@@ -29,7 +29,12 @@ import {
   Calendar,
   CheckCircle,
 } from "lucide-react";
-import { labelForCategory, parseLocalDay } from "@/lib/billing-utils";
+import {
+  labelForCategory,
+  parseLocalDay,
+  generateCalendarUrl,
+} from "@/lib/billing-utils";
+import { toggleBillStatus } from "@/lib/billing-actions";
 import { CATEGORY_OPTIONS } from "@/config/billing/categories";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
@@ -124,23 +129,9 @@ export function DocumentsTable({
     const doc = documents.find((d) => d.id === docId);
     if (!doc) return;
 
-    const newStatus = doc.status === "paid" ? "pending" : "paid";
-
     try {
       const token = await user.getIdToken();
-      const response = await fetch(`/api/documents/${docId}`, {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ status: newStatus }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to update document");
-      }
-
+      await toggleBillStatus(docId, doc.status, token);
       onDeleteComplete?.(); // Re-fetch documents
     } catch (error) {
       console.error("Error updating document status:", error);
@@ -173,37 +164,7 @@ export function DocumentsTable({
   };
 
   const addToCalendar = (doc: BillDocument) => {
-    const title = `Pagar ${
-      doc.provider || doc.providerNameDetected || "Bill"
-    } $${doc.amount ?? doc.totalAmount ?? 0}`;
-    const details = `Document Link: ${doc.storageUrl || ""}`;
-
-    // Format dates as YYYYMMDD
-    // If no due date, default to tomorrow? Or just let Google Calendar decide (it defaults to current time)
-    // Google Calendar URL format: dates=20201231/20201231
-    // Let's use current time if no due date, or due date if available.
-
-    let datesParam = "";
-    if (doc.dueDate) {
-      const dueDate = parseLocalDay(doc.dueDate);
-      if (dueDate) {
-        const yyyymmdd = dueDate.toISOString().replace(/-/g, "").split("T")[0];
-        // Set for all day event? or specific time?
-        // "dates" parameter requires start/end.
-        // For all day: YYYYMMDD/YYYYMMDD+1
-        const nextDay = new Date(dueDate);
-        nextDay.setDate(nextDay.getDate() + 1);
-        const nextDayStr = nextDay
-          .toISOString()
-          .replace(/-/g, "")
-          .split("T")[0];
-        datesParam = `&dates=${yyyymmdd}/${nextDayStr}`;
-      }
-    }
-
-    const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(
-      title
-    )}&details=${encodeURIComponent(details)}${datesParam}`;
+    const url = generateCalendarUrl(doc);
     window.open(url, "_blank");
   };
 

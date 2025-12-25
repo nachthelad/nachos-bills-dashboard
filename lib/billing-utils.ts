@@ -67,3 +67,26 @@ export function defaultCategoryTotals(): Record<CategoryValue, number> {
     return acc;
   }, {} as Record<CategoryValue, number>);
 }
+
+export function generateCalendarUrl(doc: BillDocument): string {
+  const title = `Pagar ${doc.provider || doc.providerNameDetected || "Bill"} $${
+    doc.amount ?? doc.totalAmount ?? 0
+  }`;
+  const details = `Document Link: ${doc.storageUrl || ""}`;
+
+  let datesParam = "";
+  if (doc.dueDate) {
+    const dueDate = parseLocalDay(doc.dueDate);
+    if (dueDate) {
+      const yyyymmdd = dueDate.toISOString().replace(/-/g, "").split("T")[0];
+      const nextDay = new Date(dueDate);
+      nextDay.setDate(nextDay.getDate() + 1);
+      const nextDayStr = nextDay.toISOString().replace(/-/g, "").split("T")[0];
+      datesParam = `&dates=${yyyymmdd}/${nextDayStr}`;
+    }
+  }
+
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(
+    title
+  )}&details=${encodeURIComponent(details)}${datesParam}`;
+}
