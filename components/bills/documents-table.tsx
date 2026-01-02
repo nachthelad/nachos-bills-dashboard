@@ -30,7 +30,7 @@ import {
   CheckCircle,
 } from "lucide-react";
 import {
-  labelForCategory,
+  getCategoryLabel,
   parseLocalDay,
   generateCalendarUrl,
 } from "@/lib/billing-utils";
@@ -268,7 +268,7 @@ export function DocumentsTable({
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="font-normal">
-                        {labelForCategory(doc.category)}
+                        {getCategoryLabel(doc.category)}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-muted-foreground">

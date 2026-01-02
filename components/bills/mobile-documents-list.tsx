@@ -30,7 +30,7 @@ import {
   CheckCircle,
 } from "lucide-react";
 import {
-  labelForCategory,
+  getCategoryLabel,
   parseLocalDay,
   generateCalendarUrl,
 } from "@/lib/billing-utils";
@@ -276,7 +276,7 @@ export function MobileDocumentsList({
                         Category
                       </span>
                       <Badge variant="secondary" className="w-fit">
-                        {labelForCategory(doc.category)}
+                        {getCategoryLabel(doc.category)}
                       </Badge>
                     </div>
                     <div className="flex flex-col gap-1 items-end">
