@@ -189,6 +189,116 @@ export const PROVIDER_HINTS: ProviderHint[] = [
     category: "other",
     keywords: ["uala"],
   },
+  // Health / Prepaga
+  {
+    providerId: "osde",
+    providerName: "OSDE",
+    category: "health",
+    keywords: ["osde"],
+  },
+  {
+    providerId: "swiss_medical",
+    providerName: "Swiss Medical",
+    category: "health",
+    keywords: ["swiss medical", "swiss", "smg"],
+  },
+  {
+    providerId: "galeno",
+    providerName: "Galeno",
+    category: "health",
+    keywords: ["galeno"],
+  },
+  {
+    providerId: "medicus",
+    providerName: "Medicus",
+    category: "health",
+    keywords: ["medicus"],
+  },
+  {
+    providerId: "omint",
+    providerName: "OMINT",
+    category: "health",
+    keywords: ["omint"],
+  },
+  {
+    providerId: "sancor_salud",
+    providerName: "Sancor Salud",
+    category: "health",
+    keywords: ["sancor salud", "sancor"],
+  },
+  {
+    providerId: "federada_salud",
+    providerName: "Federada Salud",
+    category: "health",
+    keywords: ["federada salud", "federada"],
+  },
+  {
+    providerId: "accord_salud",
+    providerName: "Accord Salud",
+    category: "health",
+    keywords: ["accord salud", "accord"],
+  },
+  {
+    providerId: "premedic",
+    providerName: "Premedic",
+    category: "health",
+    keywords: ["premedic"],
+  },
+  {
+    providerId: "hominis",
+    providerName: "Hominis",
+    category: "health",
+    keywords: ["hominis"],
+  },
+  // Generic Hints for Categories
+  {
+    providerId: "generic_health",
+    providerName: "Health / Prepaga",
+    category: "health",
+    keywords: [
+      "salud",
+      "medicina",
+      "prepaga",
+      "obra social",
+      "servicio de salud",
+    ],
+  },
+  {
+    providerId: "generic_electricity",
+    providerName: "Electricity Service",
+    category: "electricity",
+    keywords: ["luz", "energia", "electricidad", "electric"],
+  },
+  {
+    providerId: "generic_water",
+    providerName: "Water Service",
+    category: "water",
+    keywords: ["agua", "aguas", "saneamiento"],
+  },
+  {
+    providerId: "generic_gas",
+    providerName: "Gas Service",
+    category: "gas",
+    keywords: ["gas", "gas natural"],
+  },
+  {
+    providerId: "generic_internet",
+    providerName: "Internet/Mobile Service",
+    category: "internet",
+    keywords: ["internet", "wifi", "fibra", "banda ancha", "movil", "celular"],
+  },
+  {
+    providerId: "generic_hoa",
+    providerName: "HOA / Expensas",
+    category: "hoa",
+    keywords: ["expensa", "consorcio", "administracion", "edificio"],
+  },
+  {
+    providerId: "generic_credit_card",
+    providerName: "Credit Card",
+    category: "credit_card",
+    keywords: ["tarjeta", "credito", "resumen", "banco"],
+  },
 ];
 
 export const PROVIDER_HINT_KEYWORD_MAP: Map<string, ProviderHint> = new Map();

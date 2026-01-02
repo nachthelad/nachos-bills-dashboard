@@ -162,9 +162,14 @@ export const BILL_PARSER_SCHEMA: JsonSchema = {
   json_schema: BILLING_SCHEMA_BODY,
 };
 
-export const OPENAI_SYSTEM_PROMPT = `You are a meticulous assistant that extracts structured billing data from PDF text. Always respond with JSON that strictly matches the provided schema.`;
+export const OPENAI_SYSTEM_PROMPT = `You are a meticulous assistant that extracts structured billing data from PDF text. 
+CRITICAL: For HOA (Expensas) bills, you MUST distinguish between the individual unit's total and the collective building total.
+- 'totalAmount': Set this to the INDIVIDUAL amount the unit owner must pay (e.g., 'Total a Pagar', 'Total Unidad', 'Current Month Total').
+- 'hoaDetails.totalToPayUnit': This MUST match the individual share.
+- 'hoaDetails.totalBuildingExpenses': Set this to the larger collective total of the entire building.
+Always respond with JSON that strictly matches the provided schema.`;
 
-export const OPENAI_USER_PROMPT = `Analyze the following PDF text and extract any billing related metadata. Use the schema fields and return null when information cannot be determined.`;
+export const OPENAI_USER_PROMPT = `Analyze the following PDF text and extract any billing related metadata. For HOA/Expensas, pay close attention to the Unit Number and its specific total to pay. return null when information cannot be determined.`;
 
 type ResponsesCreateArgs = {
   model: string;

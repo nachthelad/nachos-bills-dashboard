@@ -1,9 +1,10 @@
 "use client";
 
 import { useAuth } from "@/lib/auth-context";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import type { HoaSummary } from "@/types/hoa";
 import { compareHoaSummaries } from "@/lib/hoaComparison";
+import { ensureSpanishPeriodLabel } from "@/lib/hoa-period-utils";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   AlertTriangle,
@@ -37,10 +38,10 @@ export default function HoaPage() {
     useState<string>(PRIMARY_UNIT_CODE);
   const { showAmounts } = useAmountVisibility();
 
-  useEffect(() => {
-    if (!user) return;
-    setLoading(true);
-    (async () => {
+  const fetchSummaries = useCallback(
+    async (withLoader = true) => {
+      if (!user) return;
+      if (withLoader) setLoading(true);
       try {
         const token = await user.getIdToken();
         const response = await fetch("/api/hoa-summaries", {
@@ -70,25 +71,41 @@ export default function HoaPage() {
         console.error(err);
         setError((err as Error).message ?? "Unexpected error");
       } finally {
-        setLoading(false);
+        if (withLoader) setLoading(false);
       }
-    })();
-  }, [user]);
+    },
+    [user]
+  );
+
+  useEffect(() => {
+    fetchSummaries(true);
+  }, [fetchSummaries]);
+
+  // Auto-refresh summaries periodically to keep in sync with background parsing/overrides
+  useEffect(() => {
+    if (!user) return;
+    const interval = setInterval(() => {
+      fetchSummaries(false);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [user, fetchSummaries]);
 
   const unitOptions = useMemo<SelectionOption[]>(() => {
     const map = new Map<string, SelectionOption>();
     summaries.forEach((summary) => {
-      if (!summary.unitCode) return;
-      if (PRIMARY_UNIT_CODE && summary.unitCode !== PRIMARY_UNIT_CODE) return;
-      const key = summary.unitCode;
+      const unitCode = summary.unitCode;
+      if (!unitCode) return;
+
+      if (PRIMARY_UNIT_CODE && unitCode !== PRIMARY_UNIT_CODE) return;
+      const key = unitCode;
       if (map.has(key)) return;
       map.set(key, {
         key,
         buildingCode: summary.buildingCode ?? "N/A",
-        unitCode: summary.unitCode,
+        unitCode: unitCode,
         label: `${
           summary.buildingAddress ?? summary.buildingCode ?? "Building"
-        } - Unit ${summary.unitLabel ?? summary.unitCode}`,
+        } - Unit ${summary.unitLabel ?? unitCode}`,
       });
     });
     return Array.from(map.values());
@@ -109,10 +126,33 @@ export default function HoaPage() {
 
   const filteredSummaries = useMemo(() => {
     const unitCodeFilter = selectedUnitKey || PRIMARY_UNIT_CODE || "";
-    return summaries
-      .filter((summary) =>
-        unitCodeFilter ? summary.unitCode === unitCodeFilter : true
-      )
+    const unitSummaries = summaries.filter((summary) => {
+      return unitCodeFilter ? summary.unitCode === unitCodeFilter : true;
+    });
+
+    // Group by periodKey and take the one with latest updatedAt
+    const map = new Map<string, HoaSummary>();
+    unitSummaries.forEach((summary) => {
+      const key = summary.periodKey;
+      if (!key) return;
+      const existing = map.get(key);
+      if (
+        !existing ||
+        (summary.updatedAt &&
+          existing.updatedAt &&
+          summary.updatedAt > existing.updatedAt) ||
+        (summary.updatedAt && !existing.updatedAt)
+      ) {
+        map.set(key, summary);
+      }
+    });
+
+    return Array.from(map.values())
+      .map((s) => ({
+        ...s,
+        periodLabel:
+          ensureSpanishPeriodLabel(s.periodLabel ?? s.periodKey) ?? "",
+      }))
       .sort((a, b) => (b.periodKey ?? "").localeCompare(a.periodKey ?? ""));
   }, [summaries, selectedUnitKey]);
 
@@ -121,7 +161,7 @@ export default function HoaPage() {
       [...filteredSummaries]
         .sort((a, b) => (a.periodKey ?? "").localeCompare(b.periodKey ?? ""))
         .map((summary) => ({
-          periodLabel: summary.periodLabel ?? summary.periodKey,
+          periodLabel: summary.periodLabel,
           total: summary.totalToPayUnit ?? 0,
         })),
     [filteredSummaries]

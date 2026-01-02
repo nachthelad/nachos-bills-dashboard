@@ -20,6 +20,7 @@ import {
 import { createRequestLogger } from "@/lib/server/logger";
 import type { Logger } from "@/lib/server/logger";
 
+import { upsertHoaSummary } from "@/lib/server/hoa-service";
 import {
   extractPdfText,
   parseBillingTextWithOpenAI,
@@ -340,62 +341,6 @@ function parseDate(value: string): Date | null {
   }
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
-}
-
-async function upsertHoaSummary(userId: string, hoaDetails: unknown) {
-  const normalizedHoaDetails = isNormalizedHoaDetails(hoaDetails)
-    ? hoaDetails
-    : normalizeHoaDetails(hoaDetails);
-  const { buildingCode, unitCode, periodYear, periodMonth } =
-    normalizedHoaDetails ?? {};
-  if (
-    !normalizedHoaDetails ||
-    !userId ||
-    !buildingCode ||
-    !unitCode ||
-    !periodYear ||
-    !periodMonth
-  ) {
-    return;
-  }
-
-  const periodKey =
-    normalizedHoaDetails?.periodKey ??
-    `${periodYear}-${String(periodMonth).padStart(2, "0")}`;
-  const summaryId = `${userId}_${buildingCode}_${unitCode}_${periodKey}`;
-  const summaryRef = getAdminFirestore()
-    .collection("hoaSummaries")
-    .doc(summaryId);
-  const now = Timestamp.now();
-  const snapshot = await summaryRef.get();
-
-  const totals = calculateHoaTotals(normalizedHoaDetails?.rubros);
-
-  const basePayload = {
-    ...normalizeHoaSummaryPayload({
-      userId,
-      hoaDetails: normalizedHoaDetails,
-      now,
-    }),
-    rubrosTotal: totals.rubrosTotal,
-    rubrosWithTotals: totals.rubrosWithTotals,
-  };
-
-  if (snapshot.exists) {
-    await summaryRef.set(
-      {
-        ...basePayload,
-        createdAt: snapshot.data()?.createdAt ?? now,
-      },
-      { merge: true }
-    );
-    return;
-  }
-
-  await summaryRef.set({
-    ...basePayload,
-    createdAt: now,
-  });
 }
 
 type ProviderInferenceCache = Map<string, ProviderHint | null>;

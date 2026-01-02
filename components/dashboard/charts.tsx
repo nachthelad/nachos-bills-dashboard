@@ -33,7 +33,7 @@ const COLORS = [
   "var(--chart-5)",
 ];
 
-import { labelForCategory } from "@/lib/billing-utils";
+import { getCategoryLabel } from "@/config/billing/categories";
 
 // ... existing imports ...
 
@@ -43,7 +43,7 @@ export function DashboardCharts({
   showAmounts,
 }: ChartsProps) {
   const data = Object.entries(categoryTotals)
-    .map(([name, value]) => ({ name: labelForCategory(name), value }))
+    .map(([name, value]) => ({ name: getCategoryLabel(name), value }))
     .filter((item) => item.value > 0)
     .sort((a, b) => b.value - a.value);
 

@@ -4,6 +4,7 @@ import { Timestamp } from "firebase-admin/firestore";
 
 import { getAdminFirestore } from "@/lib/firebase-admin";
 import { serializeDocumentSnapshot } from "@/lib/server/document-serializer";
+import { toDate } from "@/lib/server/document-serializer";
 import {
   authenticateRequest,
   handleAuthError,
@@ -92,7 +93,9 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
     log = log.withContext({ userId: authResult.uid });
 
-    const { docRef } = authResult;
+    const { docRef, docSnapshot, uid } = authResult;
+    const currentData = docSnapshot.data();
+    const body = await request.json();
     const {
       provider,
       amount,
@@ -102,14 +105,74 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       issueDate,
       periodStart,
       periodEnd,
-    } = await request.json();
+      hoaDetails,
+    } = body;
 
     const updates: Record<string, any> = {};
 
     if (provider !== undefined) updates.provider = provider || null;
-    if (amount !== undefined) updates.amount = amount ?? null;
+    if (amount !== undefined) {
+      updates.amount = amount ?? null;
+      // Ensure Dashboard reflected changes (Dashboard usually uses totalAmount)
+      updates.totalAmount = amount ?? null;
+    }
     if (status) updates.status = status;
-    if (category !== undefined) updates.category = category || null;
+    const finalCategory =
+      category !== undefined ? category || null : currentData?.category || null;
+    if (category !== undefined) updates.category = finalCategory;
+
+    // Handle HOA specific synchronization
+    if (finalCategory === "hoa") {
+      const currentHoaDetails = currentData?.hoaDetails || {};
+      // Merge requested hoaDetails with current ones
+      const newHoaDetails = {
+        ...currentHoaDetails,
+        ...(hoaDetails || {}),
+      };
+      let hoaDetailsChanged = Boolean(hoaDetails);
+
+      // 1. Sync hoaDetails.totalToPayUnit -> top-level amount
+      if (
+        newHoaDetails.totalToPayUnit !== undefined &&
+        newHoaDetails.totalToPayUnit !== updates.amount
+      ) {
+        // If amount was wasn't explicitly provided but hoaDetails.totalToPayUnit was,
+        // or if they are just out of sync, prioritize the specialized HOA field
+        if (amount === undefined) {
+          updates.amount = newHoaDetails.totalToPayUnit ?? null;
+          updates.totalAmount = newHoaDetails.totalToPayUnit ?? null;
+        }
+      }
+
+      // 2. Sync top-level amount -> hoaDetails.totalToPayUnit (bidirectional)
+      if (amount !== undefined) {
+        newHoaDetails.totalToPayUnit = amount ?? null;
+        hoaDetailsChanged = true;
+      }
+
+      // Sync period from periodStart if available
+      const finalPeriodStart =
+        periodStart !== undefined ? periodStart : currentData?.periodStart;
+      if (finalPeriodStart) {
+        try {
+          const date = toDate(finalPeriodStart);
+          if (date && !isNaN(date.getTime())) {
+            newHoaDetails.periodYear = date.getFullYear();
+            newHoaDetails.periodMonth = date.getMonth() + 1;
+            // Force re-derivation of standard label/key (MM/YYYY)
+            delete newHoaDetails.periodKey;
+            delete newHoaDetails.periodLabel;
+            hoaDetailsChanged = true;
+          }
+        } catch (e) {
+          console.warn("Failed to parse periodStart for HOA sync", e);
+        }
+      }
+
+      if (hoaDetailsChanged) {
+        updates.hoaDetails = newHoaDetails;
+      }
+    }
 
     const assignDate = (field: string, value: any) => {
       if (value === undefined) return;
@@ -127,6 +190,22 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
     await docRef.update(updates);
     const updatedSnapshot = await docRef.get();
+    const updatedData = updatedSnapshot.data();
+
+    // If it's an HOA document, ensure the separate hoaSummaries collection is also updated
+    // We trigger this if the category is HOA and either hoaDetails were updated OR amount/category changed
+    if (finalCategory === "hoa") {
+      const { upsertHoaSummary } = await import("@/lib/server/hoa-service");
+      await upsertHoaSummary(
+        uid,
+        updatedData?.hoaDetails || {
+          totalToPayUnit: updatedData?.amount || updatedData?.totalAmount,
+          // Fallback to EDIFICIO/0005 if not present
+          buildingCode: updatedData?.hoaDetails?.buildingCode || "EDIFICIO",
+          unitCode: updatedData?.hoaDetails?.unitCode || "0005",
+        }
+      );
+    }
 
     return NextResponse.json(serializeDocumentSnapshot(updatedSnapshot));
   } catch (error) {

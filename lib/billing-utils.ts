@@ -2,7 +2,11 @@ import type { BillDocument } from "@/lib/firestore-helpers";
 import {
   CATEGORY_OPTIONS,
   type CategoryValue,
+  getCategoryLabel,
 } from "@/config/billing/categories";
+
+// Re-export for backward compatibility
+export { getCategoryLabel };
 
 const categoryOrder = CATEGORY_OPTIONS.map(
   (option) => option.value
@@ -40,25 +44,6 @@ export function resolveDocDate(doc: BillDocument): Date | null {
     if (date) return date;
   }
   return null;
-}
-
-export function labelForCategory(category: string | null | undefined) {
-  switch (category) {
-    case "electricity":
-      return "Electricity";
-    case "water":
-      return "Water";
-    case "gas":
-      return "Gas";
-    case "internet":
-      return "Mobile / Internet";
-    case "hoa":
-      return "HOA";
-    case "credit_card":
-      return "Credit Card";
-    default:
-      return "Other";
-  }
 }
 
 export function defaultCategoryTotals(): Record<CategoryValue, number> {

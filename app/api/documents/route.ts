@@ -10,6 +10,7 @@ import {
   handleAuthError,
 } from "@/lib/server/authenticate-request";
 import { createRequestLogger } from "@/lib/server/logger";
+export const revalidate = 0;
 
 export const runtime = "nodejs";
 

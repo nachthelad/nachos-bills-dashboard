@@ -30,7 +30,7 @@ import {
 } from "@/components/amount-visibility";
 import {
   resolveDocDate,
-  labelForCategory,
+  getCategoryLabel,
   defaultCategoryTotals,
   parseLocalDay,
 } from "@/lib/billing-utils";
@@ -169,7 +169,7 @@ export default function DashboardPage() {
       defaultCategoryTotals();
 
     docs.forEach((doc) => {
-      const amount = doc.totalAmount ?? 0;
+      const amount = doc.amount ?? doc.totalAmount ?? 0;
       if (!amount) return;
       const docDate = resolveDocDate(doc);
       if (!docDate) return;
@@ -286,10 +286,10 @@ export default function DashboardPage() {
         type: "expense",
         date: doc.updatedAt || doc.uploadedAt,
         dueDate: parseLocalDay(doc.dueDate),
-        amount: doc.totalAmount || 0,
+        amount: doc.amount ?? doc.totalAmount ?? 0,
         description:
           doc.providerNameDetected || doc.providerId || "Unknown Bill",
-        category: labelForCategory(doc.category),
+        category: getCategoryLabel(doc.category),
         status: doc.status as any,
       }));
 
@@ -324,7 +324,7 @@ export default function DashboardPage() {
 
     expenseDocs.forEach((doc) => {
       if (!["parsed", "needs_review", "paid"].includes(doc.status)) return;
-      const amount = doc.totalAmount ?? 0;
+      const amount = doc.amount ?? doc.totalAmount ?? 0;
       if (!amount) return;
       const docDate = resolveDocDate(doc);
       if (!docDate || docDate.getFullYear() !== currentYear) return;
