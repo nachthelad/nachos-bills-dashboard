@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { AuthSessionSync } from "@/components/auth-session-sync";
 import { AuthProvider } from "@/lib/auth-context";
+import { RegisterSW } from "@/components/pwa/register-sw";
 import "./globals.css";
 
 const _geist = Geist({ subsets: ["latin"] });
@@ -13,6 +14,12 @@ export const metadata: Metadata = {
   title: "TOLVA",
   description: "Manage your recurring bills with ease",
   generator: "nachthelad.com.ar",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "TOLVA",
+  },
   icons: {
     icon: [
       {
@@ -28,8 +35,19 @@ export const metadata: Metadata = {
         type: "image/svg+xml",
       },
     ],
-    apple: "/apple-icon.png",
+    apple: "/apple-touch-icon.png",
   },
+};
+
+export const viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f8fafc" },
+    { media: "(prefers-color-scheme: dark)", color: "#020617" },
+  ],
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({
@@ -42,6 +60,7 @@ export default function RootLayout({
       <body className={`font-sans antialiased`}>
         <AuthProvider>
           <AuthSessionSync />
+          <RegisterSW />
           {children}
         </AuthProvider>
         <Analytics />

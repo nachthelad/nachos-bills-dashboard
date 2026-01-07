@@ -48,13 +48,12 @@ export default function DocumentsPage() {
       .listDocuments()
       .then((docs) => {
         const sortedDocs = docs.sort((a, b) => {
-          const dateA = a.dueDate
-            ? new Date(a.dueDate).getTime()
-            : a.uploadedAt.getTime();
-          const dateB = b.dueDate
-            ? new Date(b.dueDate).getTime()
-            : b.uploadedAt.getTime();
-          return dateB - dateA;
+          // Prioritize pending status to show at the very top
+          if (a.status === "pending" && b.status !== "pending") return -1;
+          if (a.status !== "pending" && b.status === "pending") return 1;
+
+          // Then sort by upload date (newest first)
+          return b.uploadedAt.getTime() - a.uploadedAt.getTime();
         });
         setDocuments(sortedDocs);
       })
