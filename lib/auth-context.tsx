@@ -56,31 +56,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         // Explicitly set persistence to LOCAL (persists across browser restarts)
         await setPersistence(auth, browserLocalPersistence);
-        console.log("Firebase auth persistence set to LOCAL");
       } catch (error) {
         console.error("Failed to set auth persistence:", error);
       }
 
-      // Check if user is already logged in (e.g. from IndexedDB restoration)
-      if (auth.currentUser) {
-        console.log(
-          "AuthProvider: User already found in auth instance:",
-          auth.currentUser.uid
-        );
-        setUser(auth.currentUser);
+      unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+        setUser(currentUser);
+      });
+
+      try {
+        // Wait for Firebase to restore the session from IndexedDB
+        await auth.authStateReady();
+      } catch (error) {
+        console.error("Error waiting for auth state ready:", error);
+      } finally {
         setLoading(false);
       }
-
-      unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-        console.log(
-          "Auth state changed:",
-          currentUser
-            ? `User logged in (${currentUser.uid})`
-            : "User logged out"
-        );
-        setUser(currentUser);
-        setLoading(false);
-      });
     };
 
     void initAuth();

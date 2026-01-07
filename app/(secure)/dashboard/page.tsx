@@ -304,10 +304,14 @@ export default function DashboardPage() {
 
     return [...expenses, ...incomes]
       .sort((a, b) => {
-        // Sort by Due Date if available, otherwise fallback to Date
-        const dateA = a.dueDate ? a.dueDate.getTime() : a.date.getTime();
-        const dateB = b.dueDate ? b.dueDate.getTime() : b.date.getTime();
-        return dateB - dateA;
+        // Prioritize pending status to show at the very top
+        const isAPending = a.type === "expense" && a.status === "pending";
+        const isBPending = b.type === "expense" && b.status === "pending";
+        if (isAPending && !isBPending) return -1;
+        if (!isAPending && isBPending) return 1;
+
+        // Then sort by activity date (newest first)
+        return b.date.getTime() - a.date.getTime();
       })
       .slice(0, 10);
   }, [expenseDocs, incomeEntries]);
