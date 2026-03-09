@@ -202,13 +202,13 @@ export function AddExpenseModal({
           />
         </div>
         <div className="space-y-2">
-          <Label className="text-foreground">Medio de pago</Label>
-          <div className="flex h-9 w-full items-center rounded-md border border-border bg-background px-3 text-sm text-muted-foreground">
+          <Label htmlFor="exp-payment-method" className="text-foreground">Medio de pago</Label>
+          <div id="exp-payment-method" className="flex h-9 w-full items-center rounded-md border border-border bg-background px-3 text-sm text-muted-foreground">
             Débito
           </div>
         </div>
         <div className="space-y-2">
-          <Label className="text-foreground">Categoría</Label>
+          <Label htmlFor="exp-category" className="text-foreground">Categoría</Label>
           <Select
             value={formData.category}
             onValueChange={(value) => {
@@ -219,7 +219,7 @@ export function AddExpenseModal({
               }
             }}
           >
-            <SelectTrigger className="bg-background border-border text-foreground">
+            <SelectTrigger id="exp-category" className="bg-background border-border text-foreground">
               <SelectValue placeholder="Seleccionar categoría" />
             </SelectTrigger>
             <SelectContent className="bg-popover border-border text-popover-foreground">
@@ -259,6 +259,7 @@ export function AddExpenseModal({
                 type="button"
                 size="icon"
                 variant="ghost"
+                aria-label="Confirm new category"
                 className="h-9 w-9 text-emerald-400 hover:text-emerald-300 shrink-0"
                 onClick={handleConfirmNewCategory}
                 disabled={addCategoryLoading || !newCategoryName.trim()}
@@ -269,6 +270,7 @@ export function AddExpenseModal({
                 type="button"
                 size="icon"
                 variant="ghost"
+                aria-label="Cancel new category"
                 className="h-9 w-9 text-muted-foreground shrink-0"
                 onClick={() => {
                   setAddingCategory(false);

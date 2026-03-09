@@ -113,7 +113,7 @@ export function AddIncomeModal({ onSuccess }: AddIncomeModalProps) {
                 setFormData({ ...formData, source: value })
               }
             >
-              <SelectTrigger className="bg-background border-border text-foreground">
+              <SelectTrigger id="source" className="bg-background border-border text-foreground">
                 <SelectValue placeholder="Select source" />
               </SelectTrigger>
               <SelectContent className="bg-popover border-border text-popover-foreground">

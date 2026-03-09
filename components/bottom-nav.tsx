@@ -22,8 +22,10 @@ export function BottomNav() {
               <Link
                 key={item.url}
                 href={item.url}
+                style={{ touchAction: "manipulation" }}
                 className={cn(
                   "relative flex flex-1 flex-col items-center justify-center gap-1 transition-colors duration-150",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset",
                   isActive
                     ? "text-primary"
                     : "text-muted-foreground active:text-foreground"

@@ -412,7 +412,7 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="text-muted-foreground">Loading dashboard...</div>
+        <div role="status" aria-live="polite" className="text-muted-foreground">Loading dashboard…</div>
       </div>
     );
   }
@@ -443,6 +443,7 @@ export default function DashboardPage() {
           </Select>
           <Link
             href="/settings"
+            aria-label="Settings"
             className="lg:hidden p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
           >
             <Settings className="h-4 w-4" />
