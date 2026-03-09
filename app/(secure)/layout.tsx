@@ -1,5 +1,4 @@
 import type React from "react";
-import { redirect } from "next/navigation";
 
 import { ProtectedRoute } from "@/components/protected-route";
 import { AppSidebar } from "@/components/app-sidebar";
