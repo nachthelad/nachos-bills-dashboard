@@ -9,7 +9,9 @@ import { createRequestLogger } from "@/lib/server/logger";
 import {
   serializeSnapshot,
   toIsoDateTime,
+  toDate,
 } from "@/lib/server/document-serializer";
+import { upsertHoaSummary } from "@/lib/server/hoa-service";
 export const revalidate = 0;
 
 export async function GET(request: NextRequest) {
@@ -65,6 +67,62 @@ export async function GET(request: NextRequest) {
         if (!aKey || !bKey) return 0;
         return bKey.localeCompare(aKey);
       });
+
+    // Fire-and-forget: sync HOA documents that are missing a hoaSummaries entry
+    const existingPeriodKeys = new Set(
+      summaries.map((s) => s.periodKey).filter(Boolean)
+    );
+    (async () => {
+      try {
+        const docsSnap = await getAdminFirestore()
+          .collection("documents")
+          .where("userId", "==", uid)
+          .where("category", "==", "hoa")
+          .get();
+
+        for (const doc of docsSnap.docs) {
+          const data = doc.data() as Record<string, unknown>;
+          const hoaDetails = (data.hoaDetails ?? {}) as Record<string, unknown>;
+
+          let periodYear =
+            typeof hoaDetails.periodYear === "number"
+              ? hoaDetails.periodYear
+              : null;
+          let periodMonth =
+            typeof hoaDetails.periodMonth === "number"
+              ? hoaDetails.periodMonth
+              : null;
+
+          // Derive period from document dates if hoaDetails is missing it
+          if (!periodYear || !periodMonth) {
+            const dateVal =
+              data.periodStart ?? data.issueDate ?? data.dueDate ?? null;
+            const d = toDate(dateVal);
+            if (d) {
+              periodYear = d.getFullYear();
+              periodMonth = d.getMonth() + 1;
+            }
+          }
+
+          if (!periodYear || !periodMonth) continue;
+
+          const periodKey = `${periodYear}-${String(periodMonth).padStart(2, "0")}`;
+          if (existingPeriodKeys.has(periodKey)) continue;
+
+          await upsertHoaSummary(uid, {
+            ...hoaDetails,
+            periodYear,
+            periodMonth,
+            totalToPayUnit:
+              typeof hoaDetails.totalToPayUnit === "number"
+                ? hoaDetails.totalToPayUnit
+                : (data.amount ?? data.totalAmount ?? null),
+          });
+        }
+      } catch (syncErr) {
+        // Non-fatal: sync errors are silently ignored
+      }
+    })();
 
     return NextResponse.json({ summaries });
   } catch (error) {

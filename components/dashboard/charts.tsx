@@ -25,12 +25,28 @@ interface ChartsProps {
   showAmounts: boolean;
 }
 
-const COLORS = [
-  "var(--chart-1)",
-  "var(--chart-2)",
-  "var(--chart-3)",
-  "var(--chart-4)",
-  "var(--chart-5)",
+const CATEGORY_COLORS: Record<string, string> = {
+  "Credit Card": "#f87171", // red
+  Electricity: "#facc15", // yellow
+  Gas: "#fb923c", // orange
+  "Gastos Diarios": "#a78bfa", // violet
+  Health: "#34d399", // green
+  "Home / HOA": "#60a5fa", // blue
+  "Internet / Mobile": "#38bdf8", // sky
+  Water: "#2dd4bf", // teal
+  Other: "#94a3b8", // slate
+};
+
+const FALLBACK_COLORS = [
+  "#f87171",
+  "#facc15",
+  "#fb923c",
+  "#a78bfa",
+  "#34d399",
+  "#60a5fa",
+  "#38bdf8",
+  "#2dd4bf",
+  "#94a3b8",
 ];
 
 import { getCategoryLabel } from "@/config/billing/categories";
@@ -128,38 +144,66 @@ export function DashboardCharts({
           <CardDescription>Distribution by category</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={data}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {data.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={COLORS[index % COLORS.length]}
+          <div className="flex items-center gap-4 h-[300px]">
+            <div className="flex-1 h-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={data}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={85}
+                    paddingAngle={3}
+                    dataKey="value"
+                  >
+                    {data.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={
+                          CATEGORY_COLORS[entry.name] ??
+                          FALLBACK_COLORS[index % FALLBACK_COLORS.length]
+                        }
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value: number) => formatCurrency(value)}
+                    contentStyle={{
+                      backgroundColor: "#0f172a",
+                      borderColor: "#1e293b",
+                      borderRadius: "8px",
+                    }}
+                    labelStyle={{ color: "#f8fafc" }}
+                    itemStyle={{ color: "#f8fafc" }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="flex flex-col gap-2 text-xs md:text-sm min-w-[110px] md:min-w-[130px]">
+              {data.map((entry, index) => {
+                const color =
+                  CATEGORY_COLORS[entry.name] ??
+                  FALLBACK_COLORS[index % FALLBACK_COLORS.length];
+                const total = data.reduce((s, d) => s + d.value, 0);
+                const pct =
+                  total > 0 ? Math.round((entry.value / total) * 100) : 0;
+                return (
+                  <div key={entry.name} className="flex items-center gap-1.5">
+                    <span
+                      className="w-2.5 h-2.5 rounded-full shrink-0"
+                      style={{ backgroundColor: color }}
                     />
-                  ))}
-                </Pie>
-                <Tooltip
-                  formatter={(value: number) => formatCurrency(value)}
-                  contentStyle={{
-                    backgroundColor: "#0f172a",
-                    borderColor: "#1e293b",
-                    borderRadius: "8px",
-                  }}
-                  labelStyle={{ color: "#f8fafc" }}
-                  itemStyle={{ color: "#f8fafc" }}
-                />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
+                    <span className="text-muted-foreground truncate flex-1">
+                      {entry.name}
+                    </span>
+                    <span className="text-foreground font-medium tabular-nums">
+                      {pct}%
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </CardContent>
       </Card>
