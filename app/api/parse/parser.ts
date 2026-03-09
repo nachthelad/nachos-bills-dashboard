@@ -175,7 +175,7 @@ type ResponsesCreateArgs = {
   model: string;
   input: Array<{
     role: string;
-    content: Array<{ type: string; text: string }>;
+    content: Array<{ type: string; text?: string; image_url?: string }>;
   }>;
   text?: {
     format?: JsonSchema;
@@ -685,6 +685,76 @@ export async function parsePdfWithOpenAI(
   } finally {
     const durationMs = Date.now() - parseStart;
     log.debug("parsePdfWithOpenAI completed", {
+      durationMs: Number(durationMs.toFixed(2)),
+    });
+  }
+}
+
+export async function parseBillingImageWithOpenAI(
+  imageBuffer: Buffer,
+  mimeType: string,
+  scopedLogger: Logger = baseLogger
+): Promise<BillingParseResult> {
+  const log = scopedLogger;
+  const parseStart = Date.now();
+  try {
+    const base64 = imageBuffer.toString("base64");
+    const dataUrl = `data:${mimeType};base64,${base64}`;
+    const client = getOpenAIClient();
+    const openAiStart = Date.now();
+
+    const { response, attempts } = await callOpenAIWithRetry(
+      () =>
+        client.responses.create({
+          model: process.env.OPENAI_VISION_MODEL ?? process.env.OPENAI_MODEL ?? "gpt-4o-mini",
+          input: [
+            {
+              role: "system",
+              content: [{ type: "input_text", text: OPENAI_SYSTEM_PROMPT }],
+            },
+            {
+              role: "user",
+              content: [
+                { type: "input_image", image_url: dataUrl },
+                { type: "input_text", text: OPENAI_USER_PROMPT },
+              ],
+            },
+          ],
+          text: { format: BILL_PARSER_SCHEMA },
+        }),
+      log
+    );
+
+    const openAiDuration = Date.now() - openAiStart;
+    log.debug("OpenAI vision completed", {
+      durationMs: Number(openAiDuration.toFixed(2)),
+      attempts,
+    });
+
+    let parsedPayload: unknown;
+    try {
+      const jsonText = extractJsonFromResponse(response);
+      parsedPayload = JSON.parse(jsonText);
+    } catch (error) {
+      log.error("Failed to parse OpenAI vision response payload", { error });
+      throw new Error("Failed to parse OpenAI vision response");
+    }
+
+    let validated: z.infer<typeof BillingParseResultSchema>;
+    try {
+      validated = BillingParseResultSchema.parse(parsedPayload);
+    } catch (error) {
+      log.error("OpenAI vision response validation failed", { error });
+      throw error;
+    }
+    const sanitized = sanitizeBillingResult(validated);
+    return {
+      ...sanitized,
+      text: sanitized.text ?? "[parsed from image]",
+    };
+  } finally {
+    const durationMs = Date.now() - parseStart;
+    log.debug("parseBillingImageWithOpenAI completed", {
       durationMs: Number(durationMs.toFixed(2)),
     });
   }

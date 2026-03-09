@@ -156,7 +156,7 @@ export function UploadPanel({ onUploadComplete }: UploadPanelProps) {
       <CardHeader>
         <CardTitle>Upload Bill</CardTitle>
         <CardDescription>
-          Drag and drop your PDF bill here to parse it automatically.
+          Drag and drop your bill (PDF, PNG, JPG) here to parse it automatically.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4 flex flex-col items-center justify-center flex-1 min-h-[200px]">

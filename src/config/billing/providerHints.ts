@@ -13,7 +13,7 @@ export const PROVIDER_HINTS: ProviderHint[] = [
     providerId: "personal",
     providerName: "Personal (Fibertel)",
     category: "internet",
-    keywords: ["personal", "fibertel", "telecom argentina", "cablevision"],
+    keywords: ["telecom personal", "personal.com.ar", "fibertel", "telecom argentina", "cablevision"],
   },
   {
     providerId: "flow",
@@ -103,7 +103,7 @@ export const PROVIDER_HINTS: ProviderHint[] = [
     providerId: "aysa",
     providerName: "AySA",
     category: "water",
-    keywords: ["aysa, agua y saneamiento"],
+    keywords: ["aysa", "agua y saneamiento"],
   },
   {
     providerId: "aguas_cordobesas",

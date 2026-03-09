@@ -250,7 +250,7 @@ export default function HoaPage() {
           <CardContent className="pt-12 pb-12 text-center text-muted-foreground">
             <LineChartIcon className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
             <p className="text-lg font-medium mb-2">No HOA statements yet.</p>
-            <p>Upload a "Mis Expensas" PDF to activate this module.</p>
+            <p>Upload a "Mis Expensas" PDF or image to activate this module.</p>
           </CardContent>
         </Card>
       ) : (
