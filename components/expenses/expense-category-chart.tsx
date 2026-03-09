@@ -79,14 +79,14 @@ export function ExpenseCategoryChart({
   function CategoryRow({ entry, index }: { entry: { name: string; value: number }; index: number }) {
     const pct = total > 0 ? Math.round((entry.value / total) * 100) : 0;
     return (
-      <div className="flex items-center gap-1.5 min-w-0">
+      <div className="flex items-center gap-1.5">
         <span
           className="w-2 h-2 rounded-full shrink-0"
           style={{ backgroundColor: COLORS[index % COLORS.length] }}
         />
-        <span className="text-xs sm:text-sm text-foreground truncate flex-1">{entry.name}</span>
-        <span className="text-xs text-muted-foreground w-6 text-right shrink-0">{pct}%</span>
-        <span className="text-xs sm:text-sm font-medium tabular-nums text-right shrink-0">
+        <span className="text-xs sm:text-sm text-foreground">{entry.name}</span>
+        <span className="text-xs text-muted-foreground shrink-0">{pct}%</span>
+        <span className="text-xs sm:text-sm font-medium tabular-nums shrink-0">
           {formatCurrency(entry.value)}
         </span>
       </div>
@@ -117,7 +117,7 @@ export function ExpenseCategoryChart({
       </div>
       <div className="flex justify-center min-w-0 w-full">
         <div className="flex gap-0 min-w-0 w-full max-w-full">
-          <div className="flex flex-col gap-1.5 pr-3 sm:pr-5 flex-1 min-w-0">
+          <div className="flex flex-col gap-1.5 pr-3 sm:pr-5 flex-1 min-w-0 items-start">
             {leftCol.map((entry, i) => (
               <CategoryRow key={entry.name} entry={entry} index={i} />
             ))}
@@ -125,7 +125,7 @@ export function ExpenseCategoryChart({
           {rightCol.length > 0 && (
             <>
               <div className="w-px bg-border shrink-0" />
-              <div className="flex flex-col gap-1.5 pl-3 sm:pl-5 flex-1 min-w-0">
+              <div className="flex flex-col gap-1.5 pl-3 sm:pl-5 flex-1 min-w-0 items-start">
                 {rightCol.map((entry, i) => (
                   <CategoryRow key={entry.name} entry={entry} index={half + i} />
                 ))}

@@ -1,3 +1,6 @@
+"use client";
+
+import { useTheme } from "next-themes";
 import {
   Card,
   CardContent,
@@ -18,6 +21,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { getCategoryLabel } from "@/config/billing/categories";
 
 interface ChartsProps {
   categoryTotals: Record<string, number>;
@@ -49,15 +53,23 @@ const FALLBACK_COLORS = [
   "#94a3b8",
 ];
 
-import { getCategoryLabel } from "@/config/billing/categories";
-
-// ... existing imports ...
-
 export function DashboardCharts({
   categoryTotals,
   monthlyData,
   showAmounts,
 }: ChartsProps) {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
+
+  const chartColors = {
+    grid: isDark ? "#1e293b" : "#e2e8f0",
+    axis: isDark ? "#94a3b8" : "#64748b",
+    cursor: isDark ? "#1e293b" : "#f1f5f9",
+    tooltipBg: isDark ? "#0f172a" : "#ffffff",
+    tooltipBorder: isDark ? "#1e293b" : "#e2e8f0",
+    tooltipText: isDark ? "#f8fafc" : "#0f172a",
+  };
+
   const data = Object.entries(categoryTotals)
     .map(([name, value]) => ({ name: getCategoryLabel(name), value }))
     .filter((item) => item.value > 0)
@@ -92,32 +104,32 @@ export function DashboardCharts({
               <BarChart data={monthlyData}>
                 <CartesianGrid
                   strokeDasharray="3 3"
-                  stroke="#1e293b"
+                  stroke={chartColors.grid}
                   vertical={false}
                 />
                 <XAxis
                   dataKey="name"
-                  stroke="#94a3b8"
+                  stroke={chartColors.axis}
                   fontSize={12}
                   tickLine={false}
                   axisLine={false}
                 />
                 <YAxis
-                  stroke="#94a3b8"
+                  stroke={chartColors.axis}
                   fontSize={12}
                   tickLine={false}
                   axisLine={false}
                   tickFormatter={formatYAxis}
                 />
                 <Tooltip
-                  cursor={{ fill: "#1e293b" }}
+                  cursor={{ fill: chartColors.cursor }}
                   contentStyle={{
-                    backgroundColor: "#0f172a",
-                    borderColor: "#1e293b",
+                    backgroundColor: chartColors.tooltipBg,
+                    borderColor: chartColors.tooltipBorder,
                     borderRadius: "8px",
                   }}
-                  labelStyle={{ color: "#f8fafc" }}
-                  itemStyle={{ color: "#f8fafc" }}
+                  labelStyle={{ color: chartColors.tooltipText }}
+                  itemStyle={{ color: chartColors.tooltipText }}
                   formatter={(value: number) => formatCurrency(value)}
                 />
                 <Legend />
@@ -170,12 +182,12 @@ export function DashboardCharts({
                   <Tooltip
                     formatter={(value: number) => formatCurrency(value)}
                     contentStyle={{
-                      backgroundColor: "#0f172a",
-                      borderColor: "#1e293b",
+                      backgroundColor: chartColors.tooltipBg,
+                      borderColor: chartColors.tooltipBorder,
                       borderRadius: "8px",
                     }}
-                    labelStyle={{ color: "#f8fafc" }}
-                    itemStyle={{ color: "#f8fafc" }}
+                    labelStyle={{ color: chartColors.tooltipText }}
+                    itemStyle={{ color: chartColors.tooltipText }}
                   />
                 </PieChart>
               </ResponsiveContainer>

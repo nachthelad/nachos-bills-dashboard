@@ -212,6 +212,7 @@ export function MobileExpenseList({
                       <Button
                         variant="ghost"
                         size="icon"
+                        aria-label="Edit expense"
                         className="h-7 w-7 text-muted-foreground"
                         onClick={() => {
                           setEditEntry(entry);
@@ -223,6 +224,7 @@ export function MobileExpenseList({
                       <Button
                         variant="ghost"
                         size="icon"
+                        aria-label="Delete expense"
                         className="h-7 w-7 text-muted-foreground hover:text-destructive"
                         onClick={() => setDeleteId(entry.id)}
                       >
