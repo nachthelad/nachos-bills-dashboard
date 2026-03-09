@@ -8,17 +8,15 @@ import {
   Wallet,
   ShoppingCart,
   Building2,
-  Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Bills", url: "/documents", icon: Receipt },
   { title: "Income", url: "/income", icon: Wallet },
+  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Expenses", url: "/expenses", icon: ShoppingCart },
   { title: "HOA", url: "/hoa", icon: Building2 },
-  { title: "Settings", url: "/settings", icon: Settings },
 ];
 
 export function BottomNav() {
