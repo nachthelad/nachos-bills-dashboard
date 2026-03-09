@@ -9,6 +9,7 @@ import {
   EXPENSE_CATEGORIES,
   type ExpenseEntry,
 } from "@/lib/expenses-client";
+import { fetchIncomeEntries, type IncomeEntry } from "@/lib/income-client";
 import {
   AmountVisibilityToggle,
   useAmountVisibility,
@@ -18,11 +19,14 @@ import { ExpenseTable } from "@/components/expenses/expense-table";
 import { MobileExpenseList } from "@/components/expenses/mobile-expense-list";
 import { ExpenseCategoryChart } from "@/components/expenses/expense-category-chart";
 import { Card, CardContent } from "@/components/ui/card";
-import { ShoppingCart, TrendingDown, CalendarDays } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ShoppingCart, TrendingDown, CalendarDays, Lightbulb } from "lucide-react";
+import { InsightsSheet } from "@/components/expenses/insights-sheet";
 
 export default function ExpensesPage() {
   const { user } = useAuth();
   const [entries, setEntries] = useState<ExpenseEntry[]>([]);
+  const [incomeEntries, setIncomeEntries] = useState<IncomeEntry[]>([]);
   const [categories, setCategories] = useState<string[]>([...EXPENSE_CATEGORIES]);
   const [loading, setLoading] = useState(true);
   const { showAmounts } = useAmountVisibility();
@@ -30,17 +34,20 @@ export default function ExpensesPage() {
   const currentDate = new Date();
   const defaultMonth = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, "0")}`;
   const [monthFilter, setMonthFilter] = useState<string>(defaultMonth);
+  const [insightsOpen, setInsightsOpen] = useState(false);
 
   const loadEntries = useCallback(async () => {
     if (!user) return;
     try {
       const token = await user.getIdToken();
-      const [data, cats] = await Promise.all([
+      const [data, cats, income] = await Promise.all([
         fetchExpenseEntries(token),
         fetchExpenseCategories(token),
+        fetchIncomeEntries(token),
       ]);
       setEntries(data);
       setCategories(cats);
+      setIncomeEntries(income);
     } catch (err) {
       console.error("Expenses page load error:", err);
     } finally {
@@ -182,11 +189,22 @@ export default function ExpensesPage() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold">Expense Entries</h2>
-          <AddExpenseModal
-            onSuccess={loadEntries}
-            categories={categories}
-            onAddCategory={handleAddCategory}
-          />
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setInsightsOpen(true)}
+              className="gap-1.5"
+            >
+              <Lightbulb className="h-3.5 w-3.5 text-yellow-500" />
+              Tips
+            </Button>
+            <AddExpenseModal
+              onSuccess={loadEntries}
+              categories={categories}
+              onAddCategory={handleAddCategory}
+            />
+          </div>
         </div>
         <div className="hidden md:block">
           <ExpenseTable
@@ -211,6 +229,17 @@ export default function ExpensesPage() {
           />
         </div>
       </div>
+      <InsightsSheet
+        open={insightsOpen}
+        onOpenChange={setInsightsOpen}
+        entries={monthEntries}
+        monthLabel={monthLabel}
+        monthFilter={monthFilter}
+        incomeEntries={incomeEntries.filter((e) => {
+          const d = e.date;
+          return d.getFullYear() === filterYear && d.getMonth() === filterMonth;
+        })}
+      />
     </div>
   );
 }
