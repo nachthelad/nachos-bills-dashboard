@@ -21,6 +21,10 @@ import { useAuth } from "@/lib/auth-context";
 import { useEffect, useMemo, useState } from "react";
 import type { BillDocument } from "@/lib/firestore-helpers";
 import { fetchIncomeEntries, type IncomeEntry } from "@/lib/income-client";
+import {
+  fetchExpenseEntries,
+  type ExpenseEntry,
+} from "@/lib/expenses-client";
 import { type CategoryValue } from "@/config/billing/categories";
 import { normalizeCategory } from "@/lib/category-utils";
 import { createApiClient, type DashboardSummary } from "@/lib/api-client";
@@ -41,7 +45,6 @@ import {
   type ActivityItem,
 } from "@/components/dashboard/recent-activity";
 import { MobileRecentActivity } from "@/components/dashboard/mobile-recent-activity";
-import { Button } from "@/components/ui/button";
 import { Calendar } from "lucide-react";
 import {
   Select,
@@ -60,6 +63,8 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [expenseDocs, setExpenseDocs] = useState<DashboardDocument[]>([]);
   const [incomeEntries, setIncomeEntries] = useState<IncomeEntry[]>([]);
+  const [dailyExpenses, setDailyExpenses] = useState<ExpenseEntry[]>([]);
+  const [hoaSummaries, setHoaSummaries] = useState<Array<{ periodYear: number; periodMonth: number; totalToPayUnit: number }>>([]);
   const [error, setError] = useState<string | null>(null);
   const [summaryFallback, setSummaryFallback] =
     useState<DashboardSummary | null>(null);
@@ -76,16 +81,22 @@ export default function DashboardPage() {
     let cancelled = false;
     (async () => {
       try {
-        const [docs, incomes] = await Promise.all([
+        const token = await user.getIdToken();
+        const [docs, incomes, dailyExp, hoaRes] = await Promise.all([
           apiClient.listDocuments(),
-          (async () => {
-            const token = await user.getIdToken();
-            return fetchIncomeEntries(token);
-          })(),
+          fetchIncomeEntries(token),
+          fetchExpenseEntries(token),
+          fetch("/api/hoa-summaries", { headers: { Authorization: `Bearer ${token}` } }).then((r) => r.ok ? r.json() : { summaries: [] }),
         ]);
         if (!cancelled) {
           setExpenseDocs(docs);
           setIncomeEntries(incomes);
+          setDailyExpenses(dailyExp);
+          setHoaSummaries(
+            (hoaRes.summaries ?? [])
+              .filter((s: Record<string, unknown>) => typeof s.periodYear === "number" && typeof s.periodMonth === "number" && typeof s.totalToPayUnit === "number")
+              .map((s: Record<string, unknown>) => ({ periodYear: s.periodYear as number, periodMonth: s.periodMonth as number, totalToPayUnit: s.totalToPayUnit as number }))
+          );
           setError(null);
         }
       } catch (err) {
@@ -152,8 +163,11 @@ export default function DashboardPage() {
     incomeEntries.forEach((entry) => {
       years.add(entry.date.getFullYear());
     });
+    dailyExpenses.forEach((entry) => {
+      years.add(entry.date.getFullYear());
+    });
     return Array.from(years).sort((a, b) => b - a);
-  }, [expenseDocs, incomeEntries]);
+  }, [expenseDocs, incomeEntries, dailyExpenses]);
 
   const currentYear = selectedYear;
 
@@ -187,8 +201,36 @@ export default function DashboardPage() {
       }
     });
 
+    // Add daily expenses (positive amounts only — negatives are refunds)
+    const realMonth = new Date().getMonth();
+    const realYear = new Date().getFullYear();
+    let dailyExpensesTotal = 0;
+    dailyExpenses.forEach((entry) => {
+      if (entry.amount <= 0) return;
+      if (entry.date.getFullYear() === currentYear) {
+        totals.year += entry.amount;
+        dailyExpensesTotal += entry.amount;
+        if (currentYear === realYear && entry.date.getMonth() === realMonth) {
+          totals.month += entry.amount;
+        }
+      }
+    });
+    if (dailyExpensesTotal > 0) {
+      (categoryTotals as Record<string, number>)["daily_expenses"] = dailyExpensesTotal;
+    }
+
+    // Add HOA payments
+    hoaSummaries.forEach((hoa) => {
+      if (hoa.periodYear === currentYear) {
+        totals.year += hoa.totalToPayUnit;
+        if (currentYear === realYear && hoa.periodMonth - 1 === realMonth) {
+          totals.month += hoa.totalToPayUnit;
+        }
+      }
+    });
+
     return { totals, categoryTotals };
-  }, [expenseDocs, currentYear]);
+  }, [expenseDocs, dailyExpenses, hoaSummaries, currentYear]);
 
   const incomeMetrics = useMemo(() => {
     const yearEntries = incomeEntries.filter(
@@ -240,6 +282,7 @@ export default function DashboardPage() {
     user,
     loading,
     expenseDocs,
+    dailyExpenses,
     incomeEntries,
     expenseMetrics,
     incomeMetrics,
@@ -255,7 +298,7 @@ export default function DashboardPage() {
   const fallbackCategories =
     summaryFallback?.categories ?? defaultCategoryTotals();
 
-  const hasLiveExpenses = expenseDocs.length > 0;
+  const hasLiveExpenses = expenseDocs.length > 0 || dailyExpenses.length > 0 || hoaSummaries.length > 0;
   const hasLiveIncome = incomeEntries.length > 0;
 
   const displayTotals = {
@@ -340,8 +383,22 @@ export default function DashboardPage() {
       months[entry.date.getMonth()].income += entry.amount;
     });
 
+    dailyExpenses.forEach((entry) => {
+      if (entry.date.getFullYear() !== currentYear) return;
+      if (entry.amount <= 0) return;
+      months[entry.date.getMonth()].expenses += entry.amount;
+    });
+
+    hoaSummaries.forEach((hoa) => {
+      if (hoa.periodYear !== currentYear) return;
+      const monthIndex = hoa.periodMonth - 1;
+      if (monthIndex >= 0 && monthIndex < 12) {
+        months[monthIndex].expenses += hoa.totalToPayUnit;
+      }
+    });
+
     return months;
-  }, [expenseDocs, incomeEntries, currentYear]);
+  }, [expenseDocs, incomeEntries, dailyExpenses, hoaSummaries, currentYear]);
 
   if (!user) {
     return (

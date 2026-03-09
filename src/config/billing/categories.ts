@@ -19,6 +19,7 @@ export const CATEGORY_SET = new Set<CategoryValue>(
  * Get the display label for a category value
  */
 export function getCategoryLabel(category: string | null | undefined): string {
+  if (category === "daily_expenses") return "Gastos Diarios";
   const option = CATEGORY_OPTIONS.find((opt) => opt.value === category);
   return option?.label ?? "Other";
 }

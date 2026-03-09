@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   Receipt,
   Wallet,
+  ShoppingCart,
   Building2,
   Settings,
   Command,
@@ -43,6 +44,11 @@ const navMain = [
     title: "Income",
     url: "/income",
     icon: Wallet,
+  },
+  {
+    title: "Expenses",
+    url: "/expenses",
+    icon: ShoppingCart,
   },
   {
     title: "HOA",
