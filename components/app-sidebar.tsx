@@ -1,15 +1,7 @@
 "use client";
 
 import * as React from "react";
-import {
-  LayoutDashboard,
-  Receipt,
-  Wallet,
-  ShoppingCart,
-  Building2,
-  Settings,
-  Command,
-} from "lucide-react";
+import { Settings } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 
@@ -28,34 +20,7 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
-
-const navMain = [
-  {
-    title: "Dashboard",
-    url: "/dashboard",
-    icon: LayoutDashboard,
-  },
-  {
-    title: "Bills",
-    url: "/documents",
-    icon: Receipt,
-  },
-  {
-    title: "Income",
-    url: "/income",
-    icon: Wallet,
-  },
-  {
-    title: "Expenses",
-    url: "/expenses",
-    icon: ShoppingCart,
-  },
-  {
-    title: "HOA",
-    url: "/hoa",
-    icon: Building2,
-  },
-];
+import { navItems } from "@/lib/nav-items";
 
 const navSecondary = [
   {
@@ -104,7 +69,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarGroupLabel>Platform</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navMain.map((item) => (
+              {navItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
