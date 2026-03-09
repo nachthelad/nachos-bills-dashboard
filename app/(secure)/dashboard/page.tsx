@@ -45,7 +45,8 @@ import {
   type ActivityItem,
 } from "@/components/dashboard/recent-activity";
 import { MobileRecentActivity } from "@/components/dashboard/mobile-recent-activity";
-import { Calendar } from "lucide-react";
+import { Calendar, Settings } from "lucide-react";
+import Link from "next/link";
 import {
   Select,
   SelectContent,
@@ -440,6 +441,12 @@ export default function DashboardPage() {
               ))}
             </SelectContent>
           </Select>
+          <Link
+            href="/settings"
+            className="lg:hidden p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+          >
+            <Settings className="h-4 w-4" />
+          </Link>
         </div>
       </div>
       <div>
