@@ -1,0 +1,122 @@
+import { NextRequest, NextResponse } from "next/server";
+
+import { getAdminFirestore } from "@/lib/firebase-admin";
+import { Timestamp } from "firebase-admin/firestore";
+import {
+  authenticateRequest,
+  handleAuthError,
+} from "@/lib/server/authenticate-request";
+import { createRequestLogger } from "@/lib/server/logger";
+import {
+  serializeSnapshot,
+  toIsoDateTime,
+} from "@/lib/server/document-serializer";
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const log = createRequestLogger({
+    request,
+    context: { route: "PATCH /api/expenses/[id]" },
+  });
+  try {
+    const { uid } = await authenticateRequest(request);
+    const { id } = await params;
+
+    const docRef = getAdminFirestore().collection("dailyExpenses").doc(id);
+    const existing = await docRef.get();
+
+    if (!existing.exists) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
+    const data = existing.data() as Record<string, unknown>;
+    if (data.userId !== uid) {
+      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    }
+
+    const body = await request.json();
+    const description = (body.description ?? "").toString().trim() || "Sin descripción";
+    const amount = Number.parseFloat(body.amount);
+    const paymentMethod = (body.paymentMethod ?? "Débito").toString().trim();
+    const category = (body.category ?? "Otros").toString().trim();
+    const dateString = body.date as string | undefined;
+
+    if (!Number.isFinite(amount)) {
+      return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
+    }
+
+    await docRef.update({
+      description,
+      amount,
+      paymentMethod,
+      category,
+      date: dateString
+        ? Timestamp.fromDate(new Date(dateString))
+        : data.date,
+      updatedAt: Timestamp.now(),
+    });
+
+    const updated = await docRef.get();
+    const raw = (updated.data() ?? {}) as Record<string, unknown>;
+    const base = serializeSnapshot(updated);
+    const fallbackDate = new Date().toISOString();
+
+    return NextResponse.json({
+      ...base,
+      description:
+        typeof raw.description === "string" ? raw.description : "Sin descripción",
+      amount: typeof raw.amount === "number" ? raw.amount : 0,
+      paymentMethod:
+        typeof raw.paymentMethod === "string" ? raw.paymentMethod : "Débito",
+      category: typeof raw.category === "string" ? raw.category : "Otros",
+      date: toIsoDateTime(raw.date, fallbackDate) ?? fallbackDate,
+    });
+  } catch (error) {
+    const authResponse = handleAuthError(error);
+    if (authResponse) return authResponse;
+    log.error("Expenses PATCH error", { error });
+    return NextResponse.json(
+      { error: "Failed to update expense entry" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const log = createRequestLogger({
+    request,
+    context: { route: "DELETE /api/expenses/[id]" },
+  });
+  try {
+    const { uid } = await authenticateRequest(request);
+    const { id } = await params;
+
+    const docRef = getAdminFirestore().collection("dailyExpenses").doc(id);
+    const existing = await docRef.get();
+
+    if (!existing.exists) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
+    const data = existing.data() as Record<string, unknown>;
+    if (data.userId !== uid) {
+      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    }
+
+    await docRef.delete();
+    return new NextResponse(null, { status: 204 });
+  } catch (error) {
+    const authResponse = handleAuthError(error);
+    if (authResponse) return authResponse;
+    log.error("Expenses DELETE error", { error });
+    return NextResponse.json(
+      { error: "Failed to delete expense entry" },
+      { status: 500 }
+    );
+  }
+}
