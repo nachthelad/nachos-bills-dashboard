@@ -23,9 +23,11 @@ import type { Logger } from "@/lib/server/logger";
 import { upsertHoaSummary } from "@/lib/server/hoa-service";
 import {
   extractPdfText,
+  parseBillingImageWithOpenAI,
   parseBillingTextWithOpenAI,
   type BillingParseResult,
 } from "./parser";
+import { parseWithRules } from "./rules-parser";
 import { Timestamp, type DocumentReference } from "firebase-admin/firestore";
 import { performance } from "node:perf_hooks";
 
@@ -69,7 +71,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const cachedText = getNonEmptyString(documentData?.textExtract);
+    // Detect image files by URL/filename extension — images go straight to vision AI
+    const imageMimeType = getImageMimeType(
+      pdfUrl,
+      documentData?.fileName ?? null
+    );
+
+    // Only use cached text for PDFs; images are always re-sent to vision AI
+    const cachedText = !imageMimeType
+      ? getNonEmptyString(documentData?.textExtract)
+      : null;
     let fullText: string | null = cachedText;
 
     if (cachedText) {
@@ -79,19 +90,19 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    let fileBuffer: Buffer | null = null;
     if (!fullText) {
-      let pdfBuffer: Buffer;
       const downloadStart = performance.now();
       try {
-        const pdfResponse = await fetch(pdfUrl);
-        if (!pdfResponse.ok) {
-          const errorBody = await pdfResponse.text();
+        const fileResponse = await fetch(pdfUrl);
+        if (!fileResponse.ok) {
+          const errorBody = await fileResponse.text();
           throw new Error(
-            `Failed to download PDF: ${pdfResponse.status} ${errorBody}`
+            `Failed to download file: ${fileResponse.status} ${errorBody}`
           );
         }
-        const arrayBuffer = await pdfResponse.arrayBuffer();
-        pdfBuffer = Buffer.from(arrayBuffer);
+        const arrayBuffer = await fileResponse.arrayBuffer();
+        fileBuffer = Buffer.from(arrayBuffer);
       } catch (error: any) {
         const downloadDuration = performance.now() - downloadStart;
         log.error("PDF download error", {
@@ -120,36 +131,38 @@ export async function POST(request: NextRequest) {
         durationMs: Number(downloadDuration.toFixed(2)),
       });
 
-      const textExtractionStart = performance.now();
-      try {
-        fullText = await extractPdfText(pdfBuffer, log);
-      } catch (error: any) {
+      if (!imageMimeType) {
+        const textExtractionStart = performance.now();
+        try {
+          fullText = await extractPdfText(fileBuffer, log);
+        } catch (error: any) {
+          const extractionDuration = performance.now() - textExtractionStart;
+          log.error("Text extraction error", {
+            error,
+            documentId,
+            durationMs: Number(extractionDuration.toFixed(2)),
+          });
+          await updateDocumentWithMetrics(
+            docRef,
+            {
+              status: "needs_review",
+              errorMessage: error.message ?? "Failed to extract PDF text",
+              updatedAt: new Date(),
+            },
+            log,
+            "text_extraction_error"
+          );
+          return NextResponse.json(
+            { error: "Failed to extract PDF text" },
+            { status: 502 }
+          );
+        }
         const extractionDuration = performance.now() - textExtractionStart;
-        log.error("Text extraction error", {
-          error,
-          documentId,
+        log.debug("Text extraction completed", {
           durationMs: Number(extractionDuration.toFixed(2)),
+          source: "pdf",
         });
-        await updateDocumentWithMetrics(
-          docRef,
-          {
-            status: "needs_review",
-            errorMessage: error.message ?? "Failed to extract PDF text",
-            updatedAt: new Date(),
-          },
-          log,
-          "text_extraction_error"
-        );
-        return NextResponse.json(
-          { error: "Failed to extract PDF text" },
-          { status: 502 }
-        );
       }
-      const extractionDuration = performance.now() - textExtractionStart;
-      log.debug("Text extraction completed", {
-        durationMs: Number(extractionDuration.toFixed(2)),
-        source: "pdf",
-      });
     } else {
       log.debug("Text extraction completed", {
         durationMs: 0,
@@ -157,7 +170,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    if (!fullText || !fullText.trim()) {
+    if (!imageMimeType && (!fullText || !fullText.trim())) {
       const errorMessage = "Extracted text was empty";
       await updateDocumentWithMetrics(
         docRef,
@@ -173,10 +186,49 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: errorMessage }, { status: 502 });
     }
 
+    // Detect provider early to decide which parser to use (PDF path only)
+    const earlyProvider = !imageMimeType
+      ? inferProviderFromContent({
+          fileName: documentData?.fileName,
+          text: fullText,
+        })
+      : null;
+    const useRulesParser =
+      earlyProvider !== null &&
+      earlyProvider.category !== "credit_card" &&
+      earlyProvider.category !== "hoa";
+
     let parseResponse: BillingParseResult;
     const parserStart = performance.now();
+    const parserType = imageMimeType
+      ? "openai_vision"
+      : useRulesParser
+        ? "rules"
+        : "openai";
     try {
-      parseResponse = await parseBillingTextWithOpenAI(fullText, log);
+      if (imageMimeType && fileBuffer) {
+        parseResponse = await parseBillingImageWithOpenAI(
+          fileBuffer,
+          imageMimeType,
+          log
+        );
+        fullText = parseResponse.text ?? "[image]";
+        log.debug("Vision-based parsing completed", {
+          mimeType: imageMimeType,
+          hasAmount: parseResponse.totalAmount !== null,
+          hasDueDate: parseResponse.dueDate !== null,
+        });
+      } else if (useRulesParser && earlyProvider) {
+        parseResponse = parseWithRules(fullText!, earlyProvider);
+        log.debug("Rules-based parsing completed", {
+          category: earlyProvider.category,
+          providerId: earlyProvider.providerId,
+          hasAmount: parseResponse.totalAmount !== null,
+          hasDueDate: parseResponse.dueDate !== null,
+        });
+      } else {
+        parseResponse = await parseBillingTextWithOpenAI(fullText!, log);
+      }
     } catch (error: any) {
       const parserDuration = performance.now() - parserStart;
       log.error("PDF parsing error", {
@@ -201,8 +253,9 @@ export async function POST(request: NextRequest) {
       );
     } finally {
       const parserDuration = performance.now() - parserStart;
-      log.debug("OpenAI parser latency captured", {
+      log.debug("Parser latency captured", {
         durationMs: Number(parserDuration.toFixed(2)),
+        parser: parserType,
       });
     }
 
@@ -415,5 +468,22 @@ function findProviderByNormalizedContent({
     }
   }
 
+  return null;
+}
+
+function getImageMimeType(
+  url: string,
+  fileName?: string | null
+): string | null {
+  for (const source of [fileName ?? "", url]) {
+    try {
+      const path = decodeURIComponent(source).toLowerCase().split("?")[0];
+      if (path.endsWith(".png")) return "image/png";
+      if (path.endsWith(".jpg") || path.endsWith(".jpeg")) return "image/jpeg";
+      if (path.endsWith(".webp")) return "image/webp";
+    } catch {
+      // ignore malformed URIs
+    }
+  }
   return null;
 }

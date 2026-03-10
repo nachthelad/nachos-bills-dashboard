@@ -290,9 +290,9 @@ export default function DocumentDetailPage() {
                   Parsing...
                 </>
               ) : hasParsedText ? (
-                "Re-parse PDF"
+                "Re-parse"
               ) : (
-                "Parse PDF"
+                "Parse"
               )}
             </Button>
           )}
