@@ -452,6 +452,14 @@ function inferProviderFromContent(
   return match;
 }
 
+// HOA and credit_card docs frequently mention unrelated providers (e.g. an
+// HOA liquidation lists "EDESUR" in its expense rubros). Give those two
+// categories higher priority so they always win over specific-provider hints.
+const CATEGORY_DETECTION_PRIORITY: Record<string, number> = {
+  hoa: 10,
+  credit_card: 9,
+};
+
 function findProviderByNormalizedContent({
   normalizedFileName,
   normalizedText,
@@ -459,16 +467,22 @@ function findProviderByNormalizedContent({
   normalizedFileName: string | null;
   normalizedText: string | null;
 }): ProviderHint | null {
+  let best: { hint: ProviderHint; priority: number } | null = null;
+
   for (const [keyword, hint] of PROVIDER_HINT_KEYWORD_MAP.entries()) {
     if (
       (normalizedFileName && normalizedFileName.includes(keyword)) ||
       (normalizedText && normalizedText.includes(keyword))
     ) {
-      return hint;
+      const priority = CATEGORY_DETECTION_PRIORITY[hint.category] ?? 0;
+      if (!best || priority > best.priority) {
+        best = { hint, priority };
+        if (priority >= 10) break; // hoa is highest — no need to keep scanning
+      }
     }
   }
 
-  return null;
+  return best?.hint ?? null;
 }
 
 function getImageMimeType(

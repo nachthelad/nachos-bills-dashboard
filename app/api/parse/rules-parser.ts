@@ -71,8 +71,11 @@ function isValidBillDate(isoDate: string): boolean {
   return year >= 2000 && year <= 2099;
 }
 
+// Tolerates spaces injected by pdf2json around slashes (e.g. "10 /03/2026")
+const DATE_PAT = String.raw`(\d{1,2})\s*\/\s*(\d{1,2})\s*\/\s*(\d{2,4})`;
+
 function firstDateInText(text: string): string | null {
-  const re = /(\d{1,2})\/(\d{1,2})\/(\d{2,4})/g;
+  const re = new RegExp(DATE_PAT, "g");
   let m: RegExpExecArray | null;
   while ((m = re.exec(text)) !== null) {
     const date = toISODate(m[1], m[2], m[3]);
@@ -82,7 +85,7 @@ function firstDateInText(text: string): string | null {
 }
 
 function allDatesInText(text: string): string[] {
-  const re = /(\d{1,2})\/(\d{1,2})\/(\d{2,4})/g;
+  const re = new RegExp(DATE_PAT, "g");
   const results: string[] = [];
   let m: RegExpExecArray | null;
   while ((m = re.exec(text)) !== null) {
@@ -90,6 +93,25 @@ function allDatesInText(text: string): string[] {
     if (isValidBillDate(date)) results.push(date);
   }
   return results;
+}
+
+// Returns the first valid bill date found at or after `startPos`, within
+// `maxRange` characters. The limited range prevents picking up a date from
+// a completely unrelated section of the document.
+function firstDateAfterPos(
+  text: string,
+  startPos: number,
+  maxRange = 300
+): string | null {
+  const re = new RegExp(DATE_PAT, "g");
+  re.lastIndex = startPos;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    if (m.index - startPos > maxRange) break;
+    const date = toISODate(m[1], m[2], m[3]);
+    if (isValidBillDate(date)) return date;
+  }
+  return null;
 }
 
 // --- Line utilities ---
@@ -178,43 +200,59 @@ function extractAmount(text: string): number | null {
 // --- Due date ---
 
 const DUE_DATE_RE = /venc|vto\b|fecha\s+de\s+pago|fecha\s+l[íi]mite|l[íi]mite\s+de\s+pago/i;
-const FIRST_DUE_RE = /1[°º]|primer|primero/i;
 
 function extractDueDate(text: string): string | null {
-  const lines = toLines(text);
   let firstDue: string | null = null;
-  let anyDue: string | null = null;
+  let best: { date: string; score: number } | null = null;
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    if (!DUE_DATE_RE.test(line)) continue;
+  // Search globally through the full text — works whether pdf2json produced
+  // one giant line per page or clean multi-line output.
+  const re = new RegExp(DUE_DATE_RE.source, "gi");
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    const keywordEnd = m.index + m[0].length;
 
-    const window = windowOf(lines, i);
-    const date = firstDateInText(window);
+    // Skip matches that belong to a CESP payment code line. Only inspect a
+    // tight window (≤10 chars before, ≤20 chars after) so a CESP label on a
+    // PREVIOUS line never causes the current match to be skipped.
+    const ctx = text.slice(Math.max(0, m.index - 10), keywordEnd + 20);
+    if (/\bCESP\b/i.test(ctx)) continue;
+
+    const date = firstDateAfterPos(text, keywordEnd);
     if (!date) continue;
 
-    if (FIRST_DUE_RE.test(line) && !firstDue) firstDue = date;
-    if (!anyDue) anyDue = date;
+    // Score: full "vencimiento" (8) beats the "vto" abbreviation (3).
+    // "Vto" commonly appears next to CESP codes or in secondary header fields
+    // (e.g. AySA: "C.E.S.P: 37075... Fecha Vto : 28/02/2026") and often
+    // refers to a previous-cycle or CESP date rather than the current due date.
+    const score = /^vto/i.test(m[0]) ? 3 : 8;
+
+    // Detect "1° Venc", "1 ° Venc" (pdf2json spaces around °), "1er", "Primer"
+    // by inspecting the ~25 chars that immediately precede the keyword.
+    const before = text.slice(Math.max(0, m.index - 25), m.index);
+    const isFirstDue = /\b1\W{0,5}$|\bprimer|primero|\b1er\b/i.test(before);
+    if (isFirstDue && !firstDue) firstDue = date;
+
+    // Keep the highest-scored candidate; ties → first occurrence wins.
+    if (!best || score > best.score) best = { date, score };
   }
 
-  return firstDue ?? anyDue;
+  return firstDue ?? best?.date ?? null;
 }
 
 // --- Issue date ---
 
-const ISSUE_DATE_RE = /emisi[oó]n|fecha\s+factura|fecha\s+de\s+factura|fecha\s+de\s+emisi[oó]n/i;
+const ISSUE_DATE_RE =
+  /emisi[oó]n|emitida\s+el|fecha\s+factura|fecha\s+de\s+factura|fecha\s+de\s+emisi[oó]n|fecha\s*:/i;
 
 function extractIssueDate(text: string): string | null {
-  const lines = toLines(text);
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    if (!ISSUE_DATE_RE.test(line)) continue;
-
-    const date = firstDateInText(windowOf(lines, i));
+  const re = new RegExp(ISSUE_DATE_RE.source, "gi");
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    const keywordEnd = m.index + m[0].length;
+    const date = firstDateAfterPos(text, keywordEnd);
     if (date) return date;
   }
-
   return null;
 }
 
@@ -226,30 +264,29 @@ function extractPeriod(text: string): {
   periodStart: string | null;
   periodEnd: string | null;
 } {
-  const lines = toLines(text);
+  const re = new RegExp(PERIOD_RE.source, "gi");
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    const keywordEnd = m.index + m[0].length;
+    // Look up to 200 chars after the keyword to capture the period value
+    const window = text.slice(keywordEnd, keywordEnd + 200);
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    if (!PERIOD_RE.test(line)) continue;
-
-    const window = windowOf(lines, i);
-
-    // Two dates in the line → it's a range ("10/12/2025 A 08/01/2026")
+    // Two dates → explicit range ("09/01/2026 A 06/02/2026")
     const dates = allDatesInText(window);
     if (dates.length >= 2) {
       return { periodStart: dates[0], periodEnd: dates[1] };
     }
 
-    // Month name + year ("Marzo 2025", "marzo de 2025")
+    // Month name + year ("Marzo 2026", "marzo de 2026")
     const monthYear = window.match(
       /([A-Za-záéíóúÁÉÍÓÚ]{4,})\s+(?:de\s+)?(\d{4})/
     );
     if (monthYear) {
-      const m = monthNameToNumber(monthYear[1]);
+      const mo = monthNameToNumber(monthYear[1]);
       const y = parseInt(monthYear[2]);
-      if (m && y > 2000) {
-        const mm = String(m).padStart(2, "0");
-        const lastDay = new Date(y, m, 0).getDate();
+      if (mo && y > 2000) {
+        const mm = String(mo).padStart(2, "0");
+        const lastDay = new Date(y, mo, 0).getDate();
         return {
           periodStart: `${y}-${mm}-01`,
           periodEnd: `${y}-${mm}-${String(lastDay).padStart(2, "0")}`,
@@ -260,11 +297,11 @@ function extractPeriod(text: string): {
     // MM/YYYY
     const mmYYYY = window.match(/\b(\d{2})\/(\d{4})\b/);
     if (mmYYYY) {
-      const m = parseInt(mmYYYY[1]);
+      const mo = parseInt(mmYYYY[1]);
       const y = parseInt(mmYYYY[2]);
-      if (m >= 1 && m <= 12 && y > 2000) {
-        const mm = String(m).padStart(2, "0");
-        const lastDay = new Date(y, m, 0).getDate();
+      if (mo >= 1 && mo <= 12 && y > 2000) {
+        const mm = String(mo).padStart(2, "0");
+        const lastDay = new Date(y, mo, 0).getDate();
         return {
           periodStart: `${y}-${mm}-01`,
           periodEnd: `${y}-${mm}-${String(lastDay).padStart(2, "0")}`,

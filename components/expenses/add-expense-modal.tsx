@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import {
   addExpenseEntry,
@@ -13,7 +13,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -61,6 +60,7 @@ export function AddExpenseModal({
   const [addingCategory, setAddingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [addCategoryLoading, setAddCategoryLoading] = useState(false);
+  const descriptionRef = useRef<HTMLInputElement>(null);
 
   const categories = categoriesProp ?? [...EXPENSE_CATEGORIES];
 
@@ -77,7 +77,7 @@ export function AddExpenseModal({
           paymentMethod: editEntry.paymentMethod,
           category: editEntry.category,
         }
-      : emptyForm
+      : emptyForm,
   );
 
   const handleOpenChange = (next: boolean) => {
@@ -112,13 +112,10 @@ export function AddExpenseModal({
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const saveExpense = async (keepOpen: boolean) => {
     if (!user) return;
-
     setLoading(true);
     setError(null);
-
     try {
       const token = await user.getIdToken();
       const payload = {
@@ -135,9 +132,16 @@ export function AddExpenseModal({
         await addExpenseEntry(token, payload);
       }
 
-      setOpen(false);
-      if (!editEntry) setFormData(emptyForm);
       onSuccess();
+
+      if (keepOpen) {
+        // Keep date and category — only clear description + amount for next entry
+        setFormData((prev) => ({ ...prev, description: "", amount: "" }));
+        setTimeout(() => descriptionRef.current?.focus(), 0);
+      } else {
+        setOpen(false);
+        if (!editEntry) setFormData(emptyForm);
+      }
     } catch (err) {
       console.error("Failed to save expense:", err);
       setError("Failed to save expense. Please try again.");
@@ -146,18 +150,25 @@ export function AddExpenseModal({
     }
   };
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    saveExpense(false);
+  };
+
   const content = (
     <DialogContent className="sm:max-w-[425px] bg-card border-border text-foreground">
       <DialogHeader>
         <DialogTitle>{editEntry ? "Edit Expense" : "Add Expense"}</DialogTitle>
         <DialogDescription className="text-muted-foreground">
-          {editEntry ? "Update the expense details." : "Record a new daily expense."}
+          {editEntry
+            ? "Update the expense details."
+            : "Record a new daily expense."}
         </DialogDescription>
       </DialogHeader>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="exp-date" className="text-foreground">
-            Fecha
+            Date
           </Label>
           <Input
             id="exp-date"
@@ -170,12 +181,13 @@ export function AddExpenseModal({
         </div>
         <div className="space-y-2">
           <Label htmlFor="exp-description" className="text-foreground">
-            Descripción
+            Description
           </Label>
           <Input
             id="exp-description"
+            ref={descriptionRef}
             type="text"
-            placeholder="ej: Carrefour, Metrogas"
+            placeholder="e.g. Carrefour, Supermarket, etc."
             value={formData.description}
             onChange={(e) =>
               setFormData({ ...formData, description: e.target.value })
@@ -186,7 +198,7 @@ export function AddExpenseModal({
         </div>
         <div className="space-y-2">
           <Label htmlFor="exp-amount" className="text-foreground">
-            Monto (ARS)
+            Amount (ARS)
           </Label>
           <Input
             id="exp-amount"
@@ -202,13 +214,20 @@ export function AddExpenseModal({
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="exp-payment-method" className="text-foreground">Medio de pago</Label>
-          <div id="exp-payment-method" className="flex h-9 w-full items-center rounded-md border border-border bg-background px-3 text-sm text-muted-foreground">
+          <Label htmlFor="exp-payment-method" className="text-foreground">
+            Payment method
+          </Label>
+          <div
+            id="exp-payment-method"
+            className="flex h-9 w-full items-center rounded-md border border-border bg-background px-3 text-sm text-muted-foreground"
+          >
             Débito
           </div>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="exp-category" className="text-foreground">Categoría</Label>
+          <Label htmlFor="exp-category" className="text-foreground">
+            Category
+          </Label>
           <Select
             value={formData.category}
             onValueChange={(value) => {
@@ -219,8 +238,11 @@ export function AddExpenseModal({
               }
             }}
           >
-            <SelectTrigger id="exp-category" className="bg-background border-border text-foreground">
-              <SelectValue placeholder="Seleccionar categoría" />
+            <SelectTrigger
+              id="exp-category"
+              className="bg-background border-border text-foreground"
+            >
+              <SelectValue placeholder="Select category" />
             </SelectTrigger>
             <SelectContent className="bg-popover border-border text-popover-foreground">
               {categories.map((c) => (
@@ -231,7 +253,7 @@ export function AddExpenseModal({
               <SelectItem value="__new__" className="text-emerald-400">
                 <span className="flex items-center gap-1.5">
                   <Plus className="h-3.5 w-3.5" />
-                  Nueva categoría...
+                  New category...
                 </span>
               </SelectItem>
             </SelectContent>
@@ -240,7 +262,7 @@ export function AddExpenseModal({
             <div className="flex gap-2 items-center">
               <Input
                 autoFocus
-                placeholder="Nombre de la categoría"
+                placeholder="Category name"
                 value={newCategoryName}
                 onChange={(e) => setNewCategoryName(e.target.value)}
                 onKeyDown={(e) => {
@@ -284,29 +306,40 @@ export function AddExpenseModal({
           )}
         </div>
         {error && <p className="text-sm text-red-400">{error}</p>}
-        <DialogFooter>
+        <div className={`flex items-center gap-2 pt-2 ${editEntry ? "justify-end" : "justify-between"}`}>
           <Button
             type="button"
             variant="outline"
             onClick={() => setOpen(false)}
-            className="w-full sm:w-auto"
           >
-            Cancelar
+            Cancel
           </Button>
-          <Button
-            type="submit"
-            disabled={loading}
-            className="bg-emerald-500 text-slate-900 hover:bg-emerald-400 w-full sm:w-auto"
-          >
-            {loading
-              ? editEntry
-                ? "Actualizando..."
-                : "Guardando..."
-              : editEntry
-              ? "Actualizar"
-              : "Guardar"}
-          </Button>
-        </DialogFooter>
+          <div className="flex gap-2">
+            {!editEntry && (
+              <Button
+                type="button"
+                variant="outline"
+                disabled={loading}
+                onClick={() => saveExpense(true)}
+              >
+                Save & add another
+              </Button>
+            )}
+            <Button
+              type="submit"
+              disabled={loading}
+              className="bg-emerald-500 text-slate-900 hover:bg-emerald-400"
+            >
+              {loading
+                ? editEntry
+                  ? "Updating..."
+                  : "Saving..."
+                : editEntry
+                  ? "Update"
+                  : "Save"}
+            </Button>
+          </div>
+        </div>
       </form>
     </DialogContent>
   );

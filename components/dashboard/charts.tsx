@@ -93,7 +93,7 @@ export function DashboardCharts({
 
   return (
     <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-7">
-      <Card className="col-span-1 md:col-span-2 lg:col-span-4">
+      <Card className="col-span-1 md:col-span-2 lg:col-span-4 bg-muted">
         <CardHeader>
           <CardTitle>Overview</CardTitle>
           <CardDescription>Expenses vs Income over time</CardDescription>
@@ -150,7 +150,7 @@ export function DashboardCharts({
           </div>
         </CardContent>
       </Card>
-      <Card className="col-span-1 md:col-span-2 lg:col-span-3">
+      <Card className="col-span-1 md:col-span-2 lg:col-span-3 bg-muted">
         <CardHeader>
           <CardTitle>Expenses Breakdown</CardTitle>
           <CardDescription>Distribution by category</CardDescription>

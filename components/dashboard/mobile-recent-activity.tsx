@@ -80,7 +80,7 @@ export function MobileRecentActivity({
               </CardHeader>
               <CardContent className="p-4 pt-2 space-y-2">
                 <div className="flex justify-between items-center text-sm">
-                  <Badge variant="secondary" className="font-normal">
+                  <Badge variant="outline" className="font-normal">
                     {item.category}
                   </Badge>
                   <div

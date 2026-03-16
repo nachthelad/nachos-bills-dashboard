@@ -9,8 +9,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ArrowDownLeft, ArrowUpRight, FileText, Wallet } from "lucide-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ArrowDownLeft, ArrowUpRight } from "lucide-react";
 
 export interface ActivityItem {
   id: string;
@@ -46,16 +46,14 @@ export function RecentActivity({ items, showAmounts }: RecentActivityProps) {
   };
 
   return (
-    <div className="rounded-xl border bg-card text-card-foreground shadow">
-      <div className="p-6 flex flex-col gap-1">
-        <h3 className="font-semibold leading-none tracking-tight">
-          Recent Activity
-        </h3>
+    <div className="space-y-4">
+      <div>
+        <h3 className="text-xl font-semibold">Recent Activity</h3>
         <p className="text-sm text-muted-foreground">
           Latest bills and income entries.
         </p>
       </div>
-      <div className="p-0">
+      <div className="rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -115,7 +113,7 @@ export function RecentActivity({ items, showAmounts }: RecentActivityProps) {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="secondary" className="font-normal">
+                    <Badge variant="outline" className="font-normal">
                       {item.category}
                     </Badge>
                   </TableCell>
