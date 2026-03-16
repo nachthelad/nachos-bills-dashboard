@@ -56,13 +56,29 @@ function monthNameToNumber(name: string): number | null {
 }
 
 function toISODate(day: string, month: string, year: string): string {
-  const y = year.length === 2 ? `20${year}` : year;
+  let y: string;
+  if (year.length === 2) {
+    const num = parseInt(year, 10);
+    y = num >= 50 ? `19${year}` : `20${year}`;
+  } else {
+    y = year;
+  }
   return `${y}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
 }
 
+function isValidBillDate(isoDate: string): boolean {
+  const year = parseInt(isoDate.slice(0, 4), 10);
+  return year >= 2000 && year <= 2099;
+}
+
 function firstDateInText(text: string): string | null {
-  const m = text.match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
-  return m ? toISODate(m[1], m[2], m[3]) : null;
+  const re = /(\d{1,2})\/(\d{1,2})\/(\d{2,4})/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    const date = toISODate(m[1], m[2], m[3]);
+    if (isValidBillDate(date)) return date;
+  }
+  return null;
 }
 
 function allDatesInText(text: string): string[] {
@@ -70,7 +86,8 @@ function allDatesInText(text: string): string[] {
   const results: string[] = [];
   let m: RegExpExecArray | null;
   while ((m = re.exec(text)) !== null) {
-    results.push(toISODate(m[1], m[2], m[3]));
+    const date = toISODate(m[1], m[2], m[3]);
+    if (isValidBillDate(date)) results.push(date);
   }
   return results;
 }
