@@ -156,7 +156,7 @@ export function MobileExpenseList({
           <div className="flex gap-2">
             <Select value={monthFilter} onValueChange={onMonthFilterChange}>
               <SelectTrigger className="flex-1">
-                <SelectValue placeholder="Mes" />
+                <SelectValue placeholder="Month" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Months</SelectItem>
@@ -169,7 +169,7 @@ export function MobileExpenseList({
             </Select>
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
               <SelectTrigger className="flex-1">
-                <SelectValue placeholder="Categoría" />
+                <SelectValue placeholder="Category" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Categories</SelectItem>
@@ -290,22 +290,22 @@ export function MobileExpenseList({
       >
         <AlertDialogContent className="bg-card border-border text-foreground">
           <AlertDialogHeader>
-            <AlertDialogTitle>Eliminar gasto</AlertDialogTitle>
+            <AlertDialogTitle>Delete expense</AlertDialogTitle>
             <AlertDialogDescription className="text-muted-foreground">
-              ¿Estás seguro de que querés eliminar este gasto? Esta acción no se
-              puede deshacer.
+              Are you sure you want to delete this expense? This action cannot
+              be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleteLoading}>
-              Cancelar
+              Cancel
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               disabled={deleteLoading}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {deleteLoading ? "Eliminando..." : "Eliminar"}
+              {deleteLoading ? "Deleting..." : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

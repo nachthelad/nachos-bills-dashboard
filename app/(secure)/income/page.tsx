@@ -81,7 +81,7 @@ export default function IncomePage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <Card className="bg-card/50">
+        <Card className="bg-muted">
           <CardContent className="pt-6">
             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
               <TrendingUp className="w-4 h-4 text-emerald-500" />
@@ -92,7 +92,7 @@ export default function IncomePage() {
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-card/50">
+        <Card className="bg-muted">
           <CardContent className="pt-6">
             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
               <TrendingUp className="w-4 h-4 text-emerald-500" />

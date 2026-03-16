@@ -146,3 +146,38 @@ LOG_LEVEL                      # optional
 - Do not add unnecessary comments or docstrings.
 - Avoid over-engineering — keep solutions minimal and focused.
 - Shared Zod schemas live in `lib/api-schemas.ts`; typed fetch wrappers in `lib/api-client.ts`.
+
+## Design conventions
+
+### Tables
+
+Always use shadcn/ui Table primitives (`Table`, `TableHeader`, `TableRow`, `TableHead`, `TableBody`, `TableCell` from `@/components/ui/table`). Never use raw `<table>/<thead>/<tbody>/<tr>/<th>/<td>` elements.
+
+Standard structure:
+
+```tsx
+<div className="rounded-md border">
+  <Table>
+    <TableHeader>
+      <TableRow>
+        <TableHead>Column</TableHead>
+      </TableRow>
+    </TableHeader>
+    <TableBody>
+      <TableRow>
+        <TableCell>Value</TableCell>
+      </TableRow>
+    </TableBody>
+  </Table>
+</div>
+```
+
+The `Card` wraps the section; the `<div className="rounded-md border">` wraps only the table itself inside `CardContent`.
+
+### Cards
+
+Info and graph cards always use `<Card className="bg-muted">` (`#111c28`). Never use the default `<Card>` (which resolves to `bg-card` = `#0d1723`) for content/stat/chart sections. Tables are **not** wrapped in a Card — they sit bare inside a `<div className="rounded-md border">`.
+
+### Badges
+
+Always use `<Badge variant="outline">` for category, status, and label chips. Never use custom `inline-flex rounded-full ...` spans.

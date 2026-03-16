@@ -42,7 +42,7 @@ export function KpiCards({
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      <Card>
+      <Card className="bg-muted">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Total Expenses (YTD)</CardTitle>
           <ArrowDownIcon className="h-4 w-4 text-muted-foreground" />
@@ -54,7 +54,7 @@ export function KpiCards({
           </p>
         </CardContent>
       </Card>
-      <Card>
+      <Card className="bg-muted">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Total Income (YTD)</CardTitle>
           <ArrowUpIcon className="h-4 w-4 text-muted-foreground" />
@@ -66,7 +66,7 @@ export function KpiCards({
           </p>
         </CardContent>
       </Card>
-      <Card>
+      <Card className="bg-muted">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Net Income (YTD)</CardTitle>
           <Wallet className="h-4 w-4 text-muted-foreground" />
@@ -80,7 +80,7 @@ export function KpiCards({
           </p>
         </CardContent>
       </Card>
-      <Card>
+      <Card className="bg-muted">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">This Month</CardTitle>
           <Calendar className="h-4 w-4 text-muted-foreground" />

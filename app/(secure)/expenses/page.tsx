@@ -142,7 +142,7 @@ export default function ExpensesPage() {
         </p>
       </div>
 
-      <Card className="bg-card/50">
+      <Card className="bg-muted">
         <CardContent className="py-4 px-6">
           <div className="flex flex-col md:flex-row md:items-center gap-6">
             <div className="flex flex-row md:flex-col justify-between md:justify-start gap-3 md:gap-4 shrink-0 md:w-44">
