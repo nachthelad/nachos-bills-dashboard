@@ -303,6 +303,7 @@ export function MobileDocumentsList({
                       variant="ghost"
                       size="sm"
                       className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      aria-label="Delete document"
                       onClick={() => confirmDelete(doc)}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -344,6 +345,7 @@ export function MobileDocumentsList({
                       >
                         <a
                           href={doc.storageUrl}
+                          aria-label="Open PDF"
                           target="_blank"
                           rel="noopener noreferrer"
                         >
@@ -357,7 +359,7 @@ export function MobileDocumentsList({
                       className="h-8 w-8 p-0"
                       asChild
                     >
-                      <Link href={`/documents/${doc.id}`}>
+                      <Link href={`/documents/${doc.id}`} aria-label="View document details">
                         <ChevronRight className="h-4 w-4" />
                       </Link>
                     </Button>
