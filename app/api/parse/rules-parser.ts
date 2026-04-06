@@ -131,6 +131,8 @@ const AMOUNT_SCORE: Array<{ re: RegExp; score: number }> = [
   { re: /total\s+a\s+pagar|importe\s+a\s+abonar/i, score: 10 },
   { re: /total\s+factura|total\s+general|importe\s+total/i, score: 8 },
   { re: /total\s+liquidaci[oó]n|total\s+consumo/i, score: 7 },
+  // ABL/AGIP bills use "1° VTO." (first due) as the payable amount
+  { re: /1[°º\s]*vto\b/i, score: 8 },
   { re: /total|importe/i, score: 5 },
   { re: /cuota\s+mensual|cuota/i, score: 3 },
 ];
@@ -258,7 +260,7 @@ function extractIssueDate(text: string): string | null {
 
 // --- Period ---
 
-const PERIOD_RE = /per[íi]odo|periodo|liquidaci[oó]n|facturaci[oó]n/i;
+const PERIOD_RE = /per[íi]odo|periodo|liquidaci[oó]n|facturaci[oó]n|\bcuota\b/i;
 
 function extractPeriod(text: string): {
   periodStart: string | null;

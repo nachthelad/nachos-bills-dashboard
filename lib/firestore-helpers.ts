@@ -44,6 +44,7 @@ export interface BillDocument {
   lastParsedAt?: Date | null;
   parsedData?: Record<string, any>;
   hoaDetails?: HoaDetails | null;
+  foreignAmountUSD?: number | null;
   manualEntry?: boolean;
   updatedAt?: Date | null;
 }

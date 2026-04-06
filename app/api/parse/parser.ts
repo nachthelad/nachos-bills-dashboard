@@ -14,6 +14,7 @@ export type BillingParseResult = {
   periodStart: string | null;
   periodEnd: string | null;
   hoaDetails: HoaDetails | null;
+  foreignAmountUSD: number | null;
 };
 
 const hoaRubroSchema = z.object({
@@ -52,6 +53,7 @@ const BillingParseResultSchema = z.object({
   periodStart: z.string().nullable(),
   periodEnd: z.string().nullable(),
   hoaDetails: hoaDetailsSchema,
+  foreignAmountUSD: z.number().nullable(),
 });
 
 type JsonSchema = {
@@ -80,6 +82,7 @@ const BILLING_SCHEMA_BODY = {
       dueDate: { anyOf: [{ type: "string" }, { type: "null" }] },
       periodStart: { anyOf: [{ type: "string" }, { type: "null" }] },
       periodEnd: { anyOf: [{ type: "string" }, { type: "null" }] },
+      foreignAmountUSD: { anyOf: [{ type: "number" }, { type: "null" }] },
       hoaDetails: {
         anyOf: [
           { type: "null" },
@@ -152,6 +155,7 @@ const BILLING_SCHEMA_BODY = {
       "periodStart",
       "periodEnd",
       "hoaDetails",
+      "foreignAmountUSD",
     ],
   },
 };
@@ -162,11 +166,15 @@ export const BILL_PARSER_SCHEMA: JsonSchema = {
   json_schema: BILLING_SCHEMA_BODY,
 };
 
-export const OPENAI_SYSTEM_PROMPT = `You are a meticulous assistant that extracts structured billing data from PDF text. 
+export const OPENAI_SYSTEM_PROMPT = `You are a meticulous assistant that extracts structured billing data from PDF text.
 CRITICAL: For HOA (Expensas) bills, you MUST distinguish between the individual unit's total and the collective building total.
 - 'totalAmount': Set this to the INDIVIDUAL amount the unit owner must pay (e.g., 'Total a Pagar', 'Total Unidad', 'Current Month Total').
 - 'hoaDetails.totalToPayUnit': This MUST match the individual share.
 - 'hoaDetails.totalBuildingExpenses': Set this to the larger collective total of the entire building.
+CREDIT CARD STATEMENTS (Resúmenes de tarjeta de crédito):
+- 'totalAmount': ALWAYS set to the ARS total actually owed (the "Total a Pagar en Pesos", "Importe Total en $", or equivalent ARS summary line). Must be in ARS even when individual purchases were in USD.
+- 'currency': ALWAYS set to "ARS" for Argentine credit card statements.
+- 'foreignAmountUSD': If the statement contains USD-denominated charges (purchases billed in USD/U$S), set this to the total USD amount charged (sum of all USD line items, or the explicit USD subtotal if present). Set to null if no USD charges exist.
 Always respond with JSON that strictly matches the provided schema.`;
 
 export const OPENAI_USER_PROMPT = `Analyze the following PDF text and extract any billing related metadata. For HOA/Expensas, pay close attention to the Unit Number and its specific total to pay. return null when information cannot be determined.`;
@@ -370,6 +378,7 @@ export function sanitizeBillingResult(value: unknown): BillingParseResult {
     periodStart: sanitizeString(data.periodStart),
     periodEnd: sanitizeString(data.periodEnd),
     hoaDetails: sanitizeHoaDetails(data.hoaDetails),
+    foreignAmountUSD: sanitizeNumber(data.foreignAmountUSD) ?? null,
   };
 }
 

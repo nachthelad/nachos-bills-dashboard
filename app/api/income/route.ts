@@ -59,6 +59,7 @@ export async function POST(request: NextRequest) {
     const amount = Number.parseFloat(body.amount);
     const source = (body.source ?? "").toString().trim() || "Other";
     const dateString = body.date as string | undefined;
+    const currency = ["ARS", "USD"].includes(body.currency) ? body.currency : "ARS";
 
     if (!Number.isFinite(amount) || amount <= 0) {
       return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
@@ -71,7 +72,7 @@ export async function POST(request: NextRequest) {
         name,
         amount,
         source,
-        currency: "ARS",
+        currency,
         date: dateString
           ? Timestamp.fromDate(new Date(dateString))
           : Timestamp.now(),
