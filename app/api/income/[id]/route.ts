@@ -90,6 +90,10 @@ export async function PATCH(
       updates.date = Timestamp.fromDate(new Date(body.date));
     }
 
+    if (body.currency !== undefined) {
+      updates.currency = ["ARS", "USD"].includes(body.currency) ? body.currency : "ARS";
+    }
+
     await docRef.update(updates);
     const updatedSnapshot = await docRef.get();
     const updatedData = updatedSnapshot.data();

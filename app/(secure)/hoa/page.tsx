@@ -9,9 +9,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   AlertTriangle,
   Building2,
+  History,
   LineChart as LineChartIcon,
   Loader2,
 } from "lucide-react";
+import Link from "next/link";
 import {
   AmountVisibilityToggle,
   useAmountVisibility,
@@ -207,6 +209,13 @@ export default function HoaPage() {
               <LineChartIcon className="w-3.5 h-3.5" />
               Comparison
             </span>
+            <Link
+              href="/hoa/history"
+              className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1 text-xs text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
+            >
+              <History className="w-3.5 h-3.5" />
+              Category history
+            </Link>
             <AmountVisibilityToggle />
           </div>
         </div>

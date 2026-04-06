@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import type { IncomeEntry } from "@/lib/income-client";
+import { useAuth } from "@/lib/auth-context";
+import { deleteIncomeEntry, type IncomeEntry } from "@/lib/income-client";
 import {
   Card,
   CardContent,
@@ -17,19 +18,51 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, TrendingUp, Calendar } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Search, TrendingUp, Calendar, Trash2 } from "lucide-react";
+import { formatAmount } from "@/lib/format-currency";
 
 interface MobileIncomeListProps {
   entries: IncomeEntry[];
   showAmounts: boolean;
+  onRefresh: () => void;
 }
 
 export function MobileIncomeList({
   entries,
   showAmounts,
+  onRefresh,
 }: MobileIncomeListProps) {
+  const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const handleDelete = async () => {
+    if (!user || !deleteId) return;
+    setDeleteLoading(true);
+    try {
+      const token = await user.getIdToken();
+      await deleteIncomeEntry(token, deleteId);
+      onRefresh();
+    } catch (err) {
+      console.error("Delete failed:", err);
+    } finally {
+      setDeleteLoading(false);
+      setDeleteId(null);
+    }
+  };
 
   const filteredEntries = entries.filter((entry) => {
     const matchesSearch =
@@ -40,14 +73,6 @@ export function MobileIncomeList({
     return matchesSearch && matchesSource;
   });
 
-  const formatCurrency = (amount: number) => {
-    if (!showAmounts) return "••••••";
-    return new Intl.NumberFormat("es-AR", {
-      style: "currency",
-      currency: "ARS",
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
 
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat("es-AR", {
@@ -60,6 +85,7 @@ export function MobileIncomeList({
   const sources = Array.from(new Set(entries.map((e) => e.source)));
 
   return (
+    <>
     <div className="space-y-4">
       <div className="space-y-3">
         <div className="relative">
@@ -111,6 +137,15 @@ export function MobileIncomeList({
                       </div>
                     </div>
                   </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Delete income"
+                    className="h-7 w-7 text-muted-foreground hover:text-destructive shrink-0"
+                    onClick={() => setDeleteId(entry.id)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
                 </div>
               </CardHeader>
               <CardContent className="p-4 pt-2 space-y-3">
@@ -120,7 +155,7 @@ export function MobileIncomeList({
                     <span>{formatDate(entry.date)}</span>
                   </div>
                   <div className="font-semibold text-emerald-500 text-lg">
-                    {formatCurrency(entry.amount)}
+                    {formatAmount(entry.amount, entry.currency ?? "ARS", showAmounts)}
                   </div>
                 </div>
               </CardContent>
@@ -129,5 +164,31 @@ export function MobileIncomeList({
         )}
       </div>
     </div>
+
+      <AlertDialog
+        open={deleteId !== null}
+        onOpenChange={(v) => !v && setDeleteId(null)}
+      >
+        <AlertDialogContent className="bg-card border-border text-foreground">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete income entry</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              Are you sure you want to delete this income entry? This action
+              cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleteLoading}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteLoading ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

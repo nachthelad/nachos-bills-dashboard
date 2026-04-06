@@ -42,6 +42,7 @@ export async function PATCH(
     const paymentMethod = (body.paymentMethod ?? "Débito").toString().trim();
     const category = (body.category ?? "Otros").toString().trim();
     const dateString = body.date as string | undefined;
+    const currency = ["ARS", "USD"].includes(body.currency) ? body.currency : "ARS";
 
     if (!Number.isFinite(amount)) {
       return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
@@ -52,6 +53,7 @@ export async function PATCH(
       amount,
       paymentMethod,
       category,
+      currency,
       date: dateString
         ? Timestamp.fromDate(new Date(dateString))
         : data.date,
@@ -71,6 +73,10 @@ export async function PATCH(
       paymentMethod:
         typeof raw.paymentMethod === "string" ? raw.paymentMethod : "Débito",
       category: typeof raw.category === "string" ? raw.category : "Otros",
+      currency:
+        typeof raw.currency === "string" && raw.currency.trim().length > 0
+          ? raw.currency
+          : "ARS",
       date: toIsoDateTime(raw.date, fallbackDate) ?? fallbackDate,
     });
   } catch (error) {

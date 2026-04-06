@@ -111,10 +111,10 @@ export default function IncomePage() {
           <AddIncomeModal onSuccess={loadEntries} />
         </div>
         <div className="hidden md:block">
-          <IncomeTable entries={entries} showAmounts={showAmounts} />
+          <IncomeTable entries={entries} showAmounts={showAmounts} onRefresh={loadEntries} />
         </div>
         <div className="md:hidden">
-          <MobileIncomeList entries={entries} showAmounts={showAmounts} />
+          <MobileIncomeList entries={entries} showAmounts={showAmounts} onRefresh={loadEntries} />
         </div>
       </div>
     </div>

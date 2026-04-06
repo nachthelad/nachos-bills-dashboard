@@ -7,6 +7,7 @@ export type ExpenseEntry = {
   amount: number;
   paymentMethod: "Débito" | "Crédito" | "Efectivo" | "Transferencia";
   category: string;
+  currency: string;
 };
 
 export const EXPENSE_CATEGORIES = [
@@ -47,6 +48,7 @@ export async function fetchExpenseEntries(
     amount: entry.amount ?? 0,
     paymentMethod: entry.paymentMethod ?? "Débito",
     category: entry.category ?? "Otros",
+    currency: entry.currency ?? "ARS",
   }));
 }
 
@@ -58,6 +60,7 @@ export async function addExpenseEntry(
     amount: number;
     paymentMethod: string;
     category: string;
+    currency?: string;
   }
 ): Promise<ExpenseEntry> {
   const response = await fetch("/api/expenses", {
@@ -72,6 +75,7 @@ export async function addExpenseEntry(
       amount: data.amount,
       paymentMethod: data.paymentMethod,
       category: data.category,
+      currency: data.currency ?? "ARS",
     }),
   });
 
@@ -88,6 +92,7 @@ export async function addExpenseEntry(
     amount: entry.amount ?? 0,
     paymentMethod: entry.paymentMethod ?? "Débito",
     category: entry.category ?? "Otros",
+    currency: entry.currency ?? "ARS",
   };
 }
 
@@ -100,6 +105,7 @@ export async function updateExpenseEntry(
     amount: number;
     paymentMethod: string;
     category: string;
+    currency?: string;
   }
 ): Promise<ExpenseEntry> {
   const response = await fetch(`/api/expenses/${id}`, {
@@ -114,6 +120,7 @@ export async function updateExpenseEntry(
       amount: data.amount,
       paymentMethod: data.paymentMethod,
       category: data.category,
+      currency: data.currency ?? "ARS",
     }),
   });
 
@@ -130,6 +137,7 @@ export async function updateExpenseEntry(
     amount: entry.amount ?? 0,
     paymentMethod: entry.paymentMethod ?? "Débito",
     category: entry.category ?? "Otros",
+    currency: entry.currency ?? "ARS",
   };
 }
 

@@ -5,6 +5,7 @@ export type IncomeEntry = {
   name: string;
   amount: number;
   source: string;
+  currency: string;
   date: Date;
 };
 
@@ -28,13 +29,14 @@ export async function fetchIncomeEntries(
     name: entry.name ?? "Unnamed",
     amount: entry.amount ?? 0,
     source: entry.source ?? "Unknown",
+    currency: entry.currency ?? "ARS",
     date: normalizeDateInput(entry.date),
   }));
 }
 
 export async function addIncomeEntry(
   token: string,
-  data: { name: string; amount: number; source: string; date: Date }
+  data: { name: string; amount: number; source: string; currency?: string; date: Date }
 ): Promise<IncomeEntry> {
   const response = await fetch("/api/income", {
     method: "POST",
@@ -46,6 +48,7 @@ export async function addIncomeEntry(
       name: data.name,
       amount: data.amount,
       source: data.source,
+      currency: data.currency ?? "ARS",
       date: data.date.toISOString(),
     }),
   });
@@ -61,8 +64,24 @@ export async function addIncomeEntry(
     name: entry.name ?? "Unnamed",
     amount: entry.amount ?? 0,
     source: entry.source ?? "Unknown",
+    currency: entry.currency ?? "ARS",
     date: normalizeDateInput(entry.date),
   };
+}
+
+export async function deleteIncomeEntry(
+  token: string,
+  id: string
+): Promise<void> {
+  const response = await fetch(`/api/income/${id}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error ?? "Failed to delete income entry");
+  }
 }
 
 function normalizeDateInput(value: unknown): Date {

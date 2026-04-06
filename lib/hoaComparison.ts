@@ -98,7 +98,7 @@ function buildRubroMap(summary: HoaSummary | null): Map<string, Rubro> {
   return map;
 }
 
-function buildRubroKey(rubroNumber: number | null, label: string | null) {
+export function buildRubroKey(rubroNumber: number | null, label: string | null) {
   if (rubroNumber !== null) {
     return `${rubroNumber}::`;
   }

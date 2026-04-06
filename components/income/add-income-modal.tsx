@@ -37,6 +37,7 @@ export function AddIncomeModal({ onSuccess }: AddIncomeModalProps) {
     name: "",
     source: "",
     amount: "",
+    currency: "ARS",
     date: new Date().toISOString().split("T")[0],
   });
 
@@ -53,6 +54,7 @@ export function AddIncomeModal({ onSuccess }: AddIncomeModalProps) {
         name: formData.name,
         amount: Number.parseFloat(formData.amount),
         source: formData.source,
+        currency: formData.currency,
         date: new Date(`${formData.date}T12:00:00Z`),
       });
       setOpen(false);
@@ -60,6 +62,7 @@ export function AddIncomeModal({ onSuccess }: AddIncomeModalProps) {
         name: "",
         source: "",
         amount: "",
+        currency: "ARS",
         date: new Date().toISOString().split("T")[0],
       });
       onSuccess();
@@ -125,8 +128,27 @@ export function AddIncomeModal({ onSuccess }: AddIncomeModalProps) {
             </Select>
           </div>
           <div className="space-y-2">
+            <Label htmlFor="currency" className="text-foreground">
+              Currency
+            </Label>
+            <Select
+              value={formData.currency}
+              onValueChange={(value) =>
+                setFormData({ ...formData, currency: value })
+              }
+            >
+              <SelectTrigger id="currency" className="bg-background border-border text-foreground">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-popover border-border text-popover-foreground">
+                <SelectItem value="ARS">ARS — Peso argentino</SelectItem>
+                <SelectItem value="USD">USD — Dólar</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
             <Label htmlFor="amount" className="text-foreground">
-              Amount (ARS)
+              Amount ({formData.currency})
             </Label>
             <Input
               id="amount"

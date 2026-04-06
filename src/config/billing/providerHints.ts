@@ -100,6 +100,17 @@ export const PROVIDER_HINTS: ProviderHint[] = [
     keywords: ["epe", "energia santafe"],
   },
   {
+    providerId: "abl_agip",
+    providerName: "ABL / Inmobiliario (AGIP)",
+    category: "other",
+    keywords: [
+      "agip",
+      "inmobiliario y abl",
+      "alumbrado barrido",
+      "administracion gubernamental de ingresos publicos",
+    ],
+  },
+  {
     providerId: "aysa",
     providerName: "AySA",
     category: "water",

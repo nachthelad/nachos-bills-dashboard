@@ -35,6 +35,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Search, Pencil, Trash2 } from "lucide-react";
+import { formatAmount } from "@/lib/format-currency";
 import { AddExpenseModal } from "./add-expense-modal";
 
 interface ExpenseTableProps {
@@ -100,14 +101,6 @@ export function ExpenseTable({
     return matchesSearch && matchesMonth && matchesCategory;
   });
 
-  const formatCurrency = (amount: number) => {
-    if (!showAmounts) return "••••••";
-    return new Intl.NumberFormat("es-AR", {
-      style: "currency",
-      currency: "ARS",
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
 
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat("es-AR", {
@@ -218,7 +211,7 @@ export function ExpenseTable({
                           : "text-foreground"
                       }`}
                     >
-                      {formatCurrency(entry.amount)}
+                      {formatAmount(entry.amount, entry.currency ?? "ARS", showAmounts)}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {entry.paymentMethod}

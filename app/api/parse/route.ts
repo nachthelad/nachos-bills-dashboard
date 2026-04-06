@@ -289,6 +289,7 @@ export async function POST(request: NextRequest) {
         parseResponse.totalAmount ?? documentData?.totalAmount ?? null,
       amount: parseResponse.totalAmount ?? documentData?.amount ?? null,
       currency: parseResponse.currency ?? documentData?.currency ?? null,
+      foreignAmountUSD: parseResponse.foreignAmountUSD ?? null,
       status: parseResponse.text ? "parsed" : "needs_review",
       lastParsedAt: new Date(),
       errorMessage: null,
