@@ -238,6 +238,264 @@ class OpenAIClient {
   };
 }
 
+// ---------------------------------------------------------------------------
+// Gemini client
+// ---------------------------------------------------------------------------
+
+const GEMINI_BILLING_SCHEMA = {
+  type: "object",
+  properties: {
+    text: { type: "string" },
+    providerId: { type: "string", nullable: true },
+    providerNameDetected: { type: "string", nullable: true },
+    category: { type: "string", nullable: true },
+    totalAmount: { type: "number", nullable: true },
+    currency: { type: "string", nullable: true },
+    issueDate: { type: "string", nullable: true },
+    dueDate: { type: "string", nullable: true },
+    periodStart: { type: "string", nullable: true },
+    periodEnd: { type: "string", nullable: true },
+    foreignAmountUSD: { type: "number", nullable: true },
+    hoaDetails: {
+      type: "object",
+      nullable: true,
+      properties: {
+        buildingCode: { type: "string", nullable: true },
+        buildingAddress: { type: "string", nullable: true },
+        unitCode: { type: "string", nullable: true },
+        unitLabel: { type: "string", nullable: true },
+        ownerName: { type: "string", nullable: true },
+        periodLabel: { type: "string", nullable: true },
+        periodYear: { type: "number", nullable: true },
+        periodMonth: { type: "number", nullable: true },
+        firstDueAmount: { type: "number", nullable: true },
+        secondDueAmount: { type: "number", nullable: true },
+        totalBuildingExpenses: { type: "number", nullable: true },
+        totalToPayUnit: { type: "number", nullable: true },
+        rubros: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              rubroNumber: { type: "number", nullable: true },
+              label: { type: "string", nullable: true },
+              total: { type: "number", nullable: true },
+            },
+            required: ["rubroNumber", "label", "total"],
+          },
+        },
+      },
+      required: [
+        "buildingCode",
+        "buildingAddress",
+        "unitCode",
+        "unitLabel",
+        "ownerName",
+        "periodLabel",
+        "periodYear",
+        "periodMonth",
+        "firstDueAmount",
+        "secondDueAmount",
+        "totalBuildingExpenses",
+        "totalToPayUnit",
+        "rubros",
+      ],
+    },
+  },
+  required: [
+    "text",
+    "providerId",
+    "providerNameDetected",
+    "category",
+    "totalAmount",
+    "currency",
+    "issueDate",
+    "dueDate",
+    "periodStart",
+    "periodEnd",
+    "hoaDetails",
+    "foreignAmountUSD",
+  ],
+};
+
+type GeminiResponse = {
+  candidates?: Array<{
+    content?: { parts?: Array<{ text?: string }> };
+  }>;
+};
+
+class GeminiClient {
+  constructor(private readonly apiKey: string) {}
+
+  async generateContent(
+    model: string,
+    body: Record<string, unknown>
+  ): Promise<GeminiResponse> {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${this.apiKey}`;
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(
+        `Gemini request failed with ${response.status}: ${errorText}`
+      );
+    }
+    return (await response.json()) as GeminiResponse;
+  }
+}
+
+let cachedGeminiClient: GeminiClient | null = null;
+
+export function getGeminiClient(): GeminiClient {
+  if (!cachedGeminiClient) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error("GEMINI_API_KEY is not configured");
+    }
+    cachedGeminiClient = new GeminiClient(apiKey);
+  }
+  return cachedGeminiClient;
+}
+
+function extractGeminiText(response: GeminiResponse): string {
+  const text = response.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text || text.trim().length === 0) {
+    throw new Error("No text in Gemini response");
+  }
+  return text.trim();
+}
+
+export async function parseBillingTextWithGemini(
+  fullText: string,
+  scopedLogger: Logger = baseLogger
+): Promise<BillingParseResult> {
+  const log = scopedLogger;
+  const trimmedText = fullText?.trim();
+  if (!trimmedText) {
+    throw new Error("Cannot parse empty text extract");
+  }
+
+  const parseStart = Date.now();
+  try {
+    const relevantText = extractRelevantText(fullText);
+    const client = getGeminiClient();
+    const model = process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
+
+    const response = await client.generateContent(model, {
+      systemInstruction: {
+        role: "system",
+        parts: [{ text: OPENAI_SYSTEM_PROMPT }],
+      },
+      contents: [
+        {
+          role: "user",
+          parts: [{ text: `${OPENAI_USER_PROMPT}\n\n${relevantText}` }],
+        },
+      ],
+      generationConfig: {
+        responseMimeType: "application/json",
+        responseSchema: GEMINI_BILLING_SCHEMA,
+      },
+    });
+
+    const jsonText = extractGeminiText(response);
+    let parsedPayload: unknown;
+    try {
+      parsedPayload = JSON.parse(jsonText);
+    } catch (error) {
+      log.error("Failed to parse Gemini response payload", { error });
+      throw new Error("Failed to parse Gemini response");
+    }
+
+    let validated: z.infer<typeof BillingParseResultSchema>;
+    try {
+      validated = BillingParseResultSchema.parse(parsedPayload);
+    } catch (error) {
+      log.error("Gemini response validation failed", { error });
+      throw error;
+    }
+    const sanitized = sanitizeBillingResult(validated);
+    return {
+      ...sanitized,
+      text: sanitized.text ?? (fullText.length > 0 ? fullText : null),
+    };
+  } finally {
+    const durationMs = Date.now() - parseStart;
+    log.debug("parseBillingTextWithGemini completed", {
+      durationMs: Number(durationMs.toFixed(2)),
+    });
+  }
+}
+
+export async function parseBillingImageWithGemini(
+  imageBuffer: Buffer,
+  mimeType: string,
+  scopedLogger: Logger = baseLogger
+): Promise<BillingParseResult> {
+  const log = scopedLogger;
+  const parseStart = Date.now();
+  try {
+    const base64 = imageBuffer.toString("base64");
+    const client = getGeminiClient();
+    const model =
+      process.env.GEMINI_VISION_MODEL ??
+      process.env.GEMINI_MODEL ??
+      "gemini-2.5-flash";
+
+    const response = await client.generateContent(model, {
+      systemInstruction: {
+        role: "system",
+        parts: [{ text: OPENAI_SYSTEM_PROMPT }],
+      },
+      contents: [
+        {
+          role: "user",
+          parts: [
+            { inlineData: { mimeType, data: base64 } },
+            { text: OPENAI_USER_PROMPT },
+          ],
+        },
+      ],
+      generationConfig: {
+        responseMimeType: "application/json",
+        responseSchema: GEMINI_BILLING_SCHEMA,
+      },
+    });
+
+    const jsonText = extractGeminiText(response);
+    let parsedPayload: unknown;
+    try {
+      parsedPayload = JSON.parse(jsonText);
+    } catch (error) {
+      log.error("Failed to parse Gemini vision response payload", { error });
+      throw new Error("Failed to parse Gemini vision response");
+    }
+
+    let validated: z.infer<typeof BillingParseResultSchema>;
+    try {
+      validated = BillingParseResultSchema.parse(parsedPayload);
+    } catch (error) {
+      log.error("Gemini vision response validation failed", { error });
+      throw error;
+    }
+    const sanitized = sanitizeBillingResult(validated);
+    return {
+      ...sanitized,
+      text: sanitized.text ?? "[parsed from image]",
+    };
+  } finally {
+    const durationMs = Date.now() - parseStart;
+    log.debug("parseBillingImageWithGemini completed", {
+      durationMs: Number(durationMs.toFixed(2)),
+    });
+  }
+}
+
+// ---------------------------------------------------------------------------
+
 let cachedClient: OpenAIClient | null = null;
 type Pdf2JsonConstructor = new () => {
   on(event: string, handler: (...args: any[]) => void): void;
@@ -578,7 +836,11 @@ async function callOpenAIWithRetry(
     } catch (error) {
       lastError = error;
       const durationMs = Date.now() - attemptStart;
-      if (attempt >= maxAttempts) {
+      // Don't retry quota/auth errors — they won't resolve on retry
+      const isNonRetryable =
+        error instanceof Error &&
+        /429|insufficient_quota|invalid_api_key|billing/i.test(error.message);
+      if (attempt >= maxAttempts || isNonRetryable) {
         log.error("OpenAI request failed after retries", {
           attempts: attempt,
           durationMs,
