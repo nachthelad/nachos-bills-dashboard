@@ -25,6 +25,8 @@ import {
   extractPdfText,
   parseBillingImageWithOpenAI,
   parseBillingTextWithOpenAI,
+  parseBillingImageWithGemini,
+  parseBillingTextWithGemini,
   type BillingParseResult,
 } from "./parser";
 import { parseWithRules } from "./rules-parser";
@@ -207,11 +209,22 @@ export async function POST(request: NextRequest) {
         : "openai";
     try {
       if (imageMimeType && fileBuffer) {
-        parseResponse = await parseBillingImageWithOpenAI(
-          fileBuffer,
-          imageMimeType,
-          log
-        );
+        try {
+          parseResponse = await parseBillingImageWithOpenAI(
+            fileBuffer,
+            imageMimeType,
+            log
+          );
+        } catch (openAiError: any) {
+          log.warn("OpenAI image parse failed, falling back to Gemini", {
+            error: openAiError,
+          });
+          parseResponse = await parseBillingImageWithGemini(
+            fileBuffer,
+            imageMimeType,
+            log
+          );
+        }
         fullText = parseResponse.text ?? "[image]";
         log.debug("Vision-based parsing completed", {
           mimeType: imageMimeType,
@@ -227,7 +240,14 @@ export async function POST(request: NextRequest) {
           hasDueDate: parseResponse.dueDate !== null,
         });
       } else {
-        parseResponse = await parseBillingTextWithOpenAI(fullText!, log);
+        try {
+          parseResponse = await parseBillingTextWithOpenAI(fullText!, log);
+        } catch (openAiError: any) {
+          log.warn("OpenAI text parse failed, falling back to Gemini", {
+            error: openAiError,
+          });
+          parseResponse = await parseBillingTextWithGemini(fullText!, log);
+        }
       }
     } catch (error: any) {
       const parserDuration = performance.now() - parserStart;
