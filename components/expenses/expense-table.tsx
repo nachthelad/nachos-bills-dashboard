@@ -35,7 +35,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Search, Pencil, Trash2 } from "lucide-react";
-import { formatAmount } from "@/lib/format-currency";
+import { formatAmount, formatAmountWithUsd } from "@/lib/format-currency";
 import { AddExpenseModal } from "./add-expense-modal";
 
 interface ExpenseTableProps {
@@ -211,7 +211,16 @@ export function ExpenseTable({
                           : "text-foreground"
                       }`}
                     >
-                      {formatAmount(entry.amount, entry.currency ?? "ARS", showAmounts)}
+                      {entry.currency === "USD" && entry.arsRate == null ? (
+                        <span className="flex items-center justify-end gap-1.5">
+                          {formatAmount(entry.amount, "USD", showAmounts)}
+                          <Badge variant="outline" className="text-xs font-normal">
+                            Sin convertir
+                          </Badge>
+                        </span>
+                      ) : (
+                        formatAmountWithUsd(entry.amount, entry.currency ?? "ARS", entry.arsRate, showAmounts)
+                      )}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {entry.paymentMethod}
