@@ -42,6 +42,7 @@ const emptyForm = {
   description: "",
   amount: "",
   currency: "ARS",
+  arsRate: "",
   paymentMethod: "Débito",
   category: "Compra",
 };
@@ -61,6 +62,7 @@ export function AddExpenseModal({
   const [addingCategory, setAddingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [addCategoryLoading, setAddCategoryLoading] = useState(false);
+  const [arsRateLoading, setArsRateLoading] = useState(false);
   const descriptionRef = useRef<HTMLInputElement>(null);
 
   const categories = categoriesProp ?? [...EXPENSE_CATEGORIES];
@@ -76,6 +78,7 @@ export function AddExpenseModal({
           description: editEntry.description,
           amount: String(editEntry.amount),
           currency: editEntry.currency ?? "ARS",
+          arsRate: editEntry.arsRate != null ? String(editEntry.arsRate) : "",
           paymentMethod: editEntry.paymentMethod,
           category: editEntry.category,
         }
@@ -93,9 +96,35 @@ export function AddExpenseModal({
         description: editEntry.description,
         amount: String(editEntry.amount),
         currency: editEntry.currency ?? "ARS",
+        arsRate: editEntry.arsRate != null ? String(editEntry.arsRate) : "",
         paymentMethod: editEntry.paymentMethod,
         category: editEntry.category,
       });
+    }
+  };
+
+  const handleCurrencyChange = async (value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      currency: value,
+      ...(value === "ARS" ? { arsRate: "" } : {}),
+    }));
+    if (value === "USD") {
+      setArsRateLoading(true);
+      try {
+        const res = await fetch("/api/binance-rate");
+        if (res.ok) {
+          const data = await res.json();
+          setFormData((prev) => ({
+            ...prev,
+            arsRate: prev.arsRate || String(data.price),
+          }));
+        }
+      } catch {
+        // leave empty — user enters manually
+      } finally {
+        setArsRateLoading(false);
+      }
     }
   };
 
@@ -126,6 +155,10 @@ export function AddExpenseModal({
         description: formData.description,
         amount: Number.parseFloat(formData.amount),
         currency: formData.currency,
+        arsRate:
+          formData.currency === "USD" && formData.arsRate
+            ? Number.parseFloat(formData.arsRate)
+            : null,
         paymentMethod: formData.paymentMethod,
         category: formData.category,
       };
@@ -140,7 +173,7 @@ export function AddExpenseModal({
 
       if (keepOpen) {
         // Keep date and category — only clear description + amount for next entry
-        setFormData((prev) => ({ ...prev, description: "", amount: "" }));
+        setFormData((prev) => ({ ...prev, description: "", amount: "", arsRate: "" }));
         setTimeout(() => descriptionRef.current?.focus(), 0);
       } else {
         setOpen(false);
@@ -206,9 +239,7 @@ export function AddExpenseModal({
           </Label>
           <Select
             value={formData.currency}
-            onValueChange={(value) =>
-              setFormData({ ...formData, currency: value })
-            }
+            onValueChange={handleCurrencyChange}
           >
             <SelectTrigger id="exp-currency" className="bg-background border-border text-foreground">
               <SelectValue />
@@ -236,6 +267,28 @@ export function AddExpenseModal({
             required
           />
         </div>
+        {formData.currency === "USD" && (
+          <div className="space-y-2">
+            <Label htmlFor="exp-ars-rate" className="text-foreground">
+              Cotización (ARS/USD)
+            </Label>
+            {arsRateLoading ? (
+              <div className="h-9 rounded-md border border-border bg-background animate-pulse" />
+            ) : (
+              <Input
+                id="exp-ars-rate"
+                type="number"
+                step="0.01"
+                placeholder="Ej: 1450.00"
+                value={formData.arsRate}
+                onChange={(e) =>
+                  setFormData({ ...formData, arsRate: e.target.value })
+                }
+                className="bg-background border-border text-foreground placeholder:text-muted-foreground"
+              />
+            )}
+          </div>
+        )}
         <div className="space-y-2">
           <Label htmlFor="exp-payment-method" className="text-foreground">
             Método de pago
