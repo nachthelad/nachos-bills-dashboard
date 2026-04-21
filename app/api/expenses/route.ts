@@ -56,6 +56,13 @@ export async function POST(request: NextRequest) {
     const category = (body.category ?? "Otros").toString().trim();
     const dateString = body.date as string | undefined;
     const currency = ["ARS", "USD"].includes(body.currency) ? body.currency : "ARS";
+    const arsRate =
+      currency === "USD" &&
+      typeof body.arsRate === "number" &&
+      Number.isFinite(body.arsRate) &&
+      body.arsRate > 0
+        ? body.arsRate
+        : null;
 
     if (!Number.isFinite(amount)) {
       return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
@@ -70,6 +77,7 @@ export async function POST(request: NextRequest) {
         paymentMethod,
         category,
         currency,
+        arsRate,
         date: dateString
           ? Timestamp.fromDate(new Date(dateString))
           : Timestamp.now(),
@@ -117,5 +125,6 @@ function serializeExpenseDoc(doc: DocumentSnapshot) {
       typeof raw.currency === "string" && raw.currency.trim().length > 0
         ? raw.currency
         : "ARS",
+    arsRate: typeof raw.arsRate === "number" ? raw.arsRate : null,
   };
 }
