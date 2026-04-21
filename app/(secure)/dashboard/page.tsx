@@ -207,7 +207,6 @@ export default function DashboardPage() {
     const realYear = new Date().getFullYear();
     let dailyExpensesTotal = 0;
     dailyExpenses.forEach((entry) => {
-      if (entry.amount <= 0) return;
       if (entry.date.getFullYear() === currentYear) {
         totals.year += entry.amount;
         dailyExpensesTotal += entry.amount;
@@ -386,7 +385,6 @@ export default function DashboardPage() {
 
     dailyExpenses.forEach((entry) => {
       if (entry.date.getFullYear() !== currentYear) return;
-      if (entry.amount <= 0) return;
       months[entry.date.getMonth()].expenses += entry.amount;
     });
 
