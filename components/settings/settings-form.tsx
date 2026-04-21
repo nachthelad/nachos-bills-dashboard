@@ -32,16 +32,16 @@ export function SettingsForm() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Appearance</CardTitle>
+          <CardTitle>Apariencia</CardTitle>
           <CardDescription>
-            Customize how TOLVA looks on your device.
+            Personalizá cómo se ve TOLVA en tu dispositivo.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label>Theme</Label>
-              <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">Coming Soon</span>
+              <Label>Tema</Label>
+              <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">Próximamente</span>
             </div>
             <div className="grid grid-cols-3 gap-4 opacity-50">
               <Button
@@ -50,7 +50,7 @@ export function SettingsForm() {
                 className="justify-start gap-2"
               >
                 <Sun className="h-4 w-4" />
-                Light
+                Claro
               </Button>
               <Button
                 variant="outline"
@@ -58,7 +58,7 @@ export function SettingsForm() {
                 className="justify-start gap-2"
               >
                 <Moon className="h-4 w-4" />
-                Dark
+                Oscuro
               </Button>
               <Button
                 variant="outline"
@@ -66,11 +66,11 @@ export function SettingsForm() {
                 className="justify-start gap-2"
               >
                 <Laptop className="h-4 w-4" />
-                System
+                Sistema
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              Theme customization will be available in a future update.
+              La personalización de tema estará disponible en una actualización futura.
             </p>
           </div>
         </CardContent>
@@ -78,17 +78,17 @@ export function SettingsForm() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Privacy</CardTitle>
+          <CardTitle>Privacidad</CardTitle>
           <CardDescription>
-            Manage how your financial data is displayed.
+            Administrá cómo se muestran tus datos financieros.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between rounded-lg border p-4">
             <div className="space-y-0.5">
-              <Label className="text-base">Show amounts by default</Label>
+              <Label className="text-base">Mostrar montos por defecto</Label>
               <p className="text-sm text-muted-foreground">
-                If disabled, amounts will be hidden (****) until you toggle them.
+                Si está desactivado, los montos se ocultarán (****) hasta que los mostrés manualmente.
               </p>
             </div>
             <Switch
@@ -101,14 +101,14 @@ export function SettingsForm() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Account</CardTitle>
+          <CardTitle>Cuenta</CardTitle>
           <CardDescription>
-            Manage your account settings and session.
+            Administrá tu cuenta y sesión.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-1">
-            <Label>Email</Label>
+            <Label>Correo electrónico</Label>
             <div className="flex h-10 w-full rounded-md border bg-muted px-3 py-2 text-sm text-muted-foreground">
               {user?.email}
             </div>
@@ -121,7 +121,7 @@ export function SettingsForm() {
             onClick={() => signOut()}
           >
             <LogOut className="h-4 w-4" />
-            Sign out
+            Cerrar sesión
           </Button>
         </CardFooter>
       </Card>

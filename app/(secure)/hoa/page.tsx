@@ -191,7 +191,7 @@ export default function HoaPage() {
     return (
       <div className="flex items-center justify-center h-full">
         <Loader2 className="w-5 h-5 mr-2 animate-spin text-muted-foreground" />
-        <div className="text-muted-foreground">Loading HOA data...</div>
+        <div className="text-muted-foreground">Cargando datos de expensas...</div>
       </div>
     );
   }
@@ -201,27 +201,27 @@ export default function HoaPage() {
       <div className="flex flex-col gap-2">
         <div>
           <p className="text-sm uppercase tracking-wide text-muted-foreground">
-            HOA
+            Expensas
           </p>
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-3xl font-bold">HOA insights</h1>
+            <h1 className="text-3xl font-bold">Análisis de expensas</h1>
             <span className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs uppercase tracking-wide text-emerald-300">
               <LineChartIcon className="w-3.5 h-3.5" />
-              Comparison
+              Comparación
             </span>
             <Link
               href="/hoa/history"
               className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1 text-xs text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
             >
               <History className="w-3.5 h-3.5" />
-              Category history
+              Historial por categoría
             </Link>
             <AmountVisibilityToggle />
           </div>
         </div>
         <p className="text-muted-foreground max-w-3xl">
-          Track monthly HOA fees, spot unusual increases, and highlight new
-          charges for your unit.
+          Rastreá las cuotas mensuales de expensas, identificá aumentos inusuales
+          y destacá nuevos cargos de tu unidad.
         </p>
       </div>
 
@@ -238,7 +238,7 @@ export default function HoaPage() {
         <div className="flex flex-wrap items-center gap-3">
           <label className="text-sm text-muted-foreground flex items-center gap-2">
             <Building2 className="w-4 h-4" />
-            Unit
+            Unidad
           </label>
           <select
             value={selectedUnitKey}
@@ -258,8 +258,8 @@ export default function HoaPage() {
         <Card className="border-border bg-card">
           <CardContent className="pt-12 pb-12 text-center text-muted-foreground">
             <LineChartIcon className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-            <p className="text-lg font-medium mb-2">No HOA statements yet.</p>
-            <p>Upload a "Mis Expensas" PDF or image to activate this module.</p>
+            <p className="text-lg font-medium mb-2">Sin liquidaciones de expensas todavía.</p>
+            <p>Cargá un PDF o imagen de "Mis Expensas" para activar este módulo.</p>
           </CardContent>
         </Card>
       ) : (

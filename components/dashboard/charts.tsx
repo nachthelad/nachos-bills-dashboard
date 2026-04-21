@@ -95,8 +95,8 @@ export function DashboardCharts({
     <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-7">
       <Card className="col-span-1 md:col-span-2 lg:col-span-4 bg-muted">
         <CardHeader>
-          <CardTitle>Overview</CardTitle>
-          <CardDescription>Expenses vs Income over time</CardDescription>
+          <CardTitle>Vista general</CardTitle>
+          <CardDescription>Gastos vs ingresos en el tiempo</CardDescription>
         </CardHeader>
         <CardContent className="pl-2">
           <div className="h-[300px]">
@@ -135,13 +135,13 @@ export function DashboardCharts({
                 <Legend />
                 <Bar
                   dataKey="income"
-                  name="Income"
+                  name="Ingresos"
                   fill="#34d399"
                   radius={[4, 4, 0, 0]}
                 />
                 <Bar
                   dataKey="expenses"
-                  name="Expenses"
+                  name="Gastos"
                   fill="#f87171"
                   radius={[4, 4, 0, 0]}
                 />
@@ -152,8 +152,8 @@ export function DashboardCharts({
       </Card>
       <Card className="col-span-1 md:col-span-2 lg:col-span-3 bg-muted">
         <CardHeader>
-          <CardTitle>Expenses Breakdown</CardTitle>
-          <CardDescription>Distribution by category</CardDescription>
+          <CardTitle>Desglose de gastos</CardTitle>
+          <CardDescription>Distribución por categoría</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-4 h-[300px]">

@@ -56,15 +56,15 @@ export function HoaTable({
   const statusLabel = (status: string) => {
     switch (status) {
       case "new":
-        return "New";
+        return "Nuevo";
       case "removed":
-        return "Removed";
+        return "Eliminado";
       case "increased":
-        return "Increased";
+        return "Aumentado";
       case "decreased":
-        return "Decreased";
+        return "Disminuido";
       default:
-        return "No changes";
+        return "Sin cambios";
     }
   };
 
@@ -93,14 +93,14 @@ export function HoaTable({
       <div className="flex items-center justify-between">
         <div className="flex-1">
           <h3 className="text-lg font-semibold">
-            Details by {sortBy === "category" ? "category" : "difference"}
+            Detalles por {sortBy === "category" ? "categoría" : "diferencia"}
           </h3>
           <p className="text-sm text-muted-foreground">
-            Comparison between{" "}
-            {currentSummary?.periodLabel ?? "the last period"} and{" "}
+            Comparación entre{" "}
+            {currentSummary?.periodLabel ?? "el último período"} y{" "}
             {previousSummary
               ? previousSummary.periodLabel
-              : "without history"}
+              : "sin historial"}
             .
           </p>
         </div>
@@ -114,18 +114,18 @@ export function HoaTable({
               className="ml-4 gap-2"
             >
               <ArrowUpDown className="h-4 w-4" />
-              Sort by {sortBy === "category" ? "Difference" : "Category"}
+              Ordenar por {sortBy === "category" ? "Diferencia" : "Categoría"}
             </Button>
           )}
       </div>
       {!currentSummary ? (
         <div className="text-sm text-muted-foreground py-6 text-center">
-          No data for this unit.
+          No hay datos para esta unidad.
         </div>
       ) : !previousSummary ? (
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            No other period to compare. Categories of the last month:
+            Sin período anterior para comparar. Categorías del último mes:
           </p>
           <div className="grid gap-3 md:grid-cols-2">
             {(currentSummary.rubros ?? []).map((rubro) => (
@@ -144,7 +144,7 @@ export function HoaTable({
           </div>
 
           <p className="text-xs text-muted-foreground">
-            Note: at least two periods are needed to show the comparison.
+            Nota: se necesitan al menos dos períodos para mostrar la comparación.
           </p>
         </div>
       ) : (
@@ -152,12 +152,12 @@ export function HoaTable({
           <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Category</TableHead>
+                  <TableHead>Categoría</TableHead>
                   <TableHead>{previousSummary.periodLabel}</TableHead>
                   <TableHead>{currentSummary.periodLabel}</TableHead>
-                  <TableHead>Difference</TableHead>
+                  <TableHead>Diferencia</TableHead>
                   <TableHead>%</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>Estado</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -168,7 +168,7 @@ export function HoaTable({
                         {diff.label}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        Category {diff.rubroKey.split("::")[0]}
+                        Categoría {diff.rubroKey.split("::")[0]}
                       </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground">

@@ -79,25 +79,25 @@ export function AddIncomeModal({ onSuccess }: AddIncomeModalProps) {
       <DialogTrigger asChild>
         <Button className="bg-emerald-500 text-slate-900 hover:bg-emerald-400">
           <Plus className="w-4 h-4 mr-2" />
-          Add Income
+          Agregar ingreso
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px] bg-card border-border text-foreground">
         <DialogHeader>
-          <DialogTitle>Add Income</DialogTitle>
+          <DialogTitle>Agregar ingreso</DialogTitle>
           <DialogDescription className="text-muted-foreground">
-            Record a new income entry.
+            Registrá una nueva entrada de ingreso.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="name" className="text-foreground">
-              Name
+              Nombre
             </Label>
             <Input
               id="name"
               type="text"
-              placeholder="e.g., December Salary, Freelance Project"
+              placeholder="p.ej., Salario diciembre, Proyecto freelance"
               value={formData.name}
               onChange={(e) =>
                 setFormData({ ...formData, name: e.target.value })
@@ -108,7 +108,7 @@ export function AddIncomeModal({ onSuccess }: AddIncomeModalProps) {
           </div>
           <div className="space-y-2">
             <Label htmlFor="source" className="text-foreground">
-              Source
+              Fuente
             </Label>
             <Select
               value={formData.source}
@@ -117,19 +117,19 @@ export function AddIncomeModal({ onSuccess }: AddIncomeModalProps) {
               }
             >
               <SelectTrigger id="source" className="bg-background border-border text-foreground">
-                <SelectValue placeholder="Select source" />
+                <SelectValue placeholder="Seleccionar fuente" />
               </SelectTrigger>
               <SelectContent className="bg-popover border-border text-popover-foreground">
-                <SelectItem value="Salary">Salary</SelectItem>
+                <SelectItem value="Salary">Salario</SelectItem>
                 <SelectItem value="Freelance">Freelance</SelectItem>
-                <SelectItem value="Investments">Investments</SelectItem>
-                <SelectItem value="Other">Other</SelectItem>
+                <SelectItem value="Investments">Inversiones</SelectItem>
+                <SelectItem value="Other">Otros</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-2">
             <Label htmlFor="currency" className="text-foreground">
-              Currency
+              Moneda
             </Label>
             <Select
               value={formData.currency}
@@ -148,7 +148,7 @@ export function AddIncomeModal({ onSuccess }: AddIncomeModalProps) {
           </div>
           <div className="space-y-2">
             <Label htmlFor="amount" className="text-foreground">
-              Amount ({formData.currency})
+              Monto ({formData.currency})
             </Label>
             <Input
               id="amount"
@@ -165,7 +165,7 @@ export function AddIncomeModal({ onSuccess }: AddIncomeModalProps) {
           </div>
           <div className="space-y-2">
             <Label htmlFor="date" className="text-foreground">
-              Date
+              Fecha
             </Label>
             <Input
               id="date"
@@ -185,7 +185,7 @@ export function AddIncomeModal({ onSuccess }: AddIncomeModalProps) {
               disabled={loading}
               className="bg-emerald-500 text-slate-900 hover:bg-emerald-400 w-full sm:w-auto"
             >
-              {loading ? "Adding..." : "Add Entry"}
+              {loading ? "Agregando..." : "Agregar entrada"}
             </Button>
           </DialogFooter>
         </form>

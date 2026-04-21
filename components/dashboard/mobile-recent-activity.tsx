@@ -35,16 +35,16 @@ export function MobileRecentActivity({
     <div className="rounded-xl border bg-card text-card-foreground shadow">
       <div className="p-6 flex flex-col gap-1">
         <h3 className="font-semibold leading-none tracking-tight">
-          Recent Activity
+          Actividad reciente
         </h3>
         <p className="text-sm text-muted-foreground">
-          Latest bills and income entries.
+          Últimas facturas y entradas de ingresos.
         </p>
       </div>
       <div className="p-4 pt-0 space-y-3">
         {items.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground border rounded-lg border-dashed">
-            No recent activity found.
+            Sin actividad reciente.
           </div>
         ) : (
           items.map((item) => (
@@ -97,7 +97,7 @@ export function MobileRecentActivity({
                     <Calendar className="h-3 w-3" />
                     <span>{formatDate(item.date)}</span>
                   </div>
-                  {item.dueDate && <span>Due: {formatDate(item.dueDate)}</span>}
+                  {item.dueDate && <span>Vence: {formatDate(item.dueDate)}</span>}
                 </div>
               </CardContent>
             </Card>

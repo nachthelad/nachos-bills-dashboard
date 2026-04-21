@@ -36,15 +36,15 @@ export function HoaSummaryCards({
     <div className="space-y-6">
       <Card className="border-border bg-muted">
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg">Monthly totals</CardTitle>
+          <CardTitle className="text-lg">Totales mensuales</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Track how much your unit owes each period.
+            Rastreá cuánto debe tu unidad cada período.
           </p>
         </CardHeader>
         <CardContent>
           {chartData.length === 0 ? (
             <div className="text-sm text-slate-500 py-10 text-center">
-              Not enough data to plot yet.
+              No hay suficientes datos para graficar aún.
             </div>
           ) : (
             <div className="h-72">
@@ -84,7 +84,7 @@ export function HoaSummaryCards({
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2 text-amber-200">
               <AlertTriangle className="w-4 h-4" />
-              Latest period alerts
+              Alertas del período más reciente
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -97,10 +97,10 @@ export function HoaSummaryCards({
                   <p className="font-medium text-amber-100">{alert.label}</p>
                   <p className="text-xs text-amber-200/80">
                     {alert.status === "new"
-                      ? "New charge this period"
+                      ? "Nuevo cargo este período"
                       : alert.diffPercent != null
-                      ? `+${alert.diffPercent.toFixed(1)}% vs previous month`
-                      : "Higher than the previous month"}
+                      ? `+${alert.diffPercent.toFixed(1)}% vs mes anterior`
+                      : "Mayor que el mes anterior"}
                   </p>
                 </div>
                 <div className="flex items-center gap-2 text-sm">

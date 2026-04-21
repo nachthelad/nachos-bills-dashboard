@@ -402,7 +402,7 @@ export default function DashboardPage() {
   if (!user) {
     return (
       <div className="p-8 text-center text-muted-foreground">
-        Please sign in to view your dashboard.
+        Iniciá sesión para ver tu panel.
       </div>
     );
   }
@@ -410,7 +410,7 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div role="status" aria-live="polite" className="text-muted-foreground">Loading dashboard…</div>
+        <div role="status" aria-live="polite" className="text-muted-foreground">Cargando panel…</div>
       </div>
     );
   }
@@ -419,7 +419,7 @@ export default function DashboardPage() {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <h2 className="text-2xl font-bold tracking-tight">Dashboard</h2>
+          <h2 className="text-2xl font-bold tracking-tight">Panel</h2>
           <AmountVisibilityToggle />
         </div>
         <div className="flex items-center gap-2">
@@ -450,7 +450,7 @@ export default function DashboardPage() {
       </div>
       <div>
         <p className="text-muted-foreground">
-          Overview of your financial status and recent activity.
+          Vista general de tu estado financiero y actividad reciente.
         </p>
       </div>
 

@@ -162,17 +162,17 @@ export function AddExpenseModal({
   const content = (
     <DialogContent className="sm:max-w-[425px] bg-card border-border text-foreground">
       <DialogHeader>
-        <DialogTitle>{editEntry ? "Edit Expense" : "Add Expense"}</DialogTitle>
+        <DialogTitle>{editEntry ? "Editar gasto" : "Agregar gasto"}</DialogTitle>
         <DialogDescription className="text-muted-foreground">
           {editEntry
-            ? "Update the expense details."
-            : "Record a new daily expense."}
+            ? "Actualizá los datos del gasto."
+            : "Registrá un nuevo gasto diario."}
         </DialogDescription>
       </DialogHeader>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="exp-date" className="text-foreground">
-            Date
+            Fecha
           </Label>
           <Input
             id="exp-date"
@@ -185,13 +185,13 @@ export function AddExpenseModal({
         </div>
         <div className="space-y-2">
           <Label htmlFor="exp-description" className="text-foreground">
-            Description
+            Descripción
           </Label>
           <Input
             id="exp-description"
             ref={descriptionRef}
             type="text"
-            placeholder="e.g. Carrefour, Supermarket, etc."
+            placeholder="p.ej. Carrefour, Supermercado, etc."
             value={formData.description}
             onChange={(e) =>
               setFormData({ ...formData, description: e.target.value })
@@ -202,7 +202,7 @@ export function AddExpenseModal({
         </div>
         <div className="space-y-2">
           <Label htmlFor="exp-currency" className="text-foreground">
-            Currency
+            Moneda
           </Label>
           <Select
             value={formData.currency}
@@ -221,7 +221,7 @@ export function AddExpenseModal({
         </div>
         <div className="space-y-2">
           <Label htmlFor="exp-amount" className="text-foreground">
-            Amount ({formData.currency})
+            Monto ({formData.currency})
           </Label>
           <Input
             id="exp-amount"
@@ -238,7 +238,7 @@ export function AddExpenseModal({
         </div>
         <div className="space-y-2">
           <Label htmlFor="exp-payment-method" className="text-foreground">
-            Payment method
+            Método de pago
           </Label>
           <div
             id="exp-payment-method"
@@ -249,7 +249,7 @@ export function AddExpenseModal({
         </div>
         <div className="space-y-2">
           <Label htmlFor="exp-category" className="text-foreground">
-            Category
+            Categoría
           </Label>
           <Select
             value={formData.category}
@@ -265,7 +265,7 @@ export function AddExpenseModal({
               id="exp-category"
               className="bg-background border-border text-foreground"
             >
-              <SelectValue placeholder="Select category" />
+              <SelectValue placeholder="Seleccionar categoría" />
             </SelectTrigger>
             <SelectContent className="bg-popover border-border text-popover-foreground">
               {categories.map((c) => (
@@ -276,7 +276,7 @@ export function AddExpenseModal({
               <SelectItem value="__new__" className="text-emerald-400">
                 <span className="flex items-center gap-1.5">
                   <Plus className="h-3.5 w-3.5" />
-                  New category...
+                  Nueva categoría...
                 </span>
               </SelectItem>
             </SelectContent>
@@ -285,7 +285,7 @@ export function AddExpenseModal({
             <div className="flex gap-2 items-center">
               <Input
                 autoFocus
-                placeholder="Category name"
+                placeholder="Nombre de la categoría"
                 value={newCategoryName}
                 onChange={(e) => setNewCategoryName(e.target.value)}
                 onKeyDown={(e) => {
@@ -335,7 +335,7 @@ export function AddExpenseModal({
             variant="outline"
             onClick={() => setOpen(false)}
           >
-            Cancel
+            Cancelar
           </Button>
           <div className="flex gap-2">
             {!editEntry && (
@@ -345,7 +345,7 @@ export function AddExpenseModal({
                 disabled={loading}
                 onClick={() => saveExpense(true)}
               >
-                Save & add another
+                Guardar y agregar otro
               </Button>
             )}
             <Button
@@ -355,11 +355,11 @@ export function AddExpenseModal({
             >
               {loading
                 ? editEntry
-                  ? "Updating..."
-                  : "Saving..."
+                  ? "Actualizando..."
+                  : "Guardando..."
                 : editEntry
-                  ? "Update"
-                  : "Save"}
+                  ? "Actualizar"
+                  : "Guardar"}
             </Button>
           </div>
         </div>
@@ -380,7 +380,7 @@ export function AddExpenseModal({
       <DialogTrigger asChild>
         <Button className="bg-emerald-500 text-slate-900 hover:bg-emerald-400">
           <Plus className="w-4 h-4 mr-2" />
-          Add Expense
+          Agregar gasto
         </Button>
       </DialogTrigger>
       {content}
