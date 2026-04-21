@@ -384,22 +384,26 @@ export async function parseBillingTextWithGemini(
     const client = getGeminiClient();
     const model = process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
 
-    const response = await client.generateContent(model, {
-      systemInstruction: {
-        role: "system",
-        parts: [{ text: OPENAI_SYSTEM_PROMPT }],
-      },
-      contents: [
-        {
-          role: "user",
-          parts: [{ text: `${OPENAI_USER_PROMPT}\n\n${relevantText}` }],
-        },
-      ],
-      generationConfig: {
-        responseMimeType: "application/json",
-        responseSchema: GEMINI_BILLING_SCHEMA,
-      },
-    });
+    const response = await callGeminiWithRetry(
+      () =>
+        client.generateContent(model, {
+          systemInstruction: {
+            role: "system",
+            parts: [{ text: OPENAI_SYSTEM_PROMPT }],
+          },
+          contents: [
+            {
+              role: "user",
+              parts: [{ text: `${OPENAI_USER_PROMPT}\n\n${relevantText}` }],
+            },
+          ],
+          generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: GEMINI_BILLING_SCHEMA,
+          },
+        }),
+      log
+    );
 
     const jsonText = extractGeminiText(response);
     let parsedPayload: unknown;
@@ -445,25 +449,29 @@ export async function parseBillingImageWithGemini(
       process.env.GEMINI_MODEL ??
       "gemini-2.5-flash";
 
-    const response = await client.generateContent(model, {
-      systemInstruction: {
-        role: "system",
-        parts: [{ text: OPENAI_SYSTEM_PROMPT }],
-      },
-      contents: [
-        {
-          role: "user",
-          parts: [
-            { inlineData: { mimeType, data: base64 } },
-            { text: OPENAI_USER_PROMPT },
+    const response = await callGeminiWithRetry(
+      () =>
+        client.generateContent(model, {
+          systemInstruction: {
+            role: "system",
+            parts: [{ text: OPENAI_SYSTEM_PROMPT }],
+          },
+          contents: [
+            {
+              role: "user",
+              parts: [
+                { inlineData: { mimeType, data: base64 } },
+                { text: OPENAI_USER_PROMPT },
+              ],
+            },
           ],
-        },
-      ],
-      generationConfig: {
-        responseMimeType: "application/json",
-        responseSchema: GEMINI_BILLING_SCHEMA,
-      },
-    });
+          generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: GEMINI_BILLING_SCHEMA,
+          },
+        }),
+      log
+    );
 
     const jsonText = extractGeminiText(response);
     let parsedPayload: unknown;
@@ -817,6 +825,38 @@ const wait = (ms: number) =>
     setTimeout(resolve, ms);
   });
 
+function isGemini5xxError(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    /Gemini request failed with 5\d\d/i.test(error.message)
+  );
+}
+
+async function callGeminiWithRetry<T>(
+  fn: () => Promise<T>,
+  log: Logger,
+  delays = [2000, 4000]
+): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= delays.length; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      if (!isGemini5xxError(error) || attempt === delays.length) {
+        throw error;
+      }
+      log.warn("Gemini 5xx error, retrying", {
+        attempt: attempt + 1,
+        delayMs: delays[attempt],
+        error,
+      });
+      await wait(delays[attempt]);
+    }
+  }
+  throw lastError ?? new Error("Gemini request failed");
+}
+
 async function callOpenAIWithRetry(
   requestFactory: () => Promise<OpenAIResponse>,
   log: Logger,
@@ -864,7 +904,8 @@ async function callOpenAIWithRetry(
 
 export async function parseBillingTextWithOpenAI(
   fullText: string,
-  scopedLogger: Logger = baseLogger
+  scopedLogger: Logger = baseLogger,
+  options: { model?: string } = {}
 ): Promise<BillingParseResult> {
   const log = scopedLogger;
   const trimmedText = fullText?.trim();
@@ -881,7 +922,7 @@ export async function parseBillingTextWithOpenAI(
     const { response, attempts } = await callOpenAIWithRetry(
       () =>
         client.responses.create({
-          model: "gpt-5-mini",
+          model: options.model ?? "gpt-5-mini",
           input: [
             {
               role: "system",
@@ -964,7 +1005,8 @@ export async function parsePdfWithOpenAI(
 export async function parseBillingImageWithOpenAI(
   imageBuffer: Buffer,
   mimeType: string,
-  scopedLogger: Logger = baseLogger
+  scopedLogger: Logger = baseLogger,
+  options: { model?: string } = {}
 ): Promise<BillingParseResult> {
   const log = scopedLogger;
   const parseStart = Date.now();
@@ -977,7 +1019,7 @@ export async function parseBillingImageWithOpenAI(
     const { response, attempts } = await callOpenAIWithRetry(
       () =>
         client.responses.create({
-          model: process.env.OPENAI_VISION_MODEL ?? process.env.OPENAI_MODEL ?? "gpt-4o-mini",
+          model: options.model ?? process.env.OPENAI_VISION_MODEL ?? process.env.OPENAI_MODEL ?? "gpt-4o-mini",
           input: [
             {
               role: "system",

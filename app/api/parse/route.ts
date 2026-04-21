@@ -219,11 +219,26 @@ export async function POST(request: NextRequest) {
           log.warn("OpenAI image parse failed, falling back to Gemini", {
             error: openAiError,
           });
-          parseResponse = await parseBillingImageWithGemini(
-            fileBuffer,
-            imageMimeType,
-            log
-          );
+          try {
+            parseResponse = await parseBillingImageWithGemini(
+              fileBuffer,
+              imageMimeType,
+              log
+            );
+          } catch (geminiError: any) {
+            const fallbackModel =
+              process.env.OPENAI_FALLBACK_MODEL ?? "gpt-4o";
+            log.warn(
+              "Gemini image parse failed after retries, trying fallback model",
+              { error: geminiError, model: fallbackModel }
+            );
+            parseResponse = await parseBillingImageWithOpenAI(
+              fileBuffer,
+              imageMimeType,
+              log,
+              { model: fallbackModel }
+            );
+          }
         }
         fullText = parseResponse.text ?? "[image]";
         log.debug("Vision-based parsing completed", {
@@ -246,12 +261,26 @@ export async function POST(request: NextRequest) {
           log.warn("OpenAI text parse failed, falling back to Gemini", {
             error: openAiError,
           });
-          parseResponse = await parseBillingTextWithGemini(fullText!, log);
+          try {
+            parseResponse = await parseBillingTextWithGemini(fullText!, log);
+          } catch (geminiError: any) {
+            const fallbackModel =
+              process.env.OPENAI_FALLBACK_MODEL ?? "gpt-4o";
+            log.warn(
+              "Gemini text parse failed after retries, trying fallback model",
+              { error: geminiError, model: fallbackModel }
+            );
+            parseResponse = await parseBillingTextWithOpenAI(
+              fullText!,
+              log,
+              { model: fallbackModel }
+            );
+          }
         }
       }
     } catch (error: any) {
       const parserDuration = performance.now() - parserStart;
-      log.error("PDF parsing error", {
+      log.error("All parsers failed", {
         error,
         documentId,
         durationMs: Number(parserDuration.toFixed(2)),
@@ -259,18 +288,16 @@ export async function POST(request: NextRequest) {
       await updateDocumentWithMetrics(
         docRef,
         {
-          status: "needs_review",
-          errorMessage: error.message ?? "Failed to parse PDF",
-          textExtract: fullText,
+          status: "parse_failed",
+          last_parser_error: error.message ?? "All parsers failed",
+          textExtract: fullText ?? null,
           updatedAt: new Date(),
         },
         log,
-        "parse_error_update"
+        "parse_failed_update"
       );
-      return NextResponse.json(
-        { error: "Failed to parse PDF" },
-        { status: 502 }
-      );
+      const failedDoc = await docRef.get();
+      return NextResponse.json({ id: failedDoc.id, ...failedDoc.data() });
     } finally {
       const parserDuration = performance.now() - parserStart;
       log.debug("Parser latency captured", {
