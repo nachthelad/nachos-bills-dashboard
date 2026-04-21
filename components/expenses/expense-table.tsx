@@ -139,7 +139,7 @@ export function ExpenseTable({
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search expenses..."
+              placeholder="Buscar gastos..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-8"
@@ -150,7 +150,7 @@ export function ExpenseTable({
               <SelectValue placeholder="Month" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Months</SelectItem>
+              <SelectItem value="all">Todos los meses</SelectItem>
               {availableMonths.map((ym) => (
                 <SelectItem key={ym} value={ym}>
                   {formatMonthOption(ym)}
@@ -163,7 +163,7 @@ export function ExpenseTable({
               <SelectValue placeholder="Category" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
+              <SelectItem value="all">Todas las categorías</SelectItem>
               {categories.map((c) => (
                 <SelectItem key={c} value={c}>
                   {c}
@@ -177,11 +177,11 @@ export function ExpenseTable({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-                <TableHead>Payment method</TableHead>
-                <TableHead>Category</TableHead>
+                <TableHead>Fecha</TableHead>
+                <TableHead>Descripción</TableHead>
+                <TableHead className="text-right">Monto</TableHead>
+                <TableHead>Método de pago</TableHead>
+                <TableHead>Categoría</TableHead>
                 <TableHead className="w-[80px]" />
               </TableRow>
             </TableHeader>
@@ -192,7 +192,7 @@ export function ExpenseTable({
                     colSpan={6}
                     className="h-24 text-center text-muted-foreground"
                   >
-                    No expense entries found.
+                    No se encontraron gastos.
                   </TableCell>
                 </TableRow>
               ) : (
@@ -280,22 +280,21 @@ export function ExpenseTable({
       >
         <AlertDialogContent className="bg-card border-border text-foreground">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete expense</AlertDialogTitle>
+            <AlertDialogTitle>¿Eliminar gasto?</AlertDialogTitle>
             <AlertDialogDescription className="text-muted-foreground">
-              Are you sure you want to delete this expense? This action cannot
-              be undone.
+              Esta acción no se puede deshacer.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleteLoading}>
-              Cancel
+              Cancelar
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               disabled={deleteLoading}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {deleteLoading ? "Deleting..." : "Delete"}
+              {deleteLoading ? "Eliminando..." : "Eliminar"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -90,37 +90,37 @@ export default function UploadPage() {
         className="flex items-center gap-2 text-emerald-300 hover:underline"
       >
         <ChevronLeft className="w-4 h-4" />
-        Back to Documents
+        Volver a documentos
       </Link>
 
       <div className="flex flex-col gap-2">
         <p className="text-sm uppercase tracking-wide text-slate-500">
-          Manual Entry
+          Entrada manual
         </p>
-        <h1 className="text-3xl font-bold">Add Manual Bill</h1>
+        <h1 className="text-3xl font-bold">Agregar factura manual</h1>
         <p className="text-slate-400">
-          Enter the bill details manually to track it in your dashboard.
+          Ingresá los datos de la factura manualmente para registrarla en tu panel.
         </p>
       </div>
 
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <ManualInput
-            label="Provider"
+            label="Proveedor"
             value={manualForm.provider ?? ""}
             onChange={(value) =>
               setManualForm((prev) => ({ ...prev, provider: value }))
             }
           />
           <ManualSelect
-            label="Category"
+            label="Categoría"
             value={manualForm.category ?? ""}
             onChange={(value) =>
               setManualForm((prev) => ({ ...prev, category: value }))
             }
           />
           <ManualInput
-            label="Amount"
+            label="Monto"
             type="number"
             value={manualForm.amount?.toString() ?? ""}
             onChange={(value) =>
@@ -131,7 +131,7 @@ export default function UploadPage() {
             }
           />
           <ManualInput
-            label="Currency"
+            label="Moneda"
             value={manualForm.currency ?? "ARS"}
             onChange={(value) =>
               setManualForm((prev) => ({
@@ -142,7 +142,7 @@ export default function UploadPage() {
             placeholder="ARS"
           />
           <ManualInput
-            label="Due Date"
+            label="Fecha de vencimiento"
             type="date"
             value={manualForm.dueDate ?? ""}
             onChange={(value) =>
@@ -150,7 +150,7 @@ export default function UploadPage() {
             }
           />
           <ManualInput
-            label="Issue Date"
+            label="Fecha de emisión"
             type="date"
             value={manualForm.issueDate ?? ""}
             onChange={(value) =>
@@ -158,7 +158,7 @@ export default function UploadPage() {
             }
           />
           <ManualInput
-            label="Period Start"
+            label="Inicio del período"
             type="date"
             value={manualForm.periodStart ?? ""}
             onChange={(value) =>
@@ -166,7 +166,7 @@ export default function UploadPage() {
             }
           />
           <ManualInput
-            label="Period End"
+            label="Fin del período"
             type="date"
             value={manualForm.periodEnd ?? ""}
             onChange={(value) =>
@@ -184,7 +184,7 @@ export default function UploadPage() {
           disabled={!user || manualLoading || !isManualValid}
           className="w-full md:w-auto bg-slate-100 text-slate-900 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {manualLoading ? "Saving..." : "Save Manual Bill"}
+          {manualLoading ? "Guardando..." : "Guardar factura manual"}
         </Button>
       </div>
     </div>

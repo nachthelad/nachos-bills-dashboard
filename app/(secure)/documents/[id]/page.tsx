@@ -210,7 +210,7 @@ export default function DocumentDetailPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background text-foreground p-8 flex items-center justify-center">
-        <div className="text-muted-foreground">Loading document...</div>
+        <div className="text-muted-foreground">Cargando documento...</div>
       </div>
     );
   }
@@ -221,7 +221,7 @@ export default function DocumentDetailPage() {
         <p
           className={actionError ? "text-destructive" : "text-muted-foreground"}
         >
-          {actionError ?? "Document not found"}
+          {actionError ?? "Documento no encontrado"}
         </p>
       </div>
     );
@@ -262,7 +262,7 @@ export default function DocumentDetailPage() {
         className="flex items-center gap-2 mb-8 text-emerald-300 hover:underline"
       >
         <ChevronLeft className="w-4 h-4" />
-        Back to Documents
+        Volver a documentos
       </Link>
 
       <Card className="mb-6 border border-border text-foreground">
@@ -274,7 +274,7 @@ export default function DocumentDetailPage() {
                 <AmountVisibilityToggle />
               </div>
               <p className="text-sm text-muted-foreground">
-                Status: {document.status}
+                Estado: {document.status}
               </p>
             </div>
           </div>
@@ -290,9 +290,9 @@ export default function DocumentDetailPage() {
                   Parsing...
                 </>
               ) : hasParsedText ? (
-                "Re-parse"
+                "Re-procesar"
               ) : (
-                "Parse"
+                "Procesar"
               )}
             </Button>
           )}
@@ -306,38 +306,38 @@ export default function DocumentDetailPage() {
           )}
           {!parseError && !actionError && document.errorMessage && (
             <p className="text-sm text-destructive">
-              Last parser error: {document.errorMessage}
+              Último error del parser: {document.errorMessage}
             </p>
           )}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <InfoItem
-              label="Provider"
+              label="Proveedor"
               value={document.provider ?? document.providerNameDetected}
             />
-            <InfoItem label="Provider ID" value={document.providerId} />
-            <InfoItem label="Category" value={document.category} />
+            <InfoItem label="ID proveedor" value={document.providerId} />
+            <InfoItem label="Categoría" value={document.category} />
             <InfoItem
-              label="Total Amount"
+              label="Monto total"
               value={formatCurrency(document.totalAmount ?? document.amount)}
             />
-            <InfoItem label="Currency" value={document.currency ?? "ARS"} />
+            <InfoItem label="Moneda" value={document.currency ?? "ARS"} />
             {document.foreignAmountUSD != null && (
               <InfoItem
-                label="USD Charges"
+                label="Cargos en USD"
                 value={`USD ${document.foreignAmountUSD.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
               />
             )}
             <InfoItem
-              label="Issue Date"
+              label="Fecha de emisión"
               value={formatDate(document.issueDate)}
             />
-            <InfoItem label="Due Date" value={formatDate(document.dueDate)} />
+            <InfoItem label="Vencimiento" value={formatDate(document.dueDate)} />
             <InfoItem
-              label="Period Start"
+              label="Inicio del período"
               value={formatDate(document.periodStart)}
             />
             <InfoItem
-              label="Period End"
+              label="Fin del período"
               value={formatDate(document.periodEnd)}
             />
           </div>
@@ -346,12 +346,12 @@ export default function DocumentDetailPage() {
 
       <Card className="mb-6 border border-border text-foreground">
         <CardHeader>
-          <CardTitle>Manual Overrides</CardTitle>
+          <CardTitle>Edición manual</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="text-sm font-medium block mb-2">Provider</label>
+              <label className="text-sm font-medium block mb-2">Proveedor</label>
               <input
                 type="text"
                 value={(formData.provider as string) || ""}
@@ -364,7 +364,7 @@ export default function DocumentDetailPage() {
             </div>
 
             <div>
-              <label className="text-sm font-medium block mb-2">Category</label>
+              <label className="text-sm font-medium block mb-2">Categoría</label>
               <select
                 value={(formData.category as string) || ""}
                 onChange={(e) =>
@@ -376,7 +376,7 @@ export default function DocumentDetailPage() {
                 disabled={!editing}
                 className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground disabled:opacity-60 disabled:bg-muted/20"
               >
-                <option value="">Select category</option>
+                <option value="">Seleccionar categoría</option>
                 {CATEGORY_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
@@ -386,7 +386,7 @@ export default function DocumentDetailPage() {
             </div>
 
             <div>
-              <label className="text-sm font-medium block mb-2">Amount</label>
+              <label className="text-sm font-medium block mb-2">Monto</label>
               <input
                 type="number"
                 value={formData.amount ?? ""}
@@ -405,7 +405,7 @@ export default function DocumentDetailPage() {
 
             <div>
               <label className="text-sm font-medium block mb-2">
-                Issue Date
+                Fecha de emisión
               </label>
               <input
                 type="date"
@@ -422,7 +422,7 @@ export default function DocumentDetailPage() {
             </div>
 
             <div>
-              <label className="text-sm font-medium block mb-2">Due Date</label>
+              <label className="text-sm font-medium block mb-2">Vencimiento</label>
               <input
                 type="date"
                 value={(formData.dueDate as string) || ""}
@@ -435,7 +435,7 @@ export default function DocumentDetailPage() {
             </div>
 
             <div>
-              <label className="text-sm font-medium block mb-2">Status</label>
+              <label className="text-sm font-medium block mb-2">Estado</label>
               <select
                 value={(formData.status as BillDocument["status"]) || ""}
                 onChange={(e) =>
@@ -447,16 +447,16 @@ export default function DocumentDetailPage() {
                 disabled={!editing}
                 className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground disabled:opacity-60 disabled:bg-muted/20"
               >
-                <option value="pending">Pending</option>
-                <option value="parsed">Parsed</option>
-                <option value="needs_review">Needs Review</option>
+                <option value="pending">Pendiente</option>
+                <option value="parsed">Procesado</option>
+                <option value="needs_review">Requiere revisión</option>
                 <option value="error">Error</option>
               </select>
             </div>
 
             <div>
               <label className="text-sm font-medium block mb-2">
-                Period Start
+                Inicio del período
               </label>
               <input
                 type="date"
@@ -474,7 +474,7 @@ export default function DocumentDetailPage() {
 
             <div>
               <label className="text-sm font-medium block mb-2">
-                Period End
+                Fin del período
               </label>
               <input
                 type="date"
@@ -494,21 +494,21 @@ export default function DocumentDetailPage() {
           <div className="flex gap-2 pt-4">
             {!editing ? (
               <>
-                <Button onClick={() => setEditing(true)}>Edit</Button>
+                <Button onClick={() => setEditing(true)}>Editar</Button>
                 <Button
                   onClick={() => setDeleteDialogOpen(true)}
                   variant="destructive"
                   className="ml-auto"
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
-                  Delete
+                  Eliminar
                 </Button>
               </>
             ) : (
               <>
-                <Button onClick={handleSave}>Save</Button>
+                <Button onClick={handleSave}>Guardar</Button>
                 <Button onClick={() => setEditing(false)} variant="outline">
-                  Cancel
+                  Cancelar
                 </Button>
               </>
             )}
@@ -518,7 +518,7 @@ export default function DocumentDetailPage() {
 
       <Card className="border border-border text-foreground">
         <CardHeader>
-          <CardTitle>Extracted Text</CardTitle>
+          <CardTitle>Texto extraído</CardTitle>
         </CardHeader>
         <CardContent>
           {document.textExtract ? (
@@ -532,7 +532,7 @@ export default function DocumentDetailPage() {
             </div>
           ) : (
             <p className="text-muted-foreground text-sm">
-              No text extracted yet. Run the parser to see results.
+              Sin texto extraído. Ejecutá el parser para ver resultados.
             </p>
           )}
         </CardContent>
@@ -542,18 +542,18 @@ export default function DocumentDetailPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm p-4">
           <div className="w-full max-w-md rounded-xl border border-border bg-background p-6 space-y-4">
             <h3 className="text-xl font-semibold text-foreground">
-              Delete document?
+              ¿Eliminar documento?
             </h3>
             <p className="text-sm text-muted-foreground">
-              This action will remove the bill and its parsing history. You
-              can’t undo this operation.
+              Esta acción eliminará la factura y su historial de procesamiento.
+              No podés deshacer esta operación.
             </p>
             <div className="flex justify-end gap-3">
               <Button
                 variant="outline"
                 onClick={() => setDeleteDialogOpen(false)}
               >
-                Cancel
+                Cancelar
               </Button>
               <Button
                 variant="destructive"
@@ -562,7 +562,7 @@ export default function DocumentDetailPage() {
                   handleDelete();
                 }}
               >
-                Delete
+                Eliminar
               </Button>
             </div>
           </div>

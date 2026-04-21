@@ -44,31 +44,31 @@ export function KpiCards({
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <Card className="bg-muted">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Total Expenses (YTD)</CardTitle>
+          <CardTitle className="text-sm font-medium">Gastos Totales (YTD)</CardTitle>
           <ArrowDownIcon className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{formatCurrency(totalExpenses)}</div>
           <p className="text-xs text-muted-foreground">
-            Total bills paid this year
+            Gastos del año (facturas + diarios + expensas)
           </p>
         </CardContent>
       </Card>
       <Card className="bg-muted">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Total Income (YTD)</CardTitle>
+          <CardTitle className="text-sm font-medium">Ingresos Totales (YTD)</CardTitle>
           <ArrowUpIcon className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{formatCurrency(totalIncome)}</div>
           <p className="text-xs text-muted-foreground">
-            Total earnings this year
+            Ingresos del año
           </p>
         </CardContent>
       </Card>
       <Card className="bg-muted">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Net Income (YTD)</CardTitle>
+          <CardTitle className="text-sm font-medium">Balance Neto (YTD)</CardTitle>
           <Wallet className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
@@ -76,19 +76,19 @@ export function KpiCards({
             {formatCurrency(netIncome)}
           </div>
           <p className="text-xs text-muted-foreground">
-            Income minus expenses
+            Ingresos menos gastos
           </p>
         </CardContent>
       </Card>
       <Card className="bg-muted">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">This Month</CardTitle>
+          <CardTitle className="text-sm font-medium">Este Mes</CardTitle>
           <Calendar className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{formatCurrency(monthExpenses)}</div>
           <p className="text-xs text-muted-foreground">
-            Expenses in current month
+            Gastos del mes actual
           </p>
         </CardContent>
       </Card>

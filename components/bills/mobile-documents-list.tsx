@@ -189,7 +189,7 @@ export function MobileDocumentsList({
         <div className="relative">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search documents..."
+            placeholder="Buscar documentos..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-8"
@@ -201,7 +201,7 @@ export function MobileDocumentsList({
               <SelectValue placeholder="Category" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
+              <SelectItem value="all">Todas las categorías</SelectItem>
               {CATEGORY_OPTIONS.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
@@ -214,10 +214,10 @@ export function MobileDocumentsList({
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="parsed">Parsed</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="needs_review">Needs Review</SelectItem>
+              <SelectItem value="all">Todos los estados</SelectItem>
+              <SelectItem value="parsed">Procesado</SelectItem>
+              <SelectItem value="pending">Pendiente</SelectItem>
+              <SelectItem value="needs_review">Requiere revisión</SelectItem>
               <SelectItem value="error">Error</SelectItem>
             </SelectContent>
           </Select>
@@ -228,14 +228,14 @@ export function MobileDocumentsList({
           onClick={handleMarkAllClick}
           disabled={filteredDocuments.every((doc) => doc.status === "paid")}
         >
-          Mark All Paid
+          Marcar todo como pagado
         </Button>
       </div>
 
       <div className="space-y-3">
         {filteredDocuments.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground border rounded-lg border-dashed">
-            No documents found.
+            No se encontraron documentos.
           </div>
         ) : (
           filteredDocuments.map((doc) => {
@@ -261,9 +261,7 @@ export function MobileDocumentsList({
                           variant="outline"
                           className={`${statusStyles[doc.status] || ""}`}
                         >
-                          {doc.status === "needs_review"
-                            ? "Review"
-                            : doc.status}
+                          {doc.status === "needs_review" ? "Requiere revisión" : doc.status === "parsed" ? "Procesado" : doc.status === "pending" ? "Pendiente" : doc.status === "paid" ? "Pagado" : doc.status}
                         </Badge>
                       </div>
                     </div>
@@ -273,7 +271,7 @@ export function MobileDocumentsList({
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div className="flex flex-col gap-1">
                       <span className="text-muted-foreground text-xs">
-                        Category
+                        Categoría
                       </span>
                       <Badge variant="secondary" className="w-fit">
                         {getCategoryLabel(doc.category)}
@@ -281,7 +279,7 @@ export function MobileDocumentsList({
                     </div>
                     <div className="flex flex-col gap-1 items-end">
                       <span className="text-muted-foreground text-xs">
-                        Amount
+                        Monto
                       </span>
                       <span className="font-semibold">
                         {formatCurrency(doc.amount ?? doc.totalAmount)}
@@ -289,7 +287,7 @@ export function MobileDocumentsList({
                     </div>
                     <div className="flex flex-col gap-1">
                       <span className="text-muted-foreground text-xs">
-                        Due Date
+                        Vencimiento
                       </span>
                       <div className="flex items-center gap-1">
                         <Calendar className="h-3 w-3 text-muted-foreground" />
@@ -375,11 +373,11 @@ export function MobileDocumentsList({
         <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm p-4 bg-background/80">
           <div className="w-full max-w-md rounded-xl border border-border bg-background p-6 space-y-4 shadow-lg">
             <h3 className="text-xl font-semibold text-foreground">
-              Delete document?
+              ¿Eliminar documento?
             </h3>
             <p className="text-sm text-muted-foreground">
-              This action will remove the bill and its parsing history. You
-              can’t undo this operation.
+              Esta acción eliminará la factura y su historial de procesamiento.
+              No podés deshacer esta operación.
             </p>
             <div className="flex justify-end gap-3">
               <Button
@@ -387,14 +385,14 @@ export function MobileDocumentsList({
                 onClick={() => setDeleteDialogOpen(false)}
                 disabled={isDeleting}
               >
-                Cancel
+                Cancelar
               </Button>
               <Button
                 variant="destructive"
                 onClick={handleDelete}
                 disabled={isDeleting}
               >
-                {isDeleting ? "Deleting..." : "Delete"}
+                {isDeleting ? "Eliminando..." : "Eliminar"}
               </Button>
             </div>
           </div>
@@ -405,12 +403,12 @@ export function MobileDocumentsList({
         <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm p-4 bg-background/80">
           <div className="w-full max-w-md rounded-xl border border-border bg-background p-6 space-y-4 shadow-lg">
             <h3 className="text-xl font-semibold text-foreground">
-              Mark all as paid?
+              ¿Marcar todo como pagado?
             </h3>
             <p className="text-sm text-muted-foreground">
-              Are you sure you want to mark{" "}
+              ¿Confirmás marcar{" "}
               {filteredDocuments.filter((doc) => doc.status !== "paid").length}{" "}
-              documents as paid?
+              documentos como pagados?
             </p>
             <div className="flex justify-end gap-3">
               <Button
@@ -418,10 +416,10 @@ export function MobileDocumentsList({
                 onClick={() => setMarkAllDialogOpen(false)}
                 disabled={isMarkingAll}
               >
-                Cancel
+                Cancelar
               </Button>
               <Button onClick={confirmMarkAll} disabled={isMarkingAll}>
-                {isMarkingAll ? "Processing..." : "Confirm"}
+                {isMarkingAll ? "Procesando..." : "Confirmar"}
               </Button>
             </div>
           </div>

@@ -24,7 +24,7 @@ import { navItems } from "@/lib/nav-items";
 
 const navSecondary = [
   {
-    title: "Settings",
+    title: "Configuración",
     url: "/settings",
     icon: Settings,
   },
@@ -56,7 +56,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   />
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-semibold">TOLVA</span>
-                    <span className="truncate text-xs">Finance Tracker</span>
+                    <span className="truncate text-xs">Gestor financiero</span>
                   </div>
                 </Link>
               </SidebarMenuButton>
@@ -66,7 +66,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Platform</SidebarGroupLabel>
+          <SidebarGroupLabel>Plataforma</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {navItems.map((item) => (

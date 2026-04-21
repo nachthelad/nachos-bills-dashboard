@@ -113,14 +113,14 @@ export default function ExpensesPage() {
   const dailyAverage = daysInMonth > 0 ? monthTotal / daysInMonth : 0;
 
   const monthLabel = monthFilter === "all" || (filterYear === currentYear && filterMonth === currentMonth)
-    ? "This Month"
+    ? "Este mes"
     : new Date(filterYear, filterMonth, 1).toLocaleString("es-AR", { month: "long", year: "numeric" }).replace(/^\w/, (c) => c.toUpperCase());
 
 
   if (loading && entries.length === 0) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="text-muted-foreground">Loading expenses...</div>
+        <div className="text-muted-foreground">Cargando gastos...</div>
       </div>
     );
   }
@@ -130,15 +130,15 @@ export default function ExpensesPage() {
       <div className="flex flex-col gap-2">
         <div>
           <p className="text-sm uppercase tracking-wide text-muted-foreground">
-            Finance
+            Finanzas
           </p>
           <div className="flex items-center gap-2">
-            <h1 className="text-3xl font-bold">Expenses</h1>
+            <h1 className="text-3xl font-bold">Gastos</h1>
             <AmountVisibilityToggle />
           </div>
         </div>
         <p className="text-muted-foreground">
-          Track and manage your daily spending.
+          Rastreá y gestioná tus gastos diarios.
         </p>
       </div>
 
@@ -158,7 +158,7 @@ export default function ExpensesPage() {
               <div>
                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-0.5">
                   <TrendingDown className="w-3 h-3 text-rose-400" />
-                  Total YTD
+                  Total (YTD)
                 </div>
                 <div className="text-lg font-bold text-rose-400 leading-tight">
                   {formatCurrency(ytdTotal)}
@@ -167,7 +167,7 @@ export default function ExpensesPage() {
               <div>
                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-0.5">
                   <CalendarDays className="w-3 h-3 text-muted-foreground" />
-                  Daily Avg
+                  Promedio diario
                 </div>
                 <div className="text-lg font-bold leading-tight">
                   {formatCurrency(dailyAverage)}
@@ -188,7 +188,7 @@ export default function ExpensesPage() {
 
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold">Expense Entries</h2>
+          <h2 className="text-xl font-semibold">Entradas de gastos</h2>
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
@@ -197,7 +197,7 @@ export default function ExpensesPage() {
               className="gap-1.5"
             >
               <Lightbulb className="h-3.5 w-3.5 text-yellow-500" />
-              Tips
+              Consejos
             </Button>
             <AddExpenseModal
               onSuccess={loadEntries}

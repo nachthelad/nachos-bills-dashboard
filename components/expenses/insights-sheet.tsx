@@ -198,7 +198,7 @@ export function InsightsSheet({
         <SheetHeader className="px-4 pt-4 pb-3 border-b">
           <div className="flex items-center gap-2">
             <Lightbulb className="h-4 w-4 text-yellow-500 shrink-0" />
-            <SheetTitle className="text-base">Tips & Tricks</SheetTitle>
+            <SheetTitle className="text-base">Consejos y trucos</SheetTitle>
           </div>
           <SheetDescription className="text-xs">
             {monthLabel} · Análisis de gastos con IA

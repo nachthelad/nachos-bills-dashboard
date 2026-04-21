@@ -88,7 +88,7 @@ export function IncomeTable({ entries, showAmounts, onRefresh }: IncomeTableProp
         <div className="relative flex-1">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search income..."
+            placeholder="Buscar ingresos..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-8"
@@ -99,7 +99,7 @@ export function IncomeTable({ entries, showAmounts, onRefresh }: IncomeTableProp
             <SelectValue placeholder="Source" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Sources</SelectItem>
+            <SelectItem value="all">Todas las fuentes</SelectItem>
             {sources.map((source) => (
               <SelectItem key={source} value={source}>
                 {source}
@@ -113,10 +113,10 @@ export function IncomeTable({ entries, showAmounts, onRefresh }: IncomeTableProp
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Source</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead className="text-right">Amount</TableHead>
+              <TableHead>Nombre</TableHead>
+              <TableHead>Fuente</TableHead>
+              <TableHead>Fecha</TableHead>
+              <TableHead className="text-right">Monto</TableHead>
               <TableHead className="w-[48px]" />
             </TableRow>
           </TableHeader>
@@ -127,7 +127,7 @@ export function IncomeTable({ entries, showAmounts, onRefresh }: IncomeTableProp
                   colSpan={5}
                   className="h-24 text-center text-muted-foreground"
                 >
-                  No income entries found.
+                  No se encontraron ingresos.
                 </TableCell>
               </TableRow>
             ) : (
@@ -175,20 +175,19 @@ export function IncomeTable({ entries, showAmounts, onRefresh }: IncomeTableProp
       >
         <AlertDialogContent className="bg-card border-border text-foreground">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete income entry</AlertDialogTitle>
+            <AlertDialogTitle>¿Eliminar ingreso?</AlertDialogTitle>
             <AlertDialogDescription className="text-muted-foreground">
-              Are you sure you want to delete this income entry? This action
-              cannot be undone.
+              Esta acción no se puede deshacer.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleteLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleteLoading}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               disabled={deleteLoading}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {deleteLoading ? "Deleting..." : "Delete"}
+              {deleteLoading ? "Eliminando..." : "Eliminar"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

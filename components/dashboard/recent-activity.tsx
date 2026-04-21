@@ -48,9 +48,9 @@ export function RecentActivity({ items, showAmounts }: RecentActivityProps) {
   return (
     <div className="space-y-4">
       <div>
-        <h3 className="text-xl font-semibold">Recent Activity</h3>
+        <h3 className="text-xl font-semibold">Actividad reciente</h3>
         <p className="text-sm text-muted-foreground">
-          Latest bills and income entries.
+          Últimas facturas y entradas de ingresos.
         </p>
       </div>
       <div className="rounded-md border">
@@ -58,11 +58,11 @@ export function RecentActivity({ items, showAmounts }: RecentActivityProps) {
           <TableHeader>
             <TableRow>
               <TableHead className="w-[50px]"></TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Upload Date</TableHead>
-              <TableHead>Due Date</TableHead>
-              <TableHead className="text-right">Amount</TableHead>
+              <TableHead>Descripción</TableHead>
+              <TableHead>Categoría</TableHead>
+              <TableHead>Fecha de carga</TableHead>
+              <TableHead>Vencimiento</TableHead>
+              <TableHead className="text-right">Monto</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -72,7 +72,7 @@ export function RecentActivity({ items, showAmounts }: RecentActivityProps) {
                   colSpan={6}
                   className="text-center text-muted-foreground h-24"
                 >
-                  No recent activity found.
+                  Sin actividad reciente.
                 </TableCell>
               </TableRow>
             ) : (

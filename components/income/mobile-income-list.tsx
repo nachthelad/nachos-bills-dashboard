@@ -91,7 +91,7 @@ export function MobileIncomeList({
         <div className="relative">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search income..."
+            placeholder="Buscar ingresos..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-8"
@@ -102,7 +102,7 @@ export function MobileIncomeList({
             <SelectValue placeholder="Source" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Sources</SelectItem>
+            <SelectItem value="all">Todas las fuentes</SelectItem>
             {sources.map((source) => (
               <SelectItem key={source} value={source}>
                 {source}
@@ -115,7 +115,7 @@ export function MobileIncomeList({
       <div className="space-y-3">
         {filteredEntries.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground border rounded-lg border-dashed">
-            No income entries found.
+            No se encontraron ingresos.
           </div>
         ) : (
           filteredEntries.map((entry) => (
@@ -171,20 +171,19 @@ export function MobileIncomeList({
       >
         <AlertDialogContent className="bg-card border-border text-foreground">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete income entry</AlertDialogTitle>
+            <AlertDialogTitle>¿Eliminar ingreso?</AlertDialogTitle>
             <AlertDialogDescription className="text-muted-foreground">
-              Are you sure you want to delete this income entry? This action
-              cannot be undone.
+              Esta acción no se puede deshacer.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleteLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleteLoading}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               disabled={deleteLoading}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {deleteLoading ? "Deleting..." : "Delete"}
+              {deleteLoading ? "Eliminando..." : "Eliminar"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

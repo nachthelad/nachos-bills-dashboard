@@ -81,7 +81,7 @@ export function AmountVisibilityToggle({ className }: { className?: string }) {
       variant="ghost"
       size="icon"
       aria-pressed={!showAmounts}
-      aria-label={showAmounts ? "Hide amounts" : "Show amounts"}
+      aria-label={showAmounts ? "Ocultar montos" : "Mostrar montos"}
       onClick={toggle}
       className={cn(
         "inline-flex h-8 w-8 items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent",

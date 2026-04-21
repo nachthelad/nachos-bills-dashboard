@@ -72,7 +72,7 @@ export default function LoginPage() {
         <CardHeader>
           <CardTitle>TOLVA</CardTitle>
           <CardDescription>
-            Sign in to manage your recurring bills
+            Iniciá sesión para gestionar tus finanzas
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -82,7 +82,7 @@ export default function LoginPage() {
             className="w-full"
             size="lg"
           >
-            {loading ? "Signing in..." : "Sign in with Google"}
+            {loading ? "Iniciando sesión..." : "Iniciar sesión con Google"}
           </Button>
         </CardContent>
       </Card>
