@@ -173,7 +173,7 @@ export function AddExpenseModal({
 
       if (keepOpen) {
         // Keep date and category — only clear description + amount for next entry
-        setFormData((prev) => ({ ...prev, description: "", amount: "", arsRate: "" }));
+        setFormData((prev) => ({ ...prev, description: "", amount: "" }));
         setTimeout(() => descriptionRef.current?.focus(), 0);
       } else {
         setOpen(false);
@@ -278,6 +278,7 @@ export function AddExpenseModal({
               <Input
                 id="exp-ars-rate"
                 type="number"
+                inputMode="decimal"
                 step="0.01"
                 placeholder="Ej: 1450.00"
                 value={formData.arsRate}
