@@ -215,7 +215,7 @@ export default function DashboardPage() {
         }
       }
     });
-    if (dailyExpensesTotal > 0) {
+    if (dailyExpensesTotal !== 0) {
       (categoryTotals as Record<string, number>)["daily_expenses"] = dailyExpensesTotal;
     }
 
