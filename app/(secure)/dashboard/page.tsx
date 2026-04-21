@@ -207,12 +207,18 @@ export default function DashboardPage() {
     const realYear = new Date().getFullYear();
     let dailyExpensesTotal = 0;
     dailyExpenses.forEach((entry) => {
-      if (entry.date.getFullYear() === currentYear) {
-        totals.year += entry.amount;
-        dailyExpensesTotal += entry.amount;
-        if (currentYear === realYear && entry.date.getMonth() === realMonth) {
-          totals.month += entry.amount;
-        }
+      if (entry.date.getFullYear() !== currentYear) return;
+      const arsAmount =
+        entry.currency === "USD"
+          ? entry.arsRate != null
+            ? entry.amount * entry.arsRate
+            : null
+          : entry.amount;
+      if (arsAmount == null) return;
+      totals.year += arsAmount;
+      dailyExpensesTotal += arsAmount;
+      if (currentYear === realYear && entry.date.getMonth() === realMonth) {
+        totals.month += arsAmount;
       }
     });
     if (dailyExpensesTotal !== 0) {
@@ -385,7 +391,14 @@ export default function DashboardPage() {
 
     dailyExpenses.forEach((entry) => {
       if (entry.date.getFullYear() !== currentYear) return;
-      months[entry.date.getMonth()].expenses += entry.amount;
+      const arsAmount =
+        entry.currency === "USD"
+          ? entry.arsRate != null
+            ? entry.amount * entry.arsRate
+            : null
+          : entry.amount;
+      if (arsAmount == null) return;
+      months[entry.date.getMonth()].expenses += arsAmount;
     });
 
     hoaSummaries.forEach((hoa) => {
