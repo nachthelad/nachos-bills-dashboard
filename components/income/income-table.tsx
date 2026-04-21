@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import type { IncomeEntry } from "@/lib/income-client";
+import { useAuth } from "@/lib/auth-context";
+import { deleteIncomeEntry, type IncomeEntry } from "@/lib/income-client";
 import {
   Table,
   TableBody,
@@ -18,16 +19,47 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, TrendingUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Search, TrendingUp, Trash2 } from "lucide-react";
+import { formatAmount } from "@/lib/format-currency";
 
 interface IncomeTableProps {
   entries: IncomeEntry[];
   showAmounts: boolean;
+  onRefresh: () => void;
 }
 
-export function IncomeTable({ entries, showAmounts }: IncomeTableProps) {
+export function IncomeTable({ entries, showAmounts, onRefresh }: IncomeTableProps) {
+  const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const handleDelete = async () => {
+    if (!user || !deleteId) return;
+    setDeleteLoading(true);
+    try {
+      const token = await user.getIdToken();
+      await deleteIncomeEntry(token, deleteId);
+      onRefresh();
+    } catch (err) {
+      console.error("Delete failed:", err);
+    } finally {
+      setDeleteLoading(false);
+      setDeleteId(null);
+    }
+  };
 
   const filteredEntries = entries.filter((entry) => {
     const matchesSearch =
@@ -38,14 +70,6 @@ export function IncomeTable({ entries, showAmounts }: IncomeTableProps) {
     return matchesSearch && matchesSource;
   });
 
-  const formatCurrency = (amount: number) => {
-    if (!showAmounts) return "••••••";
-    return new Intl.NumberFormat("es-AR", {
-      style: "currency",
-      currency: "ARS",
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
 
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat("es-AR", {
@@ -58,6 +82,7 @@ export function IncomeTable({ entries, showAmounts }: IncomeTableProps) {
   const sources = Array.from(new Set(entries.map((e) => e.source)));
 
   return (
+    <>
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
@@ -92,13 +117,14 @@ export function IncomeTable({ entries, showAmounts }: IncomeTableProps) {
               <TableHead>Source</TableHead>
               <TableHead>Date</TableHead>
               <TableHead className="text-right">Amount</TableHead>
+              <TableHead className="w-[48px]" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredEntries.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={4}
+                  colSpan={5}
                   className="h-24 text-center text-muted-foreground"
                 >
                   No income entries found.
@@ -122,7 +148,18 @@ export function IncomeTable({ entries, showAmounts }: IncomeTableProps) {
                     {formatDate(entry.date)}
                   </TableCell>
                   <TableCell className="text-right font-medium text-emerald-500">
-                    {formatCurrency(entry.amount)}
+                    {formatAmount(entry.amount, entry.currency ?? "ARS", showAmounts)}
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Delete income"
+                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                      onClick={() => setDeleteId(entry.id)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))
@@ -131,5 +168,31 @@ export function IncomeTable({ entries, showAmounts }: IncomeTableProps) {
         </Table>
       </div>
     </div>
+
+      <AlertDialog
+        open={deleteId !== null}
+        onOpenChange={(v) => !v && setDeleteId(null)}
+      >
+        <AlertDialogContent className="bg-card border-border text-foreground">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete income entry</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              Are you sure you want to delete this income entry? This action
+              cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleteLoading}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteLoading ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

@@ -11,12 +11,13 @@ import { AddIncomeModal } from "@/components/income/add-income-modal";
 import { IncomeTable } from "@/components/income/income-table";
 import { MobileIncomeList } from "@/components/income/mobile-income-list";
 import { Card, CardContent } from "@/components/ui/card";
-import { TrendingUp } from "lucide-react";
+import { DollarSign, TrendingUp } from "lucide-react";
 
 export default function IncomePage() {
   const { user } = useAuth();
   const [entries, setEntries] = useState<IncomeEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [usdRate, setUsdRate] = useState<number | null>(null);
   const { showAmounts } = useAmountVisibility();
 
   const loadEntries = useCallback(async () => {
@@ -34,6 +35,10 @@ export default function IncomePage() {
 
   useEffect(() => {
     loadEntries();
+    fetch("/api/binance-rate")
+      .then((r) => r.json())
+      .then((d) => { if (d.price) setUsdRate(d.price); })
+      .catch(() => {});
   }, [loadEntries]);
 
   const totalIncome = entries.reduce((sum, entry) => sum + entry.amount, 0);
@@ -103,6 +108,24 @@ export default function IncomePage() {
             </div>
           </CardContent>
         </Card>
+        <Card className="bg-muted">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+              <DollarSign className="w-4 h-4 text-blue-400" />
+              Dólar Cripto (Binance P2P)
+            </div>
+            <div className="text-3xl font-bold text-blue-400">
+              {usdRate
+                ? new Intl.NumberFormat("es-AR", {
+                    style: "currency",
+                    currency: "ARS",
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  }).format(usdRate)
+                : "—"}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="space-y-4">
@@ -111,10 +134,10 @@ export default function IncomePage() {
           <AddIncomeModal onSuccess={loadEntries} />
         </div>
         <div className="hidden md:block">
-          <IncomeTable entries={entries} showAmounts={showAmounts} />
+          <IncomeTable entries={entries} showAmounts={showAmounts} onRefresh={loadEntries} />
         </div>
         <div className="md:hidden">
-          <MobileIncomeList entries={entries} showAmounts={showAmounts} />
+          <MobileIncomeList entries={entries} showAmounts={showAmounts} onRefresh={loadEntries} />
         </div>
       </div>
     </div>

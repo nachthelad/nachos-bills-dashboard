@@ -41,6 +41,7 @@ const emptyForm = {
   date: new Date().toISOString().split("T")[0],
   description: "",
   amount: "",
+  currency: "ARS",
   paymentMethod: "Débito",
   category: "Compra",
 };
@@ -74,6 +75,7 @@ export function AddExpenseModal({
           date: editEntry.date.toISOString().split("T")[0],
           description: editEntry.description,
           amount: String(editEntry.amount),
+          currency: editEntry.currency ?? "ARS",
           paymentMethod: editEntry.paymentMethod,
           category: editEntry.category,
         }
@@ -90,6 +92,7 @@ export function AddExpenseModal({
         date: editEntry.date.toISOString().split("T")[0],
         description: editEntry.description,
         amount: String(editEntry.amount),
+        currency: editEntry.currency ?? "ARS",
         paymentMethod: editEntry.paymentMethod,
         category: editEntry.category,
       });
@@ -122,6 +125,7 @@ export function AddExpenseModal({
         date: new Date(`${formData.date}T12:00:00Z`),
         description: formData.description,
         amount: Number.parseFloat(formData.amount),
+        currency: formData.currency,
         paymentMethod: formData.paymentMethod,
         category: formData.category,
       };
@@ -197,8 +201,27 @@ export function AddExpenseModal({
           />
         </div>
         <div className="space-y-2">
+          <Label htmlFor="exp-currency" className="text-foreground">
+            Currency
+          </Label>
+          <Select
+            value={formData.currency}
+            onValueChange={(value) =>
+              setFormData({ ...formData, currency: value })
+            }
+          >
+            <SelectTrigger id="exp-currency" className="bg-background border-border text-foreground">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-popover border-border text-popover-foreground">
+              <SelectItem value="ARS">ARS — Peso argentino</SelectItem>
+              <SelectItem value="USD">USD — Dólar</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
           <Label htmlFor="exp-amount" className="text-foreground">
-            Amount (ARS)
+            Amount ({formData.currency})
           </Label>
           <Input
             id="exp-amount"

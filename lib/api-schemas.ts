@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+export const SUPPORTED_CURRENCIES = ["ARS", "USD"] as const;
+export type SupportedCurrency = (typeof SUPPORTED_CURRENCIES)[number];
+
 export const billDocumentSchema = z.object({
   id: z.string(),
   userId: z.string().optional(),
@@ -23,6 +26,7 @@ export const billDocumentSchema = z.object({
   errorMessage: z.string().optional().nullable(),
   lastParsedAt: z.string().optional().nullable(),
   hoaDetails: z.unknown().optional(),
+  foreignAmountUSD: z.number().optional().nullable(),
   manualEntry: z.boolean().optional(),
   updatedAt: z.string().optional().nullable(),
 });
@@ -44,6 +48,7 @@ export const createDocumentRequestSchema = z.object({
   issueDate: z.string().optional().nullable(),
   periodStart: z.string().optional().nullable(),
   periodEnd: z.string().optional().nullable(),
+  foreignAmountUSD: z.number().optional().nullable(),
   manualEntry: z.boolean().optional(),
   textExtract: z.string().optional().nullable(),
 });

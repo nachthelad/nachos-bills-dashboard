@@ -325,12 +325,13 @@ export function DocumentsTable({
                         <Button
                           variant="ghost"
                           size="icon"
+                          aria-label="Delete document"
                           onClick={() => confirmDelete(doc)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                         <Button variant="ghost" size="icon" asChild>
-                          <Link href={`/documents/${doc.id}`}>
+                          <Link href={`/documents/${doc.id}`} aria-label="View document details">
                             <ChevronRight className="h-4 w-4" />
                           </Link>
                         </Button>
@@ -338,6 +339,7 @@ export function DocumentsTable({
                           <Button variant="ghost" size="icon" asChild>
                             <a
                               href={doc.storageUrl}
+                              aria-label="Open PDF"
                               target="_blank"
                               rel="noopener noreferrer"
                             >

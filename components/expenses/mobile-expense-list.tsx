@@ -34,6 +34,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Search, Calendar, Pencil, Trash2, ShoppingCart } from "lucide-react";
+import { formatAmount } from "@/lib/format-currency";
 import { AddExpenseModal } from "./add-expense-modal";
 
 interface MobileExpenseListProps {
@@ -101,14 +102,6 @@ export function MobileExpenseList({
     return matchesSearch && matchesMonth && matchesCategory;
   });
 
-  const formatCurrency = (amount: number) => {
-    if (!showAmounts) return "••••••";
-    return new Intl.NumberFormat("es-AR", {
-      style: "currency",
-      currency: "ARS",
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
 
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat("es-AR", {
@@ -246,7 +239,7 @@ export function MobileExpenseList({
                           : "text-foreground"
                       }`}
                     >
-                      {formatCurrency(entry.amount)}
+                      {formatAmount(entry.amount, entry.currency ?? "ARS", showAmounts)}
                     </div>
                   </div>
                   <div className="flex gap-2">

@@ -14,6 +14,7 @@ export type BillingParseResult = {
   periodStart: string | null;
   periodEnd: string | null;
   hoaDetails: HoaDetails | null;
+  foreignAmountUSD: number | null;
 };
 
 const hoaRubroSchema = z.object({
@@ -52,6 +53,7 @@ const BillingParseResultSchema = z.object({
   periodStart: z.string().nullable(),
   periodEnd: z.string().nullable(),
   hoaDetails: hoaDetailsSchema,
+  foreignAmountUSD: z.number().nullable(),
 });
 
 type JsonSchema = {
@@ -80,6 +82,7 @@ const BILLING_SCHEMA_BODY = {
       dueDate: { anyOf: [{ type: "string" }, { type: "null" }] },
       periodStart: { anyOf: [{ type: "string" }, { type: "null" }] },
       periodEnd: { anyOf: [{ type: "string" }, { type: "null" }] },
+      foreignAmountUSD: { anyOf: [{ type: "number" }, { type: "null" }] },
       hoaDetails: {
         anyOf: [
           { type: "null" },
@@ -152,6 +155,7 @@ const BILLING_SCHEMA_BODY = {
       "periodStart",
       "periodEnd",
       "hoaDetails",
+      "foreignAmountUSD",
     ],
   },
 };
@@ -162,11 +166,15 @@ export const BILL_PARSER_SCHEMA: JsonSchema = {
   json_schema: BILLING_SCHEMA_BODY,
 };
 
-export const OPENAI_SYSTEM_PROMPT = `You are a meticulous assistant that extracts structured billing data from PDF text. 
+export const OPENAI_SYSTEM_PROMPT = `You are a meticulous assistant that extracts structured billing data from PDF text.
 CRITICAL: For HOA (Expensas) bills, you MUST distinguish between the individual unit's total and the collective building total.
 - 'totalAmount': Set this to the INDIVIDUAL amount the unit owner must pay (e.g., 'Total a Pagar', 'Total Unidad', 'Current Month Total').
 - 'hoaDetails.totalToPayUnit': This MUST match the individual share.
 - 'hoaDetails.totalBuildingExpenses': Set this to the larger collective total of the entire building.
+CREDIT CARD STATEMENTS (Resúmenes de tarjeta de crédito):
+- 'totalAmount': ALWAYS set to the ARS total actually owed (the "Total a Pagar en Pesos", "Importe Total en $", or equivalent ARS summary line). Must be in ARS even when individual purchases were in USD.
+- 'currency': ALWAYS set to "ARS" for Argentine credit card statements.
+- 'foreignAmountUSD': If the statement contains USD-denominated charges (purchases billed in USD/U$S), set this to the total USD amount charged (sum of all USD line items, or the explicit USD subtotal if present). Set to null if no USD charges exist.
 Always respond with JSON that strictly matches the provided schema.`;
 
 export const OPENAI_USER_PROMPT = `Analyze the following PDF text and extract any billing related metadata. For HOA/Expensas, pay close attention to the Unit Number and its specific total to pay. return null when information cannot be determined.`;
@@ -229,6 +237,272 @@ class OpenAIClient {
     },
   };
 }
+
+// ---------------------------------------------------------------------------
+// Gemini client
+// ---------------------------------------------------------------------------
+
+const GEMINI_BILLING_SCHEMA = {
+  type: "object",
+  properties: {
+    text: { type: "string" },
+    providerId: { type: "string", nullable: true },
+    providerNameDetected: { type: "string", nullable: true },
+    category: { type: "string", nullable: true },
+    totalAmount: { type: "number", nullable: true },
+    currency: { type: "string", nullable: true },
+    issueDate: { type: "string", nullable: true },
+    dueDate: { type: "string", nullable: true },
+    periodStart: { type: "string", nullable: true },
+    periodEnd: { type: "string", nullable: true },
+    foreignAmountUSD: { type: "number", nullable: true },
+    hoaDetails: {
+      type: "object",
+      nullable: true,
+      properties: {
+        buildingCode: { type: "string", nullable: true },
+        buildingAddress: { type: "string", nullable: true },
+        unitCode: { type: "string", nullable: true },
+        unitLabel: { type: "string", nullable: true },
+        ownerName: { type: "string", nullable: true },
+        periodLabel: { type: "string", nullable: true },
+        periodYear: { type: "number", nullable: true },
+        periodMonth: { type: "number", nullable: true },
+        firstDueAmount: { type: "number", nullable: true },
+        secondDueAmount: { type: "number", nullable: true },
+        totalBuildingExpenses: { type: "number", nullable: true },
+        totalToPayUnit: { type: "number", nullable: true },
+        rubros: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              rubroNumber: { type: "number", nullable: true },
+              label: { type: "string", nullable: true },
+              total: { type: "number", nullable: true },
+            },
+            required: ["rubroNumber", "label", "total"],
+          },
+        },
+      },
+      required: [
+        "buildingCode",
+        "buildingAddress",
+        "unitCode",
+        "unitLabel",
+        "ownerName",
+        "periodLabel",
+        "periodYear",
+        "periodMonth",
+        "firstDueAmount",
+        "secondDueAmount",
+        "totalBuildingExpenses",
+        "totalToPayUnit",
+        "rubros",
+      ],
+    },
+  },
+  required: [
+    "text",
+    "providerId",
+    "providerNameDetected",
+    "category",
+    "totalAmount",
+    "currency",
+    "issueDate",
+    "dueDate",
+    "periodStart",
+    "periodEnd",
+    "hoaDetails",
+    "foreignAmountUSD",
+  ],
+};
+
+type GeminiResponse = {
+  candidates?: Array<{
+    content?: { parts?: Array<{ text?: string }> };
+  }>;
+};
+
+class GeminiClient {
+  constructor(private readonly apiKey: string) {}
+
+  async generateContent(
+    model: string,
+    body: Record<string, unknown>
+  ): Promise<GeminiResponse> {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${this.apiKey}`;
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(
+        `Gemini request failed with ${response.status}: ${errorText}`
+      );
+    }
+    return (await response.json()) as GeminiResponse;
+  }
+}
+
+let cachedGeminiClient: GeminiClient | null = null;
+
+export function getGeminiClient(): GeminiClient {
+  if (!cachedGeminiClient) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error("GEMINI_API_KEY is not configured");
+    }
+    cachedGeminiClient = new GeminiClient(apiKey);
+  }
+  return cachedGeminiClient;
+}
+
+function extractGeminiText(response: GeminiResponse): string {
+  const text = response.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text || text.trim().length === 0) {
+    throw new Error("No text in Gemini response");
+  }
+  return text.trim();
+}
+
+export async function parseBillingTextWithGemini(
+  fullText: string,
+  scopedLogger: Logger = baseLogger
+): Promise<BillingParseResult> {
+  const log = scopedLogger;
+  const trimmedText = fullText?.trim();
+  if (!trimmedText) {
+    throw new Error("Cannot parse empty text extract");
+  }
+
+  const parseStart = Date.now();
+  try {
+    const relevantText = extractRelevantText(fullText);
+    const client = getGeminiClient();
+    const model = process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
+
+    const response = await callGeminiWithRetry(
+      () =>
+        client.generateContent(model, {
+          systemInstruction: {
+            role: "system",
+            parts: [{ text: OPENAI_SYSTEM_PROMPT }],
+          },
+          contents: [
+            {
+              role: "user",
+              parts: [{ text: `${OPENAI_USER_PROMPT}\n\n${relevantText}` }],
+            },
+          ],
+          generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: GEMINI_BILLING_SCHEMA,
+          },
+        }),
+      log
+    );
+
+    const jsonText = extractGeminiText(response);
+    let parsedPayload: unknown;
+    try {
+      parsedPayload = JSON.parse(jsonText);
+    } catch (error) {
+      log.error("Failed to parse Gemini response payload", { error });
+      throw new Error("Failed to parse Gemini response");
+    }
+
+    let validated: z.infer<typeof BillingParseResultSchema>;
+    try {
+      validated = BillingParseResultSchema.parse(parsedPayload);
+    } catch (error) {
+      log.error("Gemini response validation failed", { error });
+      throw error;
+    }
+    const sanitized = sanitizeBillingResult(validated);
+    return {
+      ...sanitized,
+      text: sanitized.text ?? (fullText.length > 0 ? fullText : null),
+    };
+  } finally {
+    const durationMs = Date.now() - parseStart;
+    log.debug("parseBillingTextWithGemini completed", {
+      durationMs: Number(durationMs.toFixed(2)),
+    });
+  }
+}
+
+export async function parseBillingImageWithGemini(
+  imageBuffer: Buffer,
+  mimeType: string,
+  scopedLogger: Logger = baseLogger
+): Promise<BillingParseResult> {
+  const log = scopedLogger;
+  const parseStart = Date.now();
+  try {
+    const base64 = imageBuffer.toString("base64");
+    const client = getGeminiClient();
+    const model =
+      process.env.GEMINI_VISION_MODEL ??
+      process.env.GEMINI_MODEL ??
+      "gemini-2.5-flash";
+
+    const response = await callGeminiWithRetry(
+      () =>
+        client.generateContent(model, {
+          systemInstruction: {
+            role: "system",
+            parts: [{ text: OPENAI_SYSTEM_PROMPT }],
+          },
+          contents: [
+            {
+              role: "user",
+              parts: [
+                { inlineData: { mimeType, data: base64 } },
+                { text: OPENAI_USER_PROMPT },
+              ],
+            },
+          ],
+          generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: GEMINI_BILLING_SCHEMA,
+          },
+        }),
+      log
+    );
+
+    const jsonText = extractGeminiText(response);
+    let parsedPayload: unknown;
+    try {
+      parsedPayload = JSON.parse(jsonText);
+    } catch (error) {
+      log.error("Failed to parse Gemini vision response payload", { error });
+      throw new Error("Failed to parse Gemini vision response");
+    }
+
+    let validated: z.infer<typeof BillingParseResultSchema>;
+    try {
+      validated = BillingParseResultSchema.parse(parsedPayload);
+    } catch (error) {
+      log.error("Gemini vision response validation failed", { error });
+      throw error;
+    }
+    const sanitized = sanitizeBillingResult(validated);
+    return {
+      ...sanitized,
+      text: sanitized.text ?? "[parsed from image]",
+    };
+  } finally {
+    const durationMs = Date.now() - parseStart;
+    log.debug("parseBillingImageWithGemini completed", {
+      durationMs: Number(durationMs.toFixed(2)),
+    });
+  }
+}
+
+// ---------------------------------------------------------------------------
 
 let cachedClient: OpenAIClient | null = null;
 type Pdf2JsonConstructor = new () => {
@@ -370,6 +644,7 @@ export function sanitizeBillingResult(value: unknown): BillingParseResult {
     periodStart: sanitizeString(data.periodStart),
     periodEnd: sanitizeString(data.periodEnd),
     hoaDetails: sanitizeHoaDetails(data.hoaDetails),
+    foreignAmountUSD: sanitizeNumber(data.foreignAmountUSD) ?? null,
   };
 }
 
@@ -550,6 +825,38 @@ const wait = (ms: number) =>
     setTimeout(resolve, ms);
   });
 
+function isGemini5xxError(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    /Gemini request failed with 5\d\d/i.test(error.message)
+  );
+}
+
+async function callGeminiWithRetry<T>(
+  fn: () => Promise<T>,
+  log: Logger,
+  delays = [2000, 4000]
+): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= delays.length; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      if (!isGemini5xxError(error) || attempt === delays.length) {
+        throw error;
+      }
+      log.warn("Gemini 5xx error, retrying", {
+        attempt: attempt + 1,
+        delayMs: delays[attempt],
+        error,
+      });
+      await wait(delays[attempt]);
+    }
+  }
+  throw lastError ?? new Error("Gemini request failed");
+}
+
 async function callOpenAIWithRetry(
   requestFactory: () => Promise<OpenAIResponse>,
   log: Logger,
@@ -569,7 +876,11 @@ async function callOpenAIWithRetry(
     } catch (error) {
       lastError = error;
       const durationMs = Date.now() - attemptStart;
-      if (attempt >= maxAttempts) {
+      // Don't retry quota/auth errors — they won't resolve on retry
+      const isNonRetryable =
+        error instanceof Error &&
+        /429|insufficient_quota|invalid_api_key|billing/i.test(error.message);
+      if (attempt >= maxAttempts || isNonRetryable) {
         log.error("OpenAI request failed after retries", {
           attempts: attempt,
           durationMs,
@@ -593,7 +904,8 @@ async function callOpenAIWithRetry(
 
 export async function parseBillingTextWithOpenAI(
   fullText: string,
-  scopedLogger: Logger = baseLogger
+  scopedLogger: Logger = baseLogger,
+  options: { model?: string } = {}
 ): Promise<BillingParseResult> {
   const log = scopedLogger;
   const trimmedText = fullText?.trim();
@@ -610,7 +922,7 @@ export async function parseBillingTextWithOpenAI(
     const { response, attempts } = await callOpenAIWithRetry(
       () =>
         client.responses.create({
-          model: "gpt-5-mini",
+          model: options.model ?? "gpt-5-mini",
           input: [
             {
               role: "system",
@@ -693,7 +1005,8 @@ export async function parsePdfWithOpenAI(
 export async function parseBillingImageWithOpenAI(
   imageBuffer: Buffer,
   mimeType: string,
-  scopedLogger: Logger = baseLogger
+  scopedLogger: Logger = baseLogger,
+  options: { model?: string } = {}
 ): Promise<BillingParseResult> {
   const log = scopedLogger;
   const parseStart = Date.now();
@@ -706,7 +1019,7 @@ export async function parseBillingImageWithOpenAI(
     const { response, attempts } = await callOpenAIWithRetry(
       () =>
         client.responses.create({
-          model: process.env.OPENAI_VISION_MODEL ?? process.env.OPENAI_MODEL ?? "gpt-4o-mini",
+          model: options.model ?? process.env.OPENAI_VISION_MODEL ?? process.env.OPENAI_MODEL ?? "gpt-4o-mini",
           input: [
             {
               role: "system",

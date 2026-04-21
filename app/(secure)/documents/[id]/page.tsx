@@ -321,6 +321,12 @@ export default function DocumentDetailPage() {
               value={formatCurrency(document.totalAmount ?? document.amount)}
             />
             <InfoItem label="Currency" value={document.currency ?? "ARS"} />
+            {document.foreignAmountUSD != null && (
+              <InfoItem
+                label="USD Charges"
+                value={`USD ${document.foreignAmountUSD.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+              />
+            )}
             <InfoItem
               label="Issue Date"
               value={formatDate(document.issueDate)}

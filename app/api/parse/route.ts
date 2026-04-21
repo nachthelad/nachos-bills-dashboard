@@ -25,6 +25,8 @@ import {
   extractPdfText,
   parseBillingImageWithOpenAI,
   parseBillingTextWithOpenAI,
+  parseBillingImageWithGemini,
+  parseBillingTextWithGemini,
   type BillingParseResult,
 } from "./parser";
 import { parseWithRules } from "./rules-parser";
@@ -207,11 +209,37 @@ export async function POST(request: NextRequest) {
         : "openai";
     try {
       if (imageMimeType && fileBuffer) {
-        parseResponse = await parseBillingImageWithOpenAI(
-          fileBuffer,
-          imageMimeType,
-          log
-        );
+        try {
+          parseResponse = await parseBillingImageWithOpenAI(
+            fileBuffer,
+            imageMimeType,
+            log
+          );
+        } catch (openAiError: any) {
+          log.warn("OpenAI image parse failed, falling back to Gemini", {
+            error: openAiError,
+          });
+          try {
+            parseResponse = await parseBillingImageWithGemini(
+              fileBuffer,
+              imageMimeType,
+              log
+            );
+          } catch (geminiError: any) {
+            const fallbackModel =
+              process.env.OPENAI_FALLBACK_MODEL ?? "gpt-4o";
+            log.warn(
+              "Gemini image parse failed after retries, trying fallback model",
+              { error: geminiError, model: fallbackModel }
+            );
+            parseResponse = await parseBillingImageWithOpenAI(
+              fileBuffer,
+              imageMimeType,
+              log,
+              { model: fallbackModel }
+            );
+          }
+        }
         fullText = parseResponse.text ?? "[image]";
         log.debug("Vision-based parsing completed", {
           mimeType: imageMimeType,
@@ -227,11 +255,32 @@ export async function POST(request: NextRequest) {
           hasDueDate: parseResponse.dueDate !== null,
         });
       } else {
-        parseResponse = await parseBillingTextWithOpenAI(fullText!, log);
+        try {
+          parseResponse = await parseBillingTextWithOpenAI(fullText!, log);
+        } catch (openAiError: any) {
+          log.warn("OpenAI text parse failed, falling back to Gemini", {
+            error: openAiError,
+          });
+          try {
+            parseResponse = await parseBillingTextWithGemini(fullText!, log);
+          } catch (geminiError: any) {
+            const fallbackModel =
+              process.env.OPENAI_FALLBACK_MODEL ?? "gpt-4o";
+            log.warn(
+              "Gemini text parse failed after retries, trying fallback model",
+              { error: geminiError, model: fallbackModel }
+            );
+            parseResponse = await parseBillingTextWithOpenAI(
+              fullText!,
+              log,
+              { model: fallbackModel }
+            );
+          }
+        }
       }
     } catch (error: any) {
       const parserDuration = performance.now() - parserStart;
-      log.error("PDF parsing error", {
+      log.error("All parsers failed", {
         error,
         documentId,
         durationMs: Number(parserDuration.toFixed(2)),
@@ -239,18 +288,16 @@ export async function POST(request: NextRequest) {
       await updateDocumentWithMetrics(
         docRef,
         {
-          status: "needs_review",
-          errorMessage: error.message ?? "Failed to parse PDF",
-          textExtract: fullText,
+          status: "parse_failed",
+          last_parser_error: error.message ?? "All parsers failed",
+          textExtract: fullText ?? null,
           updatedAt: new Date(),
         },
         log,
-        "parse_error_update"
+        "parse_failed_update"
       );
-      return NextResponse.json(
-        { error: "Failed to parse PDF" },
-        { status: 502 }
-      );
+      const failedDoc = await docRef.get();
+      return NextResponse.json({ id: failedDoc.id, ...failedDoc.data() });
     } finally {
       const parserDuration = performance.now() - parserStart;
       log.debug("Parser latency captured", {
@@ -289,6 +336,7 @@ export async function POST(request: NextRequest) {
         parseResponse.totalAmount ?? documentData?.totalAmount ?? null,
       amount: parseResponse.totalAmount ?? documentData?.amount ?? null,
       currency: parseResponse.currency ?? documentData?.currency ?? null,
+      foreignAmountUSD: parseResponse.foreignAmountUSD ?? null,
       status: parseResponse.text ? "parsed" : "needs_review",
       lastParsedAt: new Date(),
       errorMessage: null,

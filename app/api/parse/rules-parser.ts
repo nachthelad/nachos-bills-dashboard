@@ -120,9 +120,14 @@ function toLines(text: string): string[] {
   return text.split(/\r?\n/).map((l) => l.trim()).filter((l) => l.length > 0);
 }
 
-// Combine line[i] with line[i+1] to handle labels and values on separate lines
-function windowOf(lines: string[], i: number): string {
-  return i + 1 < lines.length ? `${lines[i]} ${lines[i + 1]}` : lines[i];
+// Combine line[i] with up to `count` subsequent lines to handle labels and
+// values split across multiple lines (e.g. ABL bills: keyword / date / amount).
+function windowOf(lines: string[], i: number, count = 2): string {
+  const parts = [lines[i]];
+  for (let j = 1; j <= count && i + j < lines.length; j++) {
+    parts.push(lines[i + j]);
+  }
+  return parts.join(" ");
 }
 
 // --- Amount ---
@@ -131,6 +136,8 @@ const AMOUNT_SCORE: Array<{ re: RegExp; score: number }> = [
   { re: /total\s+a\s+pagar|importe\s+a\s+abonar/i, score: 10 },
   { re: /total\s+factura|total\s+general|importe\s+total/i, score: 8 },
   { re: /total\s+liquidaci[oó]n|total\s+consumo/i, score: 7 },
+  // ABL/AGIP bills use "1° VTO." (first due) as the payable amount
+  { re: /1[°º\s]*vto\b/i, score: 8 },
   { re: /total|importe/i, score: 5 },
   { re: /cuota\s+mensual|cuota/i, score: 3 },
 ];
@@ -178,10 +185,15 @@ function extractAmount(text: string): number | null {
       const before = source.slice(0, m.index!);
       const hasCurrencyPrefix = /\$\s*$/.test(before);
       const hasDecimalSuffix = /[.,]\d{2}$/.test(m[1]);
+      // Amounts that immediately follow a date (e.g. "21/04/2026 $ 20,763.86")
+      // are due-date amounts — prefer them over preceding property valuations.
+      const hasDateBeforeCurrency =
+        /\d{1,2}\/\d{1,2}\/\d{2,4}\s*\$\s*$/.test(before);
       const prec =
         lineScore +
         (hasCurrencyPrefix ? 100 : 0) +
-        (hasDecimalSuffix ? 50 : 0);
+        (hasDecimalSuffix ? 50 : 0) +
+        (hasDateBeforeCurrency ? 20 : 0);
 
       candidates.push({ amount: n, prec, lineIdx: i, matchPos: m.index! });
     }
@@ -230,14 +242,26 @@ function extractDueDate(text: string): string | null {
     // Detect "1° Venc", "1 ° Venc" (pdf2json spaces around °), "1er", "Primer"
     // by inspecting the ~25 chars that immediately precede the keyword.
     const before = text.slice(Math.max(0, m.index - 25), m.index);
-    const isFirstDue = /\b1\W{0,5}$|\bprimer|primero|\b1er\b/i.test(before);
+    const isFirstDue = /\b1\W{0,8}$|\bprimer|primero|\b1er\b|\b1ro\b/i.test(before);
     if (isFirstDue && !firstDue) firstDue = date;
 
     // Keep the highest-scored candidate; ties → first occurrence wins.
     if (!best || score > best.score) best = { date, score };
   }
 
-  return firstDue ?? best?.date ?? null;
+  if (firstDue ?? best?.date) return firstDue ?? best!.date;
+
+  // Fallback for bills where "vencimiento/VTO" keywords are absent from the
+  // extracted text (e.g. ABL/AGIP via pdf2json): find the first [date] $ pattern —
+  // the amount that immediately follows a date is always a due-date amount.
+  const dateDollarRe = new RegExp(`${DATE_PAT}\\s*\\$`, "g");
+  const dm = dateDollarRe.exec(text);
+  if (dm) {
+    const date = toISODate(dm[1], dm[2], dm[3]);
+    if (isValidBillDate(date)) return date;
+  }
+
+  return null;
 }
 
 // --- Issue date ---
@@ -258,7 +282,7 @@ function extractIssueDate(text: string): string | null {
 
 // --- Period ---
 
-const PERIOD_RE = /per[íi]odo|periodo|liquidaci[oó]n|facturaci[oó]n/i;
+const PERIOD_RE = /per[íi]odo|periodo|liquidaci[oó]n|facturaci[oó]n|\bcuota\b/i;
 
 function extractPeriod(text: string): {
   periodStart: string | null;
