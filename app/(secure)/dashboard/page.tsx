@@ -6,14 +6,6 @@
  * - Income: incomeEntries collection filtered by userId for the current year to drive cards + right-hand breakdown.
  * - Cards: Total Expenses (year), Total Income (year), Net = income - expenses, This Month (expenses in current month).
  * - Expenses Breakdown: yearly totals grouped by provider category mapping (electricity/water/etc).
-"use client"
-
-/**
- * Dashboard summary:
- * - Expenses: documents collection filtered by userId, statuses parsed/needs_review, using totalAmount + due/issue dates.
- * - Income: incomeEntries collection filtered by userId for the current year to drive cards + right-hand breakdown.
- * - Cards: Total Expenses (year), Total Income (year), Net = income - expenses, This Month (expenses in current month).
- * - Expenses Breakdown: yearly totals grouped by provider category mapping (electricity/water/etc).
  * - Income Breakdown: yearly totals grouped by source; includes quick form to add income (stored in incomeEntries).
  */
 
