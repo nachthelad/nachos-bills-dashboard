@@ -8,6 +8,7 @@ export type ExpenseEntry = {
   paymentMethod: "Débito" | "Crédito" | "Efectivo" | "Transferencia";
   category: string;
   currency: string;
+  arsRate: number | null;
 };
 
 export const EXPENSE_CATEGORIES = [
@@ -49,6 +50,7 @@ export async function fetchExpenseEntries(
     paymentMethod: entry.paymentMethod ?? "Débito",
     category: entry.category ?? "Otros",
     currency: entry.currency ?? "ARS",
+    arsRate: typeof entry.arsRate === "number" ? entry.arsRate : null,
   }));
 }
 
@@ -61,6 +63,7 @@ export async function addExpenseEntry(
     paymentMethod: string;
     category: string;
     currency?: string;
+    arsRate?: number | null;
   }
 ): Promise<ExpenseEntry> {
   const response = await fetch("/api/expenses", {
@@ -76,6 +79,7 @@ export async function addExpenseEntry(
       paymentMethod: data.paymentMethod,
       category: data.category,
       currency: data.currency ?? "ARS",
+      arsRate: data.arsRate ?? null,
     }),
   });
 
@@ -93,6 +97,7 @@ export async function addExpenseEntry(
     paymentMethod: entry.paymentMethod ?? "Débito",
     category: entry.category ?? "Otros",
     currency: entry.currency ?? "ARS",
+    arsRate: typeof entry.arsRate === "number" ? entry.arsRate : null,
   };
 }
 
@@ -106,6 +111,7 @@ export async function updateExpenseEntry(
     paymentMethod: string;
     category: string;
     currency?: string;
+    arsRate?: number | null;
   }
 ): Promise<ExpenseEntry> {
   const response = await fetch(`/api/expenses/${id}`, {
@@ -121,6 +127,7 @@ export async function updateExpenseEntry(
       paymentMethod: data.paymentMethod,
       category: data.category,
       currency: data.currency ?? "ARS",
+      arsRate: data.arsRate ?? null,
     }),
   });
 
@@ -138,6 +145,7 @@ export async function updateExpenseEntry(
     paymentMethod: entry.paymentMethod ?? "Débito",
     category: entry.category ?? "Otros",
     currency: entry.currency ?? "ARS",
+    arsRate: typeof entry.arsRate === "number" ? entry.arsRate : null,
   };
 }
 

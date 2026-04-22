@@ -34,7 +34,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Search, Calendar, Pencil, Trash2, ShoppingCart } from "lucide-react";
-import { formatAmount } from "@/lib/format-currency";
+import { formatAmount, formatAmountWithUsd } from "@/lib/format-currency";
 import { AddExpenseModal } from "./add-expense-modal";
 
 interface MobileExpenseListProps {
@@ -140,7 +140,7 @@ export function MobileExpenseList({
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search expenses..."
+              placeholder="Buscar gastos..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-8"
@@ -152,7 +152,7 @@ export function MobileExpenseList({
                 <SelectValue placeholder="Month" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Months</SelectItem>
+                <SelectItem value="all">Todos los meses</SelectItem>
                 {availableMonths.map((ym) => (
                   <SelectItem key={ym} value={ym}>
                     {formatMonthOption(ym)}
@@ -165,7 +165,7 @@ export function MobileExpenseList({
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
+                <SelectItem value="all">Todas las categorías</SelectItem>
                 {categories.map((c) => (
                   <SelectItem key={c} value={c}>
                     {c}
@@ -179,7 +179,7 @@ export function MobileExpenseList({
         <div className="space-y-3">
           {filteredEntries.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground border rounded-lg border-dashed">
-              No expense entries found.
+              No se encontraron gastos.
             </div>
           ) : (
             filteredEntries.map((entry) => (
@@ -239,7 +239,16 @@ export function MobileExpenseList({
                           : "text-foreground"
                       }`}
                     >
-                      {formatAmount(entry.amount, entry.currency ?? "ARS", showAmounts)}
+                      {entry.currency === "USD" && entry.arsRate == null ? (
+                        <span className="flex items-center gap-1.5">
+                          {formatAmount(entry.amount, "USD", showAmounts)}
+                          <Badge variant="outline" className="text-xs font-normal">
+                            Sin convertir
+                          </Badge>
+                        </span>
+                      ) : (
+                        formatAmountWithUsd(entry.amount, entry.currency ?? "ARS", entry.arsRate, showAmounts)
+                      )}
                     </div>
                   </div>
                   <div className="flex gap-2">
@@ -283,22 +292,21 @@ export function MobileExpenseList({
       >
         <AlertDialogContent className="bg-card border-border text-foreground">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete expense</AlertDialogTitle>
+            <AlertDialogTitle>¿Eliminar gasto?</AlertDialogTitle>
             <AlertDialogDescription className="text-muted-foreground">
-              Are you sure you want to delete this expense? This action cannot
-              be undone.
+              Esta acción no se puede deshacer.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleteLoading}>
-              Cancel
+              Cancelar
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               disabled={deleteLoading}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {deleteLoading ? "Deleting..." : "Delete"}
+              {deleteLoading ? "Eliminando..." : "Eliminar"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

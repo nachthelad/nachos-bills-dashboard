@@ -12,7 +12,7 @@ const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "TOLVA",
-  description: "Manage your recurring bills with ease",
+  description: "Gestioná tus finanzas personales",
   generator: "nachthelad.com.ar",
   manifest: "/manifest.json",
   appleWebApp: {
@@ -54,7 +54,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="es">
       <body className={`font-sans antialiased`}>
         <AuthProvider>
           <AuthSessionSync />

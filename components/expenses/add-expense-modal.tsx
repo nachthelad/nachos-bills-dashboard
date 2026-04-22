@@ -42,6 +42,7 @@ const emptyForm = {
   description: "",
   amount: "",
   currency: "ARS",
+  arsRate: "",
   paymentMethod: "Débito",
   category: "Compra",
 };
@@ -61,6 +62,7 @@ export function AddExpenseModal({
   const [addingCategory, setAddingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [addCategoryLoading, setAddCategoryLoading] = useState(false);
+  const [arsRateLoading, setArsRateLoading] = useState(false);
   const descriptionRef = useRef<HTMLInputElement>(null);
 
   const categories = categoriesProp ?? [...EXPENSE_CATEGORIES];
@@ -76,6 +78,7 @@ export function AddExpenseModal({
           description: editEntry.description,
           amount: String(editEntry.amount),
           currency: editEntry.currency ?? "ARS",
+          arsRate: editEntry.arsRate != null ? String(editEntry.arsRate) : "",
           paymentMethod: editEntry.paymentMethod,
           category: editEntry.category,
         }
@@ -93,9 +96,35 @@ export function AddExpenseModal({
         description: editEntry.description,
         amount: String(editEntry.amount),
         currency: editEntry.currency ?? "ARS",
+        arsRate: editEntry.arsRate != null ? String(editEntry.arsRate) : "",
         paymentMethod: editEntry.paymentMethod,
         category: editEntry.category,
       });
+    }
+  };
+
+  const handleCurrencyChange = async (value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      currency: value,
+      ...(value === "ARS" ? { arsRate: "" } : {}),
+    }));
+    if (value === "USD") {
+      setArsRateLoading(true);
+      try {
+        const res = await fetch("/api/binance-rate");
+        if (res.ok) {
+          const data = await res.json();
+          setFormData((prev) => ({
+            ...prev,
+            arsRate: prev.arsRate || String(data.price),
+          }));
+        }
+      } catch {
+        // leave empty — user enters manually
+      } finally {
+        setArsRateLoading(false);
+      }
     }
   };
 
@@ -126,6 +155,10 @@ export function AddExpenseModal({
         description: formData.description,
         amount: Number.parseFloat(formData.amount),
         currency: formData.currency,
+        arsRate:
+          formData.currency === "USD" && formData.arsRate
+            ? Number.parseFloat(formData.arsRate)
+            : null,
         paymentMethod: formData.paymentMethod,
         category: formData.category,
       };
@@ -162,17 +195,17 @@ export function AddExpenseModal({
   const content = (
     <DialogContent className="sm:max-w-[425px] bg-card border-border text-foreground">
       <DialogHeader>
-        <DialogTitle>{editEntry ? "Edit Expense" : "Add Expense"}</DialogTitle>
+        <DialogTitle>{editEntry ? "Editar gasto" : "Agregar gasto"}</DialogTitle>
         <DialogDescription className="text-muted-foreground">
           {editEntry
-            ? "Update the expense details."
-            : "Record a new daily expense."}
+            ? "Actualizá los datos del gasto."
+            : "Registrá un nuevo gasto diario."}
         </DialogDescription>
       </DialogHeader>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="exp-date" className="text-foreground">
-            Date
+            Fecha
           </Label>
           <Input
             id="exp-date"
@@ -185,13 +218,13 @@ export function AddExpenseModal({
         </div>
         <div className="space-y-2">
           <Label htmlFor="exp-description" className="text-foreground">
-            Description
+            Descripción
           </Label>
           <Input
             id="exp-description"
             ref={descriptionRef}
             type="text"
-            placeholder="e.g. Carrefour, Supermarket, etc."
+            placeholder="p.ej. Carrefour, Supermercado, etc."
             value={formData.description}
             onChange={(e) =>
               setFormData({ ...formData, description: e.target.value })
@@ -202,13 +235,11 @@ export function AddExpenseModal({
         </div>
         <div className="space-y-2">
           <Label htmlFor="exp-currency" className="text-foreground">
-            Currency
+            Moneda
           </Label>
           <Select
             value={formData.currency}
-            onValueChange={(value) =>
-              setFormData({ ...formData, currency: value })
-            }
+            onValueChange={handleCurrencyChange}
           >
             <SelectTrigger id="exp-currency" className="bg-background border-border text-foreground">
               <SelectValue />
@@ -221,7 +252,7 @@ export function AddExpenseModal({
         </div>
         <div className="space-y-2">
           <Label htmlFor="exp-amount" className="text-foreground">
-            Amount ({formData.currency})
+            Monto ({formData.currency})
           </Label>
           <Input
             id="exp-amount"
@@ -236,9 +267,32 @@ export function AddExpenseModal({
             required
           />
         </div>
+        {formData.currency === "USD" && (
+          <div className="space-y-2">
+            <Label htmlFor="exp-ars-rate" className="text-foreground">
+              Cotización (ARS/USD)
+            </Label>
+            {arsRateLoading ? (
+              <div className="h-9 rounded-md border border-border bg-background animate-pulse" />
+            ) : (
+              <Input
+                id="exp-ars-rate"
+                type="number"
+                inputMode="decimal"
+                step="0.01"
+                placeholder="Ej: 1450.00"
+                value={formData.arsRate}
+                onChange={(e) =>
+                  setFormData({ ...formData, arsRate: e.target.value })
+                }
+                className="bg-background border-border text-foreground placeholder:text-muted-foreground"
+              />
+            )}
+          </div>
+        )}
         <div className="space-y-2">
           <Label htmlFor="exp-payment-method" className="text-foreground">
-            Payment method
+            Método de pago
           </Label>
           <div
             id="exp-payment-method"
@@ -249,7 +303,7 @@ export function AddExpenseModal({
         </div>
         <div className="space-y-2">
           <Label htmlFor="exp-category" className="text-foreground">
-            Category
+            Categoría
           </Label>
           <Select
             value={formData.category}
@@ -265,7 +319,7 @@ export function AddExpenseModal({
               id="exp-category"
               className="bg-background border-border text-foreground"
             >
-              <SelectValue placeholder="Select category" />
+              <SelectValue placeholder="Seleccionar categoría" />
             </SelectTrigger>
             <SelectContent className="bg-popover border-border text-popover-foreground">
               {categories.map((c) => (
@@ -276,7 +330,7 @@ export function AddExpenseModal({
               <SelectItem value="__new__" className="text-emerald-400">
                 <span className="flex items-center gap-1.5">
                   <Plus className="h-3.5 w-3.5" />
-                  New category...
+                  Nueva categoría...
                 </span>
               </SelectItem>
             </SelectContent>
@@ -285,7 +339,7 @@ export function AddExpenseModal({
             <div className="flex gap-2 items-center">
               <Input
                 autoFocus
-                placeholder="Category name"
+                placeholder="Nombre de la categoría"
                 value={newCategoryName}
                 onChange={(e) => setNewCategoryName(e.target.value)}
                 onKeyDown={(e) => {
@@ -335,7 +389,7 @@ export function AddExpenseModal({
             variant="outline"
             onClick={() => setOpen(false)}
           >
-            Cancel
+            Cancelar
           </Button>
           <div className="flex gap-2">
             {!editEntry && (
@@ -345,7 +399,7 @@ export function AddExpenseModal({
                 disabled={loading}
                 onClick={() => saveExpense(true)}
               >
-                Save & add another
+                Guardar y agregar otro
               </Button>
             )}
             <Button
@@ -355,11 +409,11 @@ export function AddExpenseModal({
             >
               {loading
                 ? editEntry
-                  ? "Updating..."
-                  : "Saving..."
+                  ? "Actualizando..."
+                  : "Guardando..."
                 : editEntry
-                  ? "Update"
-                  : "Save"}
+                  ? "Actualizar"
+                  : "Guardar"}
             </Button>
           </div>
         </div>
@@ -380,7 +434,7 @@ export function AddExpenseModal({
       <DialogTrigger asChild>
         <Button className="bg-emerald-500 text-slate-900 hover:bg-emerald-400">
           <Plus className="w-4 h-4 mr-2" />
-          Add Expense
+          Agregar gasto
         </Button>
       </DialogTrigger>
       {content}

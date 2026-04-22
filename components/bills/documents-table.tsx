@@ -185,7 +185,7 @@ export function DocumentsTable({
         <div className="relative flex-1">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search documents..."
+            placeholder="Buscar documentos..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-8"
@@ -196,7 +196,7 @@ export function DocumentsTable({
             <SelectValue placeholder="Category" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Categories</SelectItem>
+            <SelectItem value="all">Todas las categorías</SelectItem>
             {CATEGORY_OPTIONS.map((option) => (
               <SelectItem key={option.value} value={option.value}>
                 {option.label}
@@ -209,12 +209,12 @@ export function DocumentsTable({
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem value="parsed">Parsed</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="needs_review">Needs Review</SelectItem>
+            <SelectItem value="all">Todos los estados</SelectItem>
+            <SelectItem value="parsed">Procesado</SelectItem>
+            <SelectItem value="pending">Pendiente</SelectItem>
+            <SelectItem value="needs_review">Requiere revisión</SelectItem>
             <SelectItem value="error">Error</SelectItem>
-            <SelectItem value="paid">Paid</SelectItem>
+            <SelectItem value="paid">Pagado</SelectItem>
           </SelectContent>
         </Select>
         <Button
@@ -223,7 +223,7 @@ export function DocumentsTable({
           disabled={filteredDocuments.every((doc) => doc.status === "paid")}
           title="Mark all visible documents as paid"
         >
-          Mark All Paid
+          Marcar todo como pagado
         </Button>
       </div>
 
@@ -231,14 +231,14 @@ export function DocumentsTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Provider / File</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Upload Date</TableHead>
-              <TableHead>Due Date</TableHead>
-              <TableHead className="text-right">Amount</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-center w-[100px]">Paid?</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead>Proveedor / Archivo</TableHead>
+              <TableHead>Categoría</TableHead>
+              <TableHead>Fecha de carga</TableHead>
+              <TableHead>Vencimiento</TableHead>
+              <TableHead className="text-right">Monto</TableHead>
+              <TableHead>Estado</TableHead>
+              <TableHead className="text-center w-[100px]">¿Pagado?</TableHead>
+              <TableHead className="text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -248,7 +248,7 @@ export function DocumentsTable({
                   colSpan={8}
                   className="h-24 text-center text-muted-foreground"
                 >
-                  No documents found.
+                  No se encontraron documentos.
                 </TableCell>
               </TableRow>
             ) : (
@@ -285,7 +285,7 @@ export function DocumentsTable({
                         variant="outline"
                         className={statusStyles[doc.status]}
                       >
-                        {doc.status === "needs_review" ? "Review" : doc.status}
+                        {doc.status === "needs_review" ? "Requiere revisión" : doc.status === "parsed" ? "Procesado" : doc.status === "pending" ? "Pendiente" : doc.status === "paid" ? "Pagado" : doc.status}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-center">
@@ -361,11 +361,11 @@ export function DocumentsTable({
         <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm p-4">
           <div className="w-full max-w-md rounded-xl border border-border bg-background p-6 space-y-4 shadow-lg">
             <h3 className="text-xl font-semibold text-foreground">
-              Delete document?
+              ¿Eliminar documento?
             </h3>
             <p className="text-sm text-muted-foreground">
-              This action will remove the bill and its parsing history. You
-              can’t undo this operation.
+              Esta acción eliminará la factura y su historial de procesamiento.
+              No podés deshacer esta operación.
             </p>
             <div className="flex justify-end gap-3">
               <Button
@@ -373,14 +373,14 @@ export function DocumentsTable({
                 onClick={() => setDeleteDialogOpen(false)}
                 disabled={isDeleting}
               >
-                Cancel
+                Cancelar
               </Button>
               <Button
                 variant="destructive"
                 onClick={handleDelete}
                 disabled={isDeleting}
               >
-                {isDeleting ? "Deleting..." : "Delete"}
+                {isDeleting ? "Eliminando..." : "Eliminar"}
               </Button>
             </div>
           </div>
@@ -391,12 +391,12 @@ export function DocumentsTable({
         <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm p-4">
           <div className="w-full max-w-md rounded-xl border border-border bg-background p-6 space-y-4 shadow-lg">
             <h3 className="text-xl font-semibold text-foreground">
-              Mark all as paid?
+              ¿Marcar todo como pagado?
             </h3>
             <p className="text-sm text-muted-foreground">
-              Are you sure you want to mark{" "}
+              ¿Confirmás marcar{" "}
               {filteredDocuments.filter((doc) => doc.status !== "paid").length}{" "}
-              documents as paid?
+              documentos como pagados?
             </p>
             <div className="flex justify-end gap-3">
               <Button
@@ -404,10 +404,10 @@ export function DocumentsTable({
                 onClick={() => setMarkAllDialogOpen(false)}
                 disabled={isMarkingAll}
               >
-                Cancel
+                Cancelar
               </Button>
               <Button onClick={confirmMarkAll} disabled={isMarkingAll}>
-                {isMarkingAll ? "Processing..." : "Confirm"}
+                {isMarkingAll ? "Procesando..." : "Confirmar"}
               </Button>
             </div>
           </div>

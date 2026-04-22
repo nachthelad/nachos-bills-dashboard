@@ -63,7 +63,7 @@ export default function IncomePage() {
   if (loading && entries.length === 0) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="text-muted-foreground">Loading income...</div>
+        <div className="text-muted-foreground">Cargando ingresos...</div>
       </div>
     );
   }
@@ -73,15 +73,15 @@ export default function IncomePage() {
       <div className="flex flex-col gap-2">
         <div>
           <p className="text-sm uppercase tracking-wide text-muted-foreground">
-            Finance
+            Finanzas
           </p>
           <div className="flex items-center gap-2">
-            <h1 className="text-3xl font-bold">Income</h1>
+            <h1 className="text-3xl font-bold">Ingresos</h1>
             <AmountVisibilityToggle />
           </div>
         </div>
         <p className="text-muted-foreground">
-          Track and manage your income sources.
+          Rastreá y gestioná tus fuentes de ingresos.
         </p>
       </div>
 
@@ -90,7 +90,7 @@ export default function IncomePage() {
           <CardContent className="pt-6">
             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
               <TrendingUp className="w-4 h-4 text-emerald-500" />
-              Total Income (YTD)
+              Ingresos Totales (YTD)
             </div>
             <div className="text-3xl font-bold text-emerald-500">
               {formatCurrency(totalIncome)}
@@ -101,7 +101,7 @@ export default function IncomePage() {
           <CardContent className="pt-6">
             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
               <TrendingUp className="w-4 h-4 text-emerald-500" />
-              This Month
+              Este mes
             </div>
             <div className="text-3xl font-bold text-emerald-500">
               {formatCurrency(monthlyIncome)}
@@ -130,7 +130,7 @@ export default function IncomePage() {
 
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold">Income Entries</h2>
+          <h2 className="text-xl font-semibold">Entradas de ingresos</h2>
           <AddIncomeModal onSuccess={loadEntries} />
         </div>
         <div className="hidden md:block">

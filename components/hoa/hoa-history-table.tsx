@@ -93,7 +93,7 @@ export function HoaHistoryTable({ summaries, showAmounts }: HoaHistoryTableProps
   if (summaries.length === 0) {
     return (
       <div className="text-center py-16 text-muted-foreground border rounded-lg border-dashed">
-        No history available yet.
+        Sin historial disponible todavía.
       </div>
     );
   }
@@ -113,10 +113,10 @@ export function HoaHistoryTable({ summaries, showAmounts }: HoaHistoryTableProps
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold">
-            Details by {sortBy === "category" ? "category" : "difference"}
+            Detalles por {sortBy === "category" ? "categoría" : "diferencia"}
           </h3>
           <p className="text-sm text-muted-foreground">
-            {orderedSummaries.length} period{orderedSummaries.length !== 1 ? "s" : ""} recorded.
+            {orderedSummaries.length} período{orderedSummaries.length !== 1 ? "s" : ""} registrado{orderedSummaries.length !== 1 ? "s" : ""}.
           </p>
         </div>
         {rubroKeyOrder.length > 0 && (
@@ -127,7 +127,7 @@ export function HoaHistoryTable({ summaries, showAmounts }: HoaHistoryTableProps
             className="gap-2"
           >
             <ArrowUpDown className="h-4 w-4" />
-            Sort by {sortBy === "category" ? "Difference" : "Category"}
+            Ordenar por {sortBy === "category" ? "Diferencia" : "Categoría"}
           </Button>
         )}
       </div>
@@ -137,7 +137,7 @@ export function HoaHistoryTable({ summaries, showAmounts }: HoaHistoryTableProps
           <TableHeader>
             <TableRow>
               <TableHead className="sticky left-0 bg-card z-10 min-w-[180px]">
-                Category
+                Categoría
               </TableHead>
               {orderedSummaries.map((s) => (
                 <TableHead
@@ -162,7 +162,7 @@ export function HoaHistoryTable({ summaries, showAmounts }: HoaHistoryTableProps
                     </div>
                     {rubroNum !== null && rubroNum !== undefined && (
                       <div className="text-xs text-muted-foreground">
-                        Category {rubroNum}
+                        Categoría {rubroNum}
                       </div>
                     )}
                   </TableCell>

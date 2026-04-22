@@ -123,7 +123,7 @@ export default function DocumentsPage() {
   if (loadingDocs && documents.length === 0) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="text-muted-foreground">Loading documents...</div>
+        <div className="text-muted-foreground">Cargando documentos...</div>
       </div>
     );
   }
@@ -143,9 +143,9 @@ export default function DocumentsPage() {
               <Upload className="w-10 h-10 text-primary" />
             </div>
             <h3 className="text-2xl font-bold text-foreground">
-              Drop file to upload
+              Soltá el archivo para cargar
             </h3>
-            <p className="text-muted-foreground">PDF, PNG, JPG supported</p>
+            <p className="text-muted-foreground">Formatos soportados: PDF, PNG, JPG</p>
           </div>
         </div>
       )}
@@ -155,10 +155,10 @@ export default function DocumentsPage() {
         <div className="flex flex-col gap-2">
           <div>
             <p className="text-sm uppercase tracking-wide text-muted-foreground">
-              Library
+              Biblioteca
             </p>
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-3xl font-bold mr-auto">Documents</h1>
+              <h1 className="text-3xl font-bold mr-auto">Documentos</h1>
               <AmountVisibilityToggle />
 
               <div className="flex items-center gap-2">
@@ -181,7 +181,7 @@ export default function DocumentsPage() {
                   ) : (
                     <Upload className="w-4 h-4" />
                   )}
-                  Upload File
+                  Cargar archivo
                 </Button>
 
                 <Button
@@ -193,15 +193,15 @@ export default function DocumentsPage() {
                 >
                   <Link href="/upload">
                     <Plus className="w-4 h-4" />
-                    Add manually
+                    Agregar manualmente
                   </Link>
                 </Button>
               </div>
             </div>
           </div>
           <p className="text-muted-foreground">
-            View and manage your uploaded bills. Drag and drop files anywhere on
-            this page to upload.
+            Ver y gestionar tus facturas cargadas. Arrastrá y soltá archivos en
+            cualquier lugar de esta página para cargar.
           </p>
         </div>
 
@@ -219,7 +219,7 @@ export default function DocumentsPage() {
               <div className="flex-1 space-y-1">
                 <div className="flex justify-between text-sm font-medium">
                   <span>
-                    {isUploading ? "Uploading file..." : "Upload failed"}
+                    {isUploading ? "Cargando archivo..." : "Error al cargar"}
                   </span>
                   {isUploading && <span>{progress}%</span>}
                 </div>
@@ -231,7 +231,7 @@ export default function DocumentsPage() {
               </div>
               {!isUploading && (
                 <Button variant="ghost" size="sm" onClick={reset}>
-                  Dismiss
+                  Descartar
                 </Button>
               )}
             </div>
