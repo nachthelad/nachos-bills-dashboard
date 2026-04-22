@@ -45,7 +45,14 @@ export function ExpenseCategoryChart({
     filtered
       .filter((e) => e.amount > 0)
       .forEach((e) => {
-        totals[e.category] = (totals[e.category] ?? 0) + e.amount;
+        const arsAmount =
+          e.currency === "USD"
+            ? e.arsRate != null
+              ? e.amount * e.arsRate
+              : null
+            : e.amount;
+        if (arsAmount == null) return;
+        totals[e.category] = (totals[e.category] ?? 0) + arsAmount;
       });
 
     return Object.entries(totals)

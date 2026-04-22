@@ -86,11 +86,21 @@ export default function ExpensesPage() {
   const filterYear = monthFilter === "all" ? currentYear : parseInt(monthFilter.split("-")[0]);
   const filterMonth = monthFilter === "all" ? currentMonth : parseInt(monthFilter.split("-")[1]) - 1;
 
+  const toArs = (e: ExpenseEntry): number | null => {
+    if (e.currency === "USD") {
+      return e.arsRate != null ? e.amount * e.arsRate : null;
+    }
+    return e.amount;
+  };
+
   const ytdTotal = useMemo(
     () =>
       entries
         .filter((e) => e.date.getFullYear() === filterYear && e.amount > 0)
-        .reduce((sum, e) => sum + e.amount, 0),
+        .reduce((sum, e) => {
+          const ars = toArs(e);
+          return ars != null ? sum + ars : sum;
+        }, 0),
     [entries, filterYear]
   );
 
@@ -105,7 +115,12 @@ export default function ExpensesPage() {
 
   const monthTotal = useMemo(
     () =>
-      monthEntries.filter((e) => e.amount > 0).reduce((sum, e) => sum + e.amount, 0),
+      monthEntries
+        .filter((e) => e.amount > 0)
+        .reduce((sum, e) => {
+          const ars = toArs(e);
+          return ars != null ? sum + ars : sum;
+        }, 0),
     [monthEntries]
   );
 
