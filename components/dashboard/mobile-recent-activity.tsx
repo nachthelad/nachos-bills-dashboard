@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ArrowDownLeft, ArrowUpRight, Calendar } from "lucide-react";
 import type { ActivityItem } from "./recent-activity";
+import { formatDate } from "@/lib/utils";
 
 interface MobileRecentActivityProps {
   items: ActivityItem[];
@@ -22,13 +23,6 @@ export function MobileRecentActivity({
       currency: "ARS",
       maximumFractionDigits: 0,
     }).format(amount);
-  };
-
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat("es-AR", {
-      day: "numeric",
-      month: "short",
-    }).format(date);
   };
 
   return (

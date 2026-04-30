@@ -37,6 +37,7 @@ import {
 import { Search, Pencil, Trash2 } from "lucide-react";
 import { formatAmount, formatAmountWithUsd } from "@/lib/format-currency";
 import { AddExpenseModal } from "./add-expense-modal";
+import { formatDate } from "@/lib/utils";
 
 interface ExpenseTableProps {
   entries: ExpenseEntry[];
@@ -100,15 +101,6 @@ export function ExpenseTable({
 
     return matchesSearch && matchesMonth && matchesCategory;
   });
-
-
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat("es-AR", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    }).format(date);
-  };
 
   const formatMonthOption = (ym: string) => {
     const [year, month] = ym.split("-");
@@ -180,7 +172,6 @@ export function ExpenseTable({
                 <TableHead>Fecha</TableHead>
                 <TableHead>Descripción</TableHead>
                 <TableHead className="text-right">Monto</TableHead>
-                <TableHead>Método de pago</TableHead>
                 <TableHead>Categoría</TableHead>
                 <TableHead className="w-[80px]" />
               </TableRow>
@@ -189,7 +180,7 @@ export function ExpenseTable({
               {filteredEntries.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={6}
+                    colSpan={5}
                     className="h-24 text-center text-muted-foreground"
                   >
                     No se encontraron gastos.
@@ -221,9 +212,6 @@ export function ExpenseTable({
                       ) : (
                         formatAmountWithUsd(entry.amount, entry.currency ?? "ARS", entry.arsRate, showAmounts)
                       )}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {entry.paymentMethod}
                     </TableCell>
                     <TableCell>
                       <Badge

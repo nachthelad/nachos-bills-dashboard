@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Search, TrendingUp, Trash2 } from "lucide-react";
 import { formatAmount } from "@/lib/format-currency";
+import { formatDate } from "@/lib/utils";
 
 interface IncomeTableProps {
   entries: IncomeEntry[];
@@ -69,15 +70,6 @@ export function IncomeTable({ entries, showAmounts, onRefresh }: IncomeTableProp
       sourceFilter === "all" || entry.source === sourceFilter;
     return matchesSearch && matchesSource;
   });
-
-
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat("es-AR", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    }).format(date);
-  };
 
   const sources = Array.from(new Set(entries.map((e) => e.source)));
 
