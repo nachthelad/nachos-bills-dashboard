@@ -11,6 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ArrowDownLeft, ArrowUpRight } from "lucide-react";
+import { formatDate } from "@/lib/utils";
 
 export interface ActivityItem {
   id: string;
@@ -36,13 +37,6 @@ export function RecentActivity({ items, showAmounts }: RecentActivityProps) {
       currency: "ARS",
       maximumFractionDigits: 0,
     }).format(amount);
-  };
-
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat("es-AR", {
-      day: "numeric",
-      month: "short",
-    }).format(date);
   };
 
   return (

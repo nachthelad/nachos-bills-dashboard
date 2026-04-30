@@ -38,6 +38,7 @@ import { toggleBillStatus } from "@/lib/billing-actions";
 import { CATEGORY_OPTIONS } from "@/config/billing/categories";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
+import { formatDate } from "@/lib/utils";
 
 interface DocumentsTableProps {
   documents: BillDocument[];
