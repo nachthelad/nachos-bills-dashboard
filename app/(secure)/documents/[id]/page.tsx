@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { ChevronLeft, Trash2 } from "lucide-react";
 import { CATEGORY_OPTIONS } from "@/config/billing/categories";
+import { DatePickerPopover } from "@/components/ui/date-picker-popover";
 import {
   AmountVisibilityToggle,
   useAmountVisibility,
@@ -407,30 +408,28 @@ export default function DocumentDetailPage() {
               <label className="text-sm font-medium block mb-2">
                 Fecha de emisión
               </label>
-              <input
-                type="date"
+              <DatePickerPopover
                 value={(formData.issueDate as string) || ""}
-                onChange={(e) =>
+                onChange={(value) =>
                   setFormData((prev) => ({
                     ...prev,
-                    issueDate: e.target.value,
+                    issueDate: value,
                   }))
                 }
                 disabled={!editing}
-                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground placeholder:text-muted-foreground disabled:opacity-60 disabled:bg-muted/20"
+                inputClassName="w-full border-border bg-background text-foreground placeholder:text-muted-foreground disabled:bg-muted/20"
               />
             </div>
 
             <div>
               <label className="text-sm font-medium block mb-2">Vencimiento</label>
-              <input
-                type="date"
+              <DatePickerPopover
                 value={(formData.dueDate as string) || ""}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, dueDate: e.target.value }))
+                onChange={(value) =>
+                  setFormData((prev) => ({ ...prev, dueDate: value }))
                 }
                 disabled={!editing}
-                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground placeholder:text-muted-foreground disabled:opacity-60 disabled:bg-muted/20"
+                inputClassName="w-full border-border bg-background text-foreground placeholder:text-muted-foreground disabled:bg-muted/20"
               />
             </div>
 
@@ -458,17 +457,16 @@ export default function DocumentDetailPage() {
               <label className="text-sm font-medium block mb-2">
                 Inicio del período
               </label>
-              <input
-                type="date"
+              <DatePickerPopover
                 value={(formData.periodStart as string) || ""}
-                onChange={(e) =>
+                onChange={(value) =>
                   setFormData((prev) => ({
                     ...prev,
-                    periodStart: e.target.value,
+                    periodStart: value,
                   }))
                 }
                 disabled={!editing}
-                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground placeholder:text-muted-foreground disabled:opacity-60 disabled:bg-muted/20"
+                inputClassName="w-full border-border bg-background text-foreground placeholder:text-muted-foreground disabled:bg-muted/20"
               />
             </div>
 
@@ -476,17 +474,16 @@ export default function DocumentDetailPage() {
               <label className="text-sm font-medium block mb-2">
                 Fin del período
               </label>
-              <input
-                type="date"
+              <DatePickerPopover
                 value={(formData.periodEnd as string) || ""}
-                onChange={(e) =>
+                onChange={(value) =>
                   setFormData((prev) => ({
                     ...prev,
-                    periodEnd: e.target.value,
+                    periodEnd: value,
                   }))
                 }
                 disabled={!editing}
-                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground placeholder:text-muted-foreground disabled:opacity-60 disabled:bg-muted/20"
+                inputClassName="w-full border-border bg-background text-foreground placeholder:text-muted-foreground disabled:bg-muted/20"
               />
             </div>
           </div>

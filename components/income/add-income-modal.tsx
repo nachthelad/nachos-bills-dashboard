@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { addIncomeEntry } from "@/lib/income-client";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Calendar as CalendarIcon } from "lucide-react";
+import { Plus } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -31,22 +31,22 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { cn, formatDate } from "@/lib/utils";
-import * as Popover from "@radix-ui/react-popover";
-import { DayPicker } from "react-day-picker";
-import { es } from "date-fns/locale";
+import { DatePickerPopover } from "@/components/ui/date-picker-popover";
+import { getLocalTodayIso, isoToDate } from "@/lib/date-picker";
 
 interface AddIncomeModalProps {
   onSuccess: () => void;
 }
 
-const emptyForm = {
-  name: "",
-  source: "Salary",
-  amount: "",
-  currency: "ARS",
-  date: new Date().toISOString().split("T")[0],
-};
+function createEmptyForm() {
+  return {
+    name: "",
+    source: "Salary",
+    amount: "",
+    currency: "ARS",
+    date: getLocalTodayIso(),
+  };
+}
 
 export function AddIncomeModal({ onSuccess }: AddIncomeModalProps) {
   const { user } = useAuth();
@@ -54,14 +54,14 @@ export function AddIncomeModal({ onSuccess }: AddIncomeModalProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [formData, setFormData] = useState(emptyForm);
+  const [formData, setFormData] = useState(createEmptyForm);
   const nameRef = useRef<HTMLInputElement>(null);
 
   const handleOpenChange = (next: boolean) => {
     setOpen(next);
     if (!next) {
       setError(null);
-      setFormData(emptyForm);
+      setFormData(createEmptyForm());
     }
   };
 
@@ -78,6 +78,11 @@ export function AddIncomeModal({ onSuccess }: AddIncomeModalProps) {
       setError("El monto debe ser mayor a 0");
       return;
     }
+    const parsedDate = isoToDate(formData.date);
+    if (!parsedDate) {
+      setError("La fecha es obligatoria");
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -89,10 +94,10 @@ export function AddIncomeModal({ onSuccess }: AddIncomeModalProps) {
         amount: Number.parseFloat(formData.amount),
         source: formData.source,
         currency: formData.currency,
-        date: new Date(`${formData.date}T12:00:00Z`),
+        date: parsedDate,
       });
       setOpen(false);
-      setFormData(emptyForm);
+      setFormData(createEmptyForm());
       onSuccess();
     } catch (err) {
       console.error("Failed to add income:", err);
@@ -152,72 +157,14 @@ export function AddIncomeModal({ onSuccess }: AddIncomeModalProps) {
           <Label className="text-foreground font-medium">
             Fecha
           </Label>
-          <Popover.Root>
-            <Popover.Trigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  "w-full justify-start text-left font-normal h-11 sm:h-9 bg-background border-border",
-                  !formData.date && "text-muted-foreground"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {formData.date ? (
-                  formatDate(new Date(`${formData.date}T12:00:00Z`))
-                ) : (
-                  <span>Seleccionar fecha</span>
-                )}
-              </Button>
-            </Popover.Trigger>
-            <Popover.Portal>
-              <Popover.Content
-                className="z-50 rounded-md border bg-popover p-0 text-popover-foreground shadow-md outline-none animate-in fade-in-0 zoom-in-95"
-                align="start"
-                sideOffset={4}
-              >
-                <DayPicker
-                  mode="single"
-                  selected={new Date(`${formData.date}T12:00:00Z`)}
-                  onSelect={(date) => {
-                    if (date) {
-                      setFormData({
-                        ...formData,
-                        date: date.toISOString().split("T")[0],
-                      });
-                    }
-                  }}
-                locale={es}
-                className="p-3"
-                classNames={{
-                  months: "flex flex-col sm:flex-row gap-2",
-                  month: "flex flex-col gap-4",
-                  month_caption: "flex justify-center pt-2 relative items-center h-10",
-                  caption_label: "text-sm font-semibold text-white",
-                  nav: "flex items-center",
-                  button_previous: cn(
-                    "absolute left-1 size-7 bg-transparent p-0 opacity-90 hover:opacity-100 border border-border rounded-md flex items-center justify-center transition-opacity text-white z-10"
-                  ),
-                  button_next: cn(
-                    "absolute right-1 size-7 bg-transparent p-0 opacity-90 hover:opacity-100 border border-border rounded-md flex items-center justify-center transition-opacity text-white z-10"
-                  ),
-                  month_grid: "w-full border-collapse",
-                  weekdays: "flex w-full justify-between",
-                  weekday: "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem] text-center",
-                  weeks: "w-full",
-                  week: "flex w-full mt-2 justify-between",
-                  day: cn(
-                    "size-9 p-0 font-normal aria-selected:opacity-100 hover:bg-accent hover:text-accent-foreground rounded-md flex items-center justify-center transition-colors relative"
-                  ),
-                  selected: "bg-emerald-500 text-slate-900 hover:bg-emerald-500 hover:text-slate-900 focus:bg-emerald-500 focus:text-slate-900",
-                  today: "bg-accent text-accent-foreground",
-                  outside: "text-muted-foreground opacity-50",
-                  disabled: "text-muted-foreground opacity-50",
-                  hidden: "invisible",
-                }}
-              />
-              </Popover.Content>
-            </Popover.Portal>
-          </Popover.Root>
+          <DatePickerPopover
+            value={formData.date}
+            onChange={(value) =>
+              setFormData((prev) => ({ ...prev, date: value }))
+            }
+            className="w-full"
+            inputClassName="h-11 bg-background border-border sm:h-9"
+          />
         </div>
       </div>
       <div className="grid grid-cols-2 gap-4">
