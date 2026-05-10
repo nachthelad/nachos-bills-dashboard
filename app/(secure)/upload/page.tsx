@@ -2,11 +2,12 @@
 
 import type React from "react";
 
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useRouter } from "next/navigation";
 import type { BillDocument } from "@/lib/firestore-helpers";
 import { Button } from "@/components/ui/button";
+import { DatePickerPopover } from "@/components/ui/date-picker-popover";
 import { Input } from "@/components/ui/input";
 import { CATEGORY_OPTIONS } from "@/config/billing/categories";
 import Link from "next/link";
@@ -19,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { ChevronLeft } from "lucide-react";
 import { createApiClient, type CreateDocumentInput } from "@/lib/api-client";
+import { getLocalTodayIso } from "@/lib/date-picker";
 
 export default function UploadPage() {
   const { user } = useAuth();
@@ -52,7 +54,7 @@ export default function UploadPage() {
             ? `${
                 manualForm.provider?.trim() || manualForm.category?.trim()
               } (manual)`
-            : `Manual Bill ${new Date().toISOString().slice(0, 10)}`,
+            : `Manual Bill ${getLocalTodayIso()}`,
         storageUrl: null,
         provider: manualForm.provider?.trim() || null,
         category: manualForm.category || null,
@@ -141,33 +143,29 @@ export default function UploadPage() {
             }
             placeholder="ARS"
           />
-          <ManualInput
+          <ManualDateInput
             label="Fecha de vencimiento"
-            type="date"
             value={manualForm.dueDate ?? ""}
             onChange={(value) =>
               setManualForm((prev) => ({ ...prev, dueDate: value }))
             }
           />
-          <ManualInput
+          <ManualDateInput
             label="Fecha de emisión"
-            type="date"
             value={manualForm.issueDate ?? ""}
             onChange={(value) =>
               setManualForm((prev) => ({ ...prev, issueDate: value }))
             }
           />
-          <ManualInput
+          <ManualDateInput
             label="Inicio del período"
-            type="date"
             value={manualForm.periodStart ?? ""}
             onChange={(value) =>
               setManualForm((prev) => ({ ...prev, periodStart: value }))
             }
           />
-          <ManualInput
+          <ManualDateInput
             label="Fin del período"
-            type="date"
             value={manualForm.periodEnd ?? ""}
             onChange={(value) =>
               setManualForm((prev) => ({ ...prev, periodEnd: value }))
@@ -220,6 +218,28 @@ function ManualInput({
         placeholder={placeholder}
         size="lg"
         className="w-full border-slate-800 bg-slate-900/40 text-slate-100 placeholder:text-slate-500 focus:ring-2 focus:ring-emerald-500/50"
+      />
+    </div>
+  );
+}
+
+type ManualDateInputProps = {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+};
+
+function ManualDateInput({ label, value, onChange }: ManualDateInputProps) {
+  return (
+    <div>
+      <label className="text-sm font-medium block mb-2 text-slate-200">
+        {label}
+      </label>
+      <DatePickerPopover
+        value={value}
+        onChange={onChange}
+        inputClassName="w-full border-slate-800 bg-slate-900/40 text-slate-100 placeholder:text-slate-500 focus:ring-2 focus:ring-emerald-500/50"
+        buttonClassName="text-slate-400 hover:text-slate-100"
       />
     </div>
   );

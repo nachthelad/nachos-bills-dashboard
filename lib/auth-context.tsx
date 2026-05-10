@@ -51,6 +51,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     let unsubscribe: (() => void) | undefined;
+    let cancelled = false;
+    let resolvedInitialState = false;
+
+    const resolveAuthState = (currentUser: User | null) => {
+      if (cancelled) return;
+
+      setUser(currentUser);
+
+      if (!resolvedInitialState) {
+        resolvedInitialState = true;
+        setLoading(false);
+      }
+    };
 
     const initAuth = async () => {
       try {
@@ -61,7 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-        setUser(currentUser);
+        resolveAuthState(currentUser);
       });
 
       try {
@@ -70,13 +83,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (error) {
         console.error("Error waiting for auth state ready:", error);
       } finally {
-        setLoading(false);
+        if (!resolvedInitialState) {
+          resolveAuthState(auth.currentUser);
+        }
       }
     };
 
     void initAuth();
 
     return () => {
+      cancelled = true;
       if (unsubscribe) unsubscribe();
     };
   }, [getAuthInstance]);

@@ -36,11 +36,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { cn, formatDate } from "@/lib/utils";
-import * as Popover from "@radix-ui/react-popover";
-import { DayPicker } from "react-day-picker";
-import { es } from "date-fns/locale";
-import { Calendar as CalendarIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { DatePickerPopover } from "@/components/ui/date-picker-popover";
+import { getLocalTodayIso, isoToDate, toIsoDate } from "@/lib/date-picker";
 
 interface AddExpenseModalProps {
   onSuccess: () => void;
@@ -51,15 +49,29 @@ interface AddExpenseModalProps {
   onAddCategory?: (category: string) => Promise<void>;
 }
 
-const emptyForm = {
-  date: new Date().toISOString().split("T")[0],
-  description: "",
-  amount: "",
-  currency: "ARS",
-  arsRate: "",
-  paymentMethod: "Débito",
-  category: "Compra",
-};
+function createExpenseForm(editEntry?: ExpenseEntry | null) {
+  if (editEntry) {
+    return {
+      date: toIsoDate(editEntry.date),
+      description: editEntry.description,
+      amount: String(editEntry.amount),
+      currency: editEntry.currency ?? "ARS",
+      arsRate: editEntry.arsRate != null ? String(editEntry.arsRate) : "",
+      paymentMethod: editEntry.paymentMethod,
+      category: editEntry.category,
+    };
+  }
+
+  return {
+    date: getLocalTodayIso(),
+    description: "",
+    amount: "",
+    currency: "ARS",
+    arsRate: "",
+    paymentMethod: "Débito",
+    category: "Compra",
+  };
+}
 
 export function AddExpenseModal({
   onSuccess,
@@ -86,42 +98,18 @@ export function AddExpenseModal({
   const open = isControlled ? controlledOpen : internalOpen;
   const setOpen = isControlled ? controlledOnOpenChange! : setInternalOpen;
 
-  const [formData, setFormData] = useState(() =>
-    editEntry
-      ? {
-          date: editEntry.date.toISOString().split("T")[0],
-          description: editEntry.description,
-          amount: String(editEntry.amount),
-          currency: editEntry.currency ?? "ARS",
-          arsRate: editEntry.arsRate != null ? String(editEntry.arsRate) : "",
-          paymentMethod: editEntry.paymentMethod,
-          category: editEntry.category,
-        }
-      : emptyForm,
-  );
+  const [formData, setFormData] = useState(() => createExpenseForm(editEntry));
 
   // Update form data when editEntry changes
   useEffect(() => {
-    if (editEntry) {
-      setFormData({
-        date: editEntry.date.toISOString().split("T")[0],
-        description: editEntry.description,
-        amount: String(editEntry.amount),
-        currency: editEntry.currency ?? "ARS",
-        arsRate: editEntry.arsRate != null ? String(editEntry.arsRate) : "",
-        paymentMethod: editEntry.paymentMethod,
-        category: editEntry.category,
-      });
-    } else {
-      setFormData(emptyForm);
-    }
+    setFormData(createExpenseForm(editEntry));
   }, [editEntry]);
 
   const handleOpenChange = (next: boolean) => {
     setOpen(next);
     if (!next) {
       setError(null);
-      if (!editEntry) setFormData(emptyForm);
+      if (!editEntry) setFormData(createExpenseForm());
     }
   };
 
@@ -179,13 +167,18 @@ export function AddExpenseModal({
       setError("El monto debe ser mayor a 0");
       return;
     }
+    const parsedDate = isoToDate(formData.date);
+    if (!parsedDate) {
+      setError("La fecha es obligatoria");
+      return;
+    }
 
     setLoading(true);
     setError(null);
     try {
       const token = await user.getIdToken();
       const payload = {
-        date: new Date(`${formData.date}T12:00:00Z`),
+        date: parsedDate,
         description: formData.description,
         amount: Number.parseFloat(formData.amount),
         currency: formData.currency,
@@ -212,7 +205,7 @@ export function AddExpenseModal({
         setTimeout(() => descriptionRef.current?.focus(), 0);
       } else {
         setOpen(false);
-        if (!editEntry) setFormData(emptyForm);
+        if (!editEntry) setFormData(createExpenseForm());
       }
     } catch (err) {
       console.error("Failed to save expense:", err);
@@ -233,72 +226,14 @@ export function AddExpenseModal({
         <Label className="text-foreground font-medium">
           Fecha
         </Label>
-        <Popover.Root>
-          <Popover.Trigger asChild>
-            <Button
-              variant="outline"
-              className={cn(
-                "w-full justify-start text-left font-normal h-11 sm:h-9 bg-background border-border",
-                !formData.date && "text-muted-foreground"
-              )}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {formData.date ? (
-                formatDate(new Date(`${formData.date}T12:00:00Z`))
-              ) : (
-                <span>Seleccionar fecha</span>
-              )}
-            </Button>
-          </Popover.Trigger>
-          <Popover.Portal>
-            <Popover.Content
-              className="z-50 rounded-md border bg-popover p-0 text-popover-foreground shadow-md outline-none animate-in fade-in-0 zoom-in-95"
-              align="start"
-              sideOffset={4}
-            >
-              <DayPicker
-                mode="single"
-                selected={new Date(`${formData.date}T12:00:00Z`)}
-                onSelect={(date) => {
-                  if (date) {
-                    setFormData({
-                      ...formData,
-                      date: date.toISOString().split("T")[0],
-                    });
-                  }
-                }}
-                locale={es}
-                className="p-3"
-                classNames={{
-                  months: "flex flex-col sm:flex-row gap-2",
-                  month: "flex flex-col gap-4",
-                  month_caption: "flex justify-center pt-2 relative items-center h-10",
-                  caption_label: "text-sm font-semibold text-white",
-                  nav: "flex items-center",
-                  button_previous: cn(
-                    "absolute left-1 size-7 bg-transparent p-0 opacity-90 hover:opacity-100 border border-border rounded-md flex items-center justify-center transition-opacity text-white z-10"
-                  ),
-                  button_next: cn(
-                    "absolute right-1 size-7 bg-transparent p-0 opacity-90 hover:opacity-100 border border-border rounded-md flex items-center justify-center transition-opacity text-white z-10"
-                  ),
-                  month_grid: "w-full border-collapse",
-                  weekdays: "flex w-full justify-between",
-                  weekday: "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem] text-center",
-                  weeks: "w-full",
-                  week: "flex w-full mt-2 justify-between",
-                  day: cn(
-                    "size-9 p-0 font-normal aria-selected:opacity-100 hover:bg-accent hover:text-accent-foreground rounded-md flex items-center justify-center transition-colors relative"
-                  ),
-                  selected: "bg-emerald-500 text-slate-900 hover:bg-emerald-500 hover:text-slate-900 focus:bg-emerald-500 focus:text-slate-900",
-                  today: "bg-accent text-accent-foreground",
-                  outside: "text-muted-foreground opacity-50",
-                  disabled: "text-muted-foreground opacity-50",
-                  hidden: "invisible",
-                }}
-              />
-            </Popover.Content>
-          </Popover.Portal>
-        </Popover.Root>
+        <DatePickerPopover
+          value={formData.date}
+          onChange={(value) =>
+            setFormData((prev) => ({ ...prev, date: value }))
+          }
+          className="w-full"
+          inputClassName="h-11 bg-background border-border sm:h-9"
+        />
       </div>
       <div className="space-y-2">
         <Label htmlFor="exp-description" className="text-foreground font-medium">
