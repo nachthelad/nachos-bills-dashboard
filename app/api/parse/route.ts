@@ -33,6 +33,104 @@ import { parseWithRules } from "./rules-parser";
 import { Timestamp, type DocumentReference } from "firebase-admin/firestore";
 import { performance } from "node:perf_hooks";
 
+const DEFAULT_OPENAI_TEXT_MODEL = "gpt-5-mini";
+const DEFAULT_OPENAI_TEXT_FALLBACK_MODELS = [
+  "gpt-4.1-mini",
+  "gpt-4o-mini",
+  "gpt-4.1",
+  "gpt-5",
+];
+
+const DEFAULT_OPENAI_VISION_MODEL = "gpt-4o-mini";
+const DEFAULT_OPENAI_VISION_FALLBACK_MODELS = [
+  "gpt-4.1-mini",
+  "gpt-5-mini",
+  "gpt-4.1",
+  "gpt-5",
+];
+
+function parseModelList(value?: string) {
+  if (!value) return [];
+  return value
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+function dedupeModels(models: string[]) {
+  return Array.from(new Set(models.filter(Boolean)));
+}
+
+function getOpenAiTextModelChain() {
+  return dedupeModels([
+    process.env.OPENAI_MODEL ?? DEFAULT_OPENAI_TEXT_MODEL,
+    ...parseModelList(process.env.OPENAI_FALLBACK_MODELS),
+    ...DEFAULT_OPENAI_TEXT_FALLBACK_MODELS,
+  ]);
+}
+
+function getOpenAiVisionModelChain() {
+  return dedupeModels([
+    process.env.OPENAI_VISION_MODEL ??
+      process.env.OPENAI_MODEL ??
+      DEFAULT_OPENAI_VISION_MODEL,
+    ...parseModelList(process.env.OPENAI_VISION_FALLBACK_MODELS),
+    ...parseModelList(process.env.OPENAI_FALLBACK_MODELS),
+    ...DEFAULT_OPENAI_VISION_FALLBACK_MODELS,
+  ]);
+}
+
+type OpenAiParseAttempt<T> = {
+  model: string;
+  result: T;
+};
+
+async function tryOpenAiTextModels(
+  fullText: string,
+  log: Logger
+): Promise<OpenAiParseAttempt<BillingParseResult>> {
+  const models = getOpenAiTextModelChain();
+  let lastError: unknown;
+
+  for (const model of models) {
+    try {
+      const result = await parseBillingTextWithOpenAI(fullText, log, { model });
+      return { model, result };
+    } catch (error) {
+      lastError = error;
+      log.warn("OpenAI text parse failed for model", { error, model });
+    }
+  }
+
+  throw lastError ?? new Error("No OpenAI text model succeeded");
+}
+
+async function tryOpenAiVisionModels(
+  fileBuffer: Buffer,
+  imageMimeType: string,
+  log: Logger
+): Promise<OpenAiParseAttempt<BillingParseResult>> {
+  const models = getOpenAiVisionModelChain();
+  let lastError: unknown;
+
+  for (const model of models) {
+    try {
+      const result = await parseBillingImageWithOpenAI(
+        fileBuffer,
+        imageMimeType,
+        log,
+        { model }
+      );
+      return { model, result };
+    } catch (error) {
+      lastError = error;
+      log.warn("OpenAI vision parse failed for model", { error, model });
+    }
+  }
+
+  throw lastError ?? new Error("No OpenAI vision model succeeded");
+}
+
 export async function POST(request: NextRequest) {
   const baseLogger = createRequestLogger({
     request,
@@ -207,44 +305,34 @@ export async function POST(request: NextRequest) {
       : useRulesParser
         ? "rules"
         : "openai";
+    let parserModel: string | null = null;
     try {
       if (imageMimeType && fileBuffer) {
         try {
-          parseResponse = await parseBillingImageWithOpenAI(
+          const openAiAttempt = await tryOpenAiVisionModels(
             fileBuffer,
             imageMimeType,
             log
           );
+          parseResponse = openAiAttempt.result;
+          parserModel = openAiAttempt.model;
         } catch (openAiError: any) {
-          log.warn("OpenAI image parse failed, falling back to Gemini", {
+          log.warn("All OpenAI vision models failed, falling back to Gemini", {
             error: openAiError,
           });
-          try {
-            parseResponse = await parseBillingImageWithGemini(
-              fileBuffer,
-              imageMimeType,
-              log
-            );
-          } catch (geminiError: any) {
-            const fallbackModel =
-              process.env.OPENAI_FALLBACK_MODEL ?? "gpt-4o";
-            log.warn(
-              "Gemini image parse failed after retries, trying fallback model",
-              { error: geminiError, model: fallbackModel }
-            );
-            parseResponse = await parseBillingImageWithOpenAI(
-              fileBuffer,
-              imageMimeType,
-              log,
-              { model: fallbackModel }
-            );
-          }
+          parseResponse = await parseBillingImageWithGemini(
+            fileBuffer,
+            imageMimeType,
+            log
+          );
+          parserModel = process.env.GEMINI_VISION_MODEL ?? process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
         }
         fullText = parseResponse.text ?? "[image]";
         log.debug("Vision-based parsing completed", {
           mimeType: imageMimeType,
           hasAmount: parseResponse.totalAmount !== null,
           hasDueDate: parseResponse.dueDate !== null,
+          model: parserModel,
         });
       } else if (useRulesParser && earlyProvider) {
         parseResponse = parseWithRules(fullText!, earlyProvider);
@@ -256,27 +344,21 @@ export async function POST(request: NextRequest) {
         });
       } else {
         try {
-          parseResponse = await parseBillingTextWithOpenAI(fullText!, log);
+          const openAiAttempt = await tryOpenAiTextModels(fullText!, log);
+          parseResponse = openAiAttempt.result;
+          parserModel = openAiAttempt.model;
         } catch (openAiError: any) {
-          log.warn("OpenAI text parse failed, falling back to Gemini", {
+          log.warn("All OpenAI text models failed, falling back to Gemini", {
             error: openAiError,
           });
-          try {
-            parseResponse = await parseBillingTextWithGemini(fullText!, log);
-          } catch (geminiError: any) {
-            const fallbackModel =
-              process.env.OPENAI_FALLBACK_MODEL ?? "gpt-4o";
-            log.warn(
-              "Gemini text parse failed after retries, trying fallback model",
-              { error: geminiError, model: fallbackModel }
-            );
-            parseResponse = await parseBillingTextWithOpenAI(
-              fullText!,
-              log,
-              { model: fallbackModel }
-            );
-          }
+          parseResponse = await parseBillingTextWithGemini(fullText!, log);
+          parserModel = process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
         }
+        log.debug("Text-based parsing completed", {
+          hasAmount: parseResponse.totalAmount !== null,
+          hasDueDate: parseResponse.dueDate !== null,
+          model: parserModel,
+        });
       }
     } catch (error: any) {
       const parserDuration = performance.now() - parserStart;
@@ -288,8 +370,8 @@ export async function POST(request: NextRequest) {
       await updateDocumentWithMetrics(
         docRef,
         {
-          status: "parse_failed",
-          last_parser_error: error.message ?? "All parsers failed",
+          status: "error",
+          errorMessage: error.message ?? "All parsers failed",
           textExtract: fullText ?? null,
           updatedAt: new Date(),
         },
@@ -340,6 +422,7 @@ export async function POST(request: NextRequest) {
       status: parseResponse.text ? "parsed" : "needs_review",
       lastParsedAt: new Date(),
       errorMessage: null,
+      last_parser_error: null,
     };
 
     if (normalizedHoaDetails) {

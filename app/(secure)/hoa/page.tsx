@@ -199,25 +199,20 @@ export default function HoaPage() {
   return (
     <div className="space-y-8">
       <div className="flex flex-col gap-2">
-        <div>
-          <p className="text-sm uppercase tracking-wide text-muted-foreground">
-            Expensas
-          </p>
-          <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-3xl font-bold">Análisis de expensas</h1>
-            <span className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs uppercase tracking-wide text-emerald-300">
-              <LineChartIcon className="w-3.5 h-3.5" />
-              Comparación
-            </span>
-            <Link
-              href="/hoa/history"
-              className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1 text-xs text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
-            >
-              <History className="w-3.5 h-3.5" />
-              Historial por categoría
-            </Link>
-            <AmountVisibilityToggle />
-          </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="text-3xl font-bold">Análisis de expensas</h1>
+          <span className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs uppercase tracking-wide text-emerald-300">
+            <LineChartIcon className="w-3.5 h-3.5" />
+            Comparación
+          </span>
+          <Link
+            href="/hoa/history"
+            className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1 text-xs text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
+          >
+            <History className="w-3.5 h-3.5" />
+            Historial por categoría
+          </Link>
+          <AmountVisibilityToggle />
         </div>
         <p className="text-muted-foreground max-w-3xl">
           Rastreá las cuotas mensuales de expensas, identificá aumentos inusuales

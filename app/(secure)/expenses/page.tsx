@@ -143,14 +143,9 @@ export default function ExpensesPage() {
   return (
     <div className="space-y-8">
       <div className="flex flex-col gap-2">
-        <div>
-          <p className="text-sm uppercase tracking-wide text-muted-foreground">
-            Finanzas
-          </p>
-          <div className="flex items-center gap-2">
-            <h1 className="text-3xl font-bold">Gastos</h1>
-            <AmountVisibilityToggle />
-          </div>
+        <div className="flex items-center gap-2">
+          <h1 className="text-3xl font-bold">Gastos</h1>
+          <AmountVisibilityToggle />
         </div>
         <p className="text-muted-foreground">
           Rastreá y gestioná tus gastos diarios.

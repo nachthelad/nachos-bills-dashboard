@@ -211,7 +211,7 @@ export default function DocumentDetailPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background text-foreground p-8 flex items-center justify-center">
-        <div className="text-muted-foreground">Cargando documento...</div>
+        <div className="text-muted-foreground">Cargando boleta...</div>
       </div>
     );
   }
@@ -222,7 +222,7 @@ export default function DocumentDetailPage() {
         <p
           className={actionError ? "text-destructive" : "text-muted-foreground"}
         >
-          {actionError ?? "Documento no encontrado"}
+          {actionError ?? "Boleta no encontrada"}
         </p>
       </div>
     );
@@ -263,7 +263,7 @@ export default function DocumentDetailPage() {
         className="flex items-center gap-2 mb-8 text-emerald-300 hover:underline"
       >
         <ChevronLeft className="w-4 h-4" />
-        Volver a documentos
+        Volver a boletas
       </Link>
 
       <Card className="mb-6 border border-border text-foreground">

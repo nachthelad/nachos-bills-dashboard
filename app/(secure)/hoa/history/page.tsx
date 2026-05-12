@@ -97,12 +97,7 @@ export default function HoaHistoryPage() {
           HOA
         </Link>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-sm uppercase tracking-wide text-muted-foreground">
-              Expensas
-            </p>
-            <h1 className="text-3xl font-bold">Historial por categoría</h1>
-          </div>
+          <h1 className="text-3xl font-bold">Historial por categoría</h1>
           <AmountVisibilityToggle />
         </div>
         <p className="text-muted-foreground mt-1">

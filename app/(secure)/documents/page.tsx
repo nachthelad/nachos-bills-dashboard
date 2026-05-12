@@ -108,7 +108,7 @@ export default function DocumentsPage() {
   };
 
   const handleFileInputChange = async (
-    e: React.ChangeEvent<HTMLInputElement>
+    e: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -123,7 +123,7 @@ export default function DocumentsPage() {
   if (loadingDocs && documents.length === 0) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="text-muted-foreground">Cargando documentos...</div>
+        <div className="text-muted-foreground">Cargando boletas...</div>
       </div>
     );
   }
@@ -145,7 +145,9 @@ export default function DocumentsPage() {
             <h3 className="text-2xl font-bold text-foreground">
               Soltá el archivo para cargar
             </h3>
-            <p className="text-muted-foreground">Formatos soportados: PDF, PNG, JPG</p>
+            <p className="text-muted-foreground">
+              Formatos soportados: PDF, PNG, JPG
+            </p>
           </div>
         </div>
       )}
@@ -153,50 +155,45 @@ export default function DocumentsPage() {
       {/* Main Content */}
       <div className="space-y-8">
         <div className="flex flex-col gap-2">
-          <div>
-            <p className="text-sm uppercase tracking-wide text-muted-foreground">
-              Biblioteca
-            </p>
-            <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-3xl font-bold mr-auto">Documentos</h1>
-              <AmountVisibilityToggle />
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-3xl font-bold mr-auto">Boletas</h1>
+            <AmountVisibilityToggle />
 
-              <div className="flex items-center gap-2">
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  className="hidden"
-                  onChange={handleFileInputChange}
-                  accept=".pdf,.png,.jpg,.jpeg,.heic,.heif,.webp,.tif,.tiff,image/*"
-                />
-                <Button
-                  disabled={isUploading}
-                  variant="outline"
-                  size="sm"
-                  className="gap-2"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  {isUploading ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Upload className="w-4 h-4" />
-                  )}
-                  Cargar archivo
-                </Button>
+            <div className="flex items-center gap-2">
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                onChange={handleFileInputChange}
+                accept=".pdf,.png,.jpg,.jpeg,.heic,.heif,.webp,.tif,.tiff,image/*"
+              />
+              <Button
+                disabled={isUploading}
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {isUploading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Upload className="w-4 h-4" />
+                )}
+                Cargar archivo
+              </Button>
 
-                <Button
-                  asChild
-                  variant="default"
-                  size="sm"
-                  className="gap-2"
-                  disabled={isUploading}
-                >
-                  <Link href="/upload">
-                    <Plus className="w-4 h-4" />
-                    Agregar manualmente
-                  </Link>
-                </Button>
-              </div>
+              <Button
+                asChild
+                variant="default"
+                size="sm"
+                className="gap-2"
+                disabled={isUploading}
+              >
+                <Link href="/upload">
+                  <Plus className="w-4 h-4" />
+                  Agregar manualmente
+                </Link>
+              </Button>
             </div>
           </div>
           <p className="text-muted-foreground">
