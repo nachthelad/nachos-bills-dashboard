@@ -879,7 +879,9 @@ async function callOpenAIWithRetry(
       // Don't retry quota/auth errors — they won't resolve on retry
       const isNonRetryable =
         error instanceof Error &&
-        /429|insufficient_quota|invalid_api_key|billing/i.test(error.message);
+        /403|429|insufficient_quota|invalid_api_key|billing|model_not_found/i.test(
+          error.message
+        );
       if (attempt >= maxAttempts || isNonRetryable) {
         log.error("OpenAI request failed after retries", {
           attempts: attempt,

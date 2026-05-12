@@ -189,7 +189,7 @@ export function MobileDocumentsList({
         <div className="relative">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar documentos..."
+            placeholder="Buscar boletas..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-8"
@@ -235,7 +235,7 @@ export function MobileDocumentsList({
       <div className="space-y-3">
         {filteredDocuments.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground border rounded-lg border-dashed">
-            No se encontraron documentos.
+            No se encontraron boletas.
           </div>
         ) : (
           filteredDocuments.map((doc) => {
@@ -408,7 +408,7 @@ export function MobileDocumentsList({
             <p className="text-sm text-muted-foreground">
               ¿Confirmás marcar{" "}
               {filteredDocuments.filter((doc) => doc.status !== "paid").length}{" "}
-              documentos como pagados?
+              boletas como pagadas?
             </p>
             <div className="flex justify-end gap-3">
               <Button

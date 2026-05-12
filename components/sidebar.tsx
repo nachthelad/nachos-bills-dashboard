@@ -5,25 +5,23 @@ import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth-context";
 import {
-  FileText,
   Upload,
-  BarChart3,
   LogOut,
-  Building2,
-  Wallet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { navItems } from "@/lib/nav-items";
 
 export function Sidebar() {
   const pathname = usePathname();
   const { signOut } = useAuth();
 
   const links = [
-    { href: "/dashboard", label: "Dashboard", icon: BarChart3 },
-    { href: "/hoa", label: "HOA", icon: Building2 },
-    { href: "/income", label: "Income", icon: Wallet },
+    ...navItems.map((item) => ({
+      href: item.url,
+      label: item.title,
+      icon: item.icon,
+    })),
     { href: "/upload", label: "Upload Bill", icon: Upload },
-    { href: "/documents", label: "Documents", icon: FileText },
   ];
 
   return (

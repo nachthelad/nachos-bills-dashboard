@@ -4,6 +4,14 @@ type MaybeTimestamp = {
   toDate?: () => Date
 }
 
+const SUPPORTED_DOCUMENT_STATUSES = new Set([
+  "pending",
+  "parsed",
+  "needs_review",
+  "error",
+  "paid",
+])
+
 export function toDate(value: unknown): Date | null {
   if (!value) return null
   if (value instanceof Date) return value
@@ -47,9 +55,24 @@ export function serializeSnapshot<T extends Record<string, unknown>>(
 export function serializeDocumentSnapshot(doc: DocumentSnapshot): Record<string, any> {
   const data = doc.data() ?? {}
   const base = serializeSnapshot(doc)
+  const rawStatus = typeof data.status === "string" ? data.status : null
+  const normalizedStatus =
+    rawStatus === "parse_failed"
+      ? "error"
+      : rawStatus && SUPPORTED_DOCUMENT_STATUSES.has(rawStatus)
+        ? rawStatus
+        : "needs_review"
+  const rawParserError =
+    typeof data.last_parser_error === "string" ? data.last_parser_error : null
+  const rawErrorMessage =
+    typeof data.errorMessage === "string" ? data.errorMessage : null
+  const effectiveErrorMessage =
+    rawErrorMessage ?? (normalizedStatus === "error" ? rawParserError : null)
 
   return {
     ...base,
+    status: normalizedStatus,
+    errorMessage: effectiveErrorMessage,
     uploadedAt: toIsoDateTime(data.uploadedAt),
     issueDate: toIsoDate(data.issueDate),
     dueDate: toIsoDate(data.dueDate),

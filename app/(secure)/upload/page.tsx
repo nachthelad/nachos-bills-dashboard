@@ -92,13 +92,10 @@ export default function UploadPage() {
         className="flex items-center gap-2 text-emerald-300 hover:underline"
       >
         <ChevronLeft className="w-4 h-4" />
-        Volver a documentos
+        Volver a boletas
       </Link>
 
       <div className="flex flex-col gap-2">
-        <p className="text-sm uppercase tracking-wide text-slate-500">
-          Entrada manual
-        </p>
         <h1 className="text-3xl font-bold">Agregar factura manual</h1>
         <p className="text-slate-400">
           Ingresá los datos de la factura manualmente para registrarla en tu panel.
