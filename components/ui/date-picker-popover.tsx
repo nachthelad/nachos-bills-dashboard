@@ -48,6 +48,7 @@ export function DatePickerPopover({
   const [open, setOpen] = useState(false);
   const [invalid, setInvalid] = useState(false);
   const selectedDate = isoToDate(value);
+  const selectedDateTime = selectedDate?.getTime() ?? null;
   const [month, setMonth] = useState<Date>(selectedDate ?? new Date());
   const [displayValue, setDisplayValue] = useState(() =>
     toDisplayDate(selectedDate)
@@ -62,6 +63,11 @@ export function DatePickerPopover({
       setMonth(nextSelectedDate);
     }
   }, [value]);
+
+  useEffect(() => {
+    if (!open) return;
+    setMonth(selectedDateTime != null ? new Date(selectedDateTime) : new Date());
+  }, [open, selectedDateTime]);
 
   const commitDisplayValue = (nextDisplayValue: string) => {
     if (!nextDisplayValue) {
@@ -108,9 +114,6 @@ export function DatePickerPopover({
   };
 
   const handleFocus = (event: React.FocusEvent<HTMLInputElement>) => {
-    if (!disabled) {
-      setOpen(true);
-    }
     onFocus?.(event);
   };
 
