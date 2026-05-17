@@ -22,9 +22,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, TrendingDown, CalendarDays, Lightbulb } from "lucide-react";
 import { InsightsSheet } from "@/components/expenses/insights-sheet";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function ExpensesPage() {
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   const [entries, setEntries] = useState<ExpenseEntry[]>([]);
   const [incomeEntries, setIncomeEntries] = useState<IncomeEntry[]>([]);
   const [categories, setCategories] = useState<string[]>([...EXPENSE_CATEGORIES]);
@@ -130,6 +132,14 @@ export default function ExpensesPage() {
   const monthLabel = monthFilter === "all" || (filterYear === currentYear && filterMonth === currentMonth)
     ? "Este mes"
     : new Date(filterYear, filterMonth, 1).toLocaleString("es-AR", { month: "long", year: "numeric" }).replace(/^\w/, (c) => c.toUpperCase());
+  const analysisMonthFilter = monthFilter === "all" ? defaultMonth : monthFilter;
+  const analysisMonthLabel = new Date(
+    Number(analysisMonthFilter.split("-")[0]),
+    Number(analysisMonthFilter.split("-")[1]) - 1,
+    1
+  )
+    .toLocaleString("es-AR", { month: "long", year: "numeric" })
+    .replace(/^\w/, (c) => c.toUpperCase());
 
 
   if (loading && entries.length === 0) {
@@ -202,12 +212,14 @@ export default function ExpensesPage() {
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
-              size="sm"
+              size={isMobile ? "icon" : "sm"}
               onClick={() => setInsightsOpen(true)}
-              className="gap-1.5"
+              className={isMobile ? undefined : "gap-1.5"}
+              aria-label="Abrir consejos"
+              title="Consejos"
             >
               <Lightbulb className="h-3.5 w-3.5 text-yellow-500" />
-              Consejos
+              {!isMobile ? "Consejos" : null}
             </Button>
             <AddExpenseModal
               onSuccess={loadEntries}
@@ -245,6 +257,9 @@ export default function ExpensesPage() {
         entries={monthEntries}
         monthLabel={monthLabel}
         monthFilter={monthFilter}
+        analysisMonthFilter={analysisMonthFilter}
+        analysisMonthLabel={analysisMonthLabel}
+        usesCurrentMonthFallback={monthFilter === "all"}
         incomeEntries={incomeEntries.filter((e) => {
           const d = e.date;
           return d.getFullYear() === filterYear && d.getMonth() === filterMonth;

@@ -27,14 +27,9 @@ interface InsightsSheetProps {
   incomeEntries: IncomeEntry[];
   monthLabel: string;
   monthFilter: string;
-}
-
-function formatMonthLabel(filter: string): string {
-  if (filter === "all") return "todos los meses";
-  const [year, month] = filter.split("-");
-  const d = new Date(Number(year), Number(month) - 1, 1);
-  const label = d.toLocaleString("es-AR", { month: "long", year: "numeric" });
-  return label.charAt(0).toUpperCase() + label.slice(1);
+  analysisMonthFilter: string;
+  analysisMonthLabel: string;
+  usesCurrentMonthFallback: boolean;
 }
 
 function CopyButton({ text }: { text: string }) {
@@ -65,6 +60,9 @@ export function InsightsSheet({
   incomeEntries,
   monthLabel,
   monthFilter,
+  analysisMonthFilter,
+  analysisMonthLabel,
+  usesCurrentMonthFallback,
 }: InsightsSheetProps) {
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -96,6 +94,8 @@ export function InsightsSheet({
         category: e.category,
         description: e.description,
         date: e.date.toISOString(),
+        currency: e.currency,
+        arsRate: e.arsRate,
       }));
 
       const serializedIncome = incomeEntries.map((e) => ({
@@ -116,6 +116,8 @@ export function InsightsSheet({
           incomeEntries: serializedIncome,
           monthLabel,
           monthFilter,
+          analysisMonthFilter,
+          analysisMonthLabel,
           messages: newMessages,
         }),
       });
@@ -157,7 +159,7 @@ export function InsightsSheet({
 
   // Auto-trigger initial analysis when sheet opens
   useEffect(() => {
-    if (open && !hasInitialized.current && entries.length > 0) {
+    if (open && !hasInitialized.current) {
       hasInitialized.current = true;
       sendMessage();
     }
@@ -203,6 +205,14 @@ export function InsightsSheet({
           <SheetDescription className="text-xs">
             {monthLabel} · Análisis de gastos con IA
           </SheetDescription>
+          <p className="text-xs text-muted-foreground">
+            Analiza gastos diarios, ingresos, facturas y expensas de {analysisMonthLabel}.
+          </p>
+          {usesCurrentMonthFallback && monthFilter === "all" ? (
+            <p className="text-xs text-muted-foreground">
+              Aunque el filtro esté en &quot;Todos los meses&quot;, Consejos usa solo el mes actual.
+            </p>
+          ) : null}
         </SheetHeader>
 
         {/* Messages */}

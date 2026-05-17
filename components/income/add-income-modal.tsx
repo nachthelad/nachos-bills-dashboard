@@ -233,9 +233,13 @@ export function AddIncomeModal({ onSuccess }: AddIncomeModalProps) {
     return (
       <Sheet open={open} onOpenChange={handleOpenChange}>
         <SheetTrigger asChild>
-          <Button className="bg-emerald-500 text-slate-900 hover:bg-emerald-400">
-            <Plus className="w-4 h-4 mr-2" />
-            Agregar ingreso
+          <Button
+            size="icon"
+            className="bg-emerald-500 text-slate-900 hover:bg-emerald-400"
+            aria-label="Agregar ingreso"
+            title="Agregar ingreso"
+          >
+            <Plus className="w-4 h-4" />
           </Button>
         </SheetTrigger>
         <SheetContent side="bottom" className="px-4 pt-6 pb-8 bg-card border-border rounded-t-[20px] focus:outline-none">

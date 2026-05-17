@@ -2,6 +2,7 @@
 
 import { useRef, useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
+import { useForm } from "react-hook-form";
 import {
   addExpenseEntry,
   updateExpenseEntry,
@@ -49,7 +50,17 @@ interface AddExpenseModalProps {
   onAddCategory?: (category: string) => Promise<void>;
 }
 
-function createExpenseForm(editEntry?: ExpenseEntry | null) {
+type ExpenseFormValues = {
+  date: string;
+  description: string;
+  amount: string;
+  currency: string;
+  arsRate: string;
+  paymentMethod: ExpenseEntry["paymentMethod"];
+  category: string;
+};
+
+function createExpenseForm(editEntry?: ExpenseEntry | null): ExpenseFormValues {
   if (editEntry) {
     return {
       date: toIsoDate(editEntry.date),
@@ -85,7 +96,6 @@ export function AddExpenseModal({
   const isMobile = useIsMobile();
   const [internalOpen, setInternalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [addingCategory, setAddingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [addCategoryLoading, setAddCategoryLoading] = useState(false);
@@ -98,37 +108,66 @@ export function AddExpenseModal({
   const open = isControlled ? controlledOpen : internalOpen;
   const setOpen = isControlled ? controlledOnOpenChange! : setInternalOpen;
 
-  const [formData, setFormData] = useState(() => createExpenseForm(editEntry));
+  const {
+    register,
+    handleSubmit,
+    reset,
+    watch,
+    setValue,
+    clearErrors,
+    formState: { errors },
+  } = useForm<ExpenseFormValues>({
+    defaultValues: createExpenseForm(editEntry),
+    mode: "onSubmit",
+    reValidateMode: "onChange",
+  });
+  const [serverError, setServerError] = useState<string | null>(null);
+  const formData = watch();
 
   // Update form data when editEntry changes
   useEffect(() => {
-    setFormData(createExpenseForm(editEntry));
-  }, [editEntry]);
+    reset(createExpenseForm(editEntry));
+    setServerError(null);
+  }, [editEntry, reset]);
+
+  useEffect(() => {
+    register("date", {
+      validate: (value) =>
+        isoToDate(value) ? true : "La fecha es obligatoria",
+    });
+    register("currency");
+    register("arsRate");
+    register("paymentMethod");
+    register("category");
+  }, [register]);
 
   const handleOpenChange = (next: boolean) => {
     setOpen(next);
     if (!next) {
-      setError(null);
-      if (!editEntry) setFormData(createExpenseForm());
+      setServerError(null);
+      clearErrors();
+      if (!editEntry) reset(createExpenseForm());
     }
   };
 
   const handleCurrencyChange = async (value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      currency: value,
-      ...(value === "ARS" ? { arsRate: "" } : {}),
-    }));
+    setServerError(null);
+    setValue("currency", value, { shouldDirty: true });
+    if (value === "ARS") {
+      setValue("arsRate", "", { shouldDirty: true, shouldValidate: true });
+    }
     if (value === "USD") {
       setArsRateLoading(true);
       try {
         const res = await fetch("/api/binance-rate");
         if (res.ok) {
           const data = await res.json();
-          setFormData((prev) => ({
-            ...prev,
-            arsRate: prev.arsRate || String(data.price),
-          }));
+          if (!watch("arsRate")) {
+            setValue("arsRate", String(data.price), {
+              shouldDirty: true,
+              shouldValidate: true,
+            });
+          }
         }
       } catch {
         // leave empty — user enters manually
@@ -144,7 +183,7 @@ export function AddExpenseModal({
     setAddCategoryLoading(true);
     try {
       if (onAddCategory) await onAddCategory(trimmed);
-      setFormData((prev) => ({ ...prev, category: trimmed }));
+      setValue("category", trimmed, { shouldDirty: true, shouldValidate: true });
       setAddingCategory(false);
       setNewCategoryName("");
     } catch {
@@ -154,40 +193,30 @@ export function AddExpenseModal({
     }
   };
 
-  const saveExpense = async (keepOpen: boolean) => {
+  const saveExpense = async (
+    values: ExpenseFormValues,
+    keepOpen: boolean
+  ) => {
     if (!user) return;
-    
-    // Validation
-    if (!formData.description.trim()) {
-      setError("La descripción es obligatoria");
-      descriptionRef.current?.focus();
-      return;
-    }
-    if (!formData.amount || Number.parseFloat(formData.amount) <= 0) {
-      setError("El monto debe ser mayor a 0");
-      return;
-    }
-    const parsedDate = isoToDate(formData.date);
-    if (!parsedDate) {
-      setError("La fecha es obligatoria");
-      return;
-    }
+
+    const parsedDate = isoToDate(values.date);
+    if (!parsedDate) return;
 
     setLoading(true);
-    setError(null);
+    setServerError(null);
     try {
       const token = await user.getIdToken();
       const payload = {
         date: parsedDate,
-        description: formData.description,
-        amount: Number.parseFloat(formData.amount),
-        currency: formData.currency,
+        description: values.description.trim(),
+        amount: Number.parseFloat(values.amount),
+        currency: values.currency,
         arsRate:
-          formData.currency === "USD" && formData.arsRate
-            ? Number.parseFloat(formData.arsRate)
+          values.currency === "USD" && values.arsRate
+            ? Number.parseFloat(values.arsRate)
             : null,
-        paymentMethod: formData.paymentMethod,
-        category: formData.category,
+        paymentMethod: values.paymentMethod,
+        category: values.category,
       };
 
       if (editEntry) {
@@ -200,37 +229,54 @@ export function AddExpenseModal({
 
       if (keepOpen) {
         // Keep date and category — only clear description + amount for next entry
-        setFormData((prev) => ({ ...prev, description: "", amount: "" }));
-        setError(null);
+        reset({ ...values, description: "", amount: "" });
+        setServerError(null);
         setTimeout(() => descriptionRef.current?.focus(), 0);
       } else {
         setOpen(false);
-        if (!editEntry) setFormData(createExpenseForm());
+        if (!editEntry) reset(createExpenseForm());
       }
     } catch (err) {
       console.error("Failed to save expense:", err);
-      setError("Error al guardar el gasto. Reintenta.");
+      setServerError("Error al guardar el gasto. Reintenta.");
     } finally {
       setLoading(false);
     }
   };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    saveExpense(false);
-  };
+  const descriptionField = register("description", {
+    validate: (value) =>
+      value.trim().length > 0 ? true : "La descripción es obligatoria",
+  });
+  const amountField = register("amount", {
+    validate: (value) => {
+      if (!value.trim()) return "El monto es obligatorio";
+      return Number.parseFloat(value) > 0 || "El monto debe ser mayor a 0";
+    },
+  });
+  const errorMessage =
+    serverError ??
+    errors.date?.message ??
+    errors.description?.message ??
+    errors.amount?.message;
 
   const formContent = (
-    <form onSubmit={handleSubmit} className="space-y-4 px-1 pb-4">
+    <form
+      onSubmit={handleSubmit((values: ExpenseFormValues) =>
+        saveExpense(values, false)
+      )}
+      noValidate
+      className="space-y-4 px-1 pb-4"
+    >
       <div className="space-y-2">
         <Label className="text-foreground font-medium">
           Fecha
         </Label>
         <DatePickerPopover
           value={formData.date}
-          onChange={(value) =>
-            setFormData((prev) => ({ ...prev, date: value }))
-          }
+          onChange={(value) => {
+            setServerError(null);
+            setValue("date", value, { shouldDirty: true, shouldValidate: true });
+          }}
           className="w-full"
           inputClassName="h-11 bg-background border-border sm:h-9"
         />
@@ -241,15 +287,19 @@ export function AddExpenseModal({
         </Label>
         <Input
           id="exp-description"
-          ref={descriptionRef}
           type="text"
           placeholder="p.ej. Carrefour, Supermercado, etc."
-          value={formData.description}
-          onChange={(e) =>
-            setFormData({ ...formData, description: e.target.value })
-          }
+          {...descriptionField}
+          ref={(node) => {
+            descriptionField.ref(node);
+            descriptionRef.current = node;
+          }}
+          value={formData.description ?? ""}
+          onChange={(e) => {
+            setServerError(null);
+            descriptionField.onChange(e);
+          }}
           className="bg-background border-border text-foreground placeholder:text-muted-foreground h-11 sm:h-9"
-          required
         />
       </div>
       <div className="grid grid-cols-2 gap-4">
@@ -279,12 +329,13 @@ export function AddExpenseModal({
             type="number"
             step="0.01"
             placeholder="0.00"
-            value={formData.amount}
-            onChange={(e) =>
-              setFormData({ ...formData, amount: e.target.value })
-            }
+            {...amountField}
+            value={formData.amount ?? ""}
+            onChange={(e) => {
+              setServerError(null);
+              amountField.onChange(e);
+            }}
             className="bg-background border-border text-foreground placeholder:text-muted-foreground h-11 sm:h-9"
-            required
           />
         </div>
       </div>
@@ -302,10 +353,14 @@ export function AddExpenseModal({
               inputMode="decimal"
               step="0.01"
               placeholder="Ej: 1450.00"
-              value={formData.arsRate}
-              onChange={(e) =>
-                setFormData({ ...formData, arsRate: e.target.value })
-              }
+              value={formData.arsRate ?? ""}
+              onChange={(e) => {
+                setServerError(null);
+                setValue("arsRate", e.target.value, {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                });
+              }}
               className="bg-background border-border text-foreground placeholder:text-muted-foreground h-11 sm:h-9"
             />
           )}
@@ -322,7 +377,11 @@ export function AddExpenseModal({
               if (value === "__new__") {
                 setAddingCategory(true);
               } else {
-                setFormData({ ...formData, category: value });
+                setServerError(null);
+                setValue("category", value, {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                });
               }
             }}
           >
@@ -394,7 +453,11 @@ export function AddExpenseModal({
           )}
         </div>
       </div>
-      {error && <p className="text-sm font-medium text-red-400 animate-in fade-in slide-in-from-top-1">{error}</p>}
+      {errorMessage ? (
+        <p className="text-sm font-medium text-red-400 animate-in fade-in slide-in-from-top-1">
+          {errorMessage}
+        </p>
+      ) : null}
       <div className={cn(
         "flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-4",
         editEntry ? "sm:justify-end" : "sm:justify-between"
@@ -413,7 +476,9 @@ export function AddExpenseModal({
               type="button"
               variant="outline"
               disabled={loading}
-              onClick={() => saveExpense(true)}
+              onClick={handleSubmit((values: ExpenseFormValues) =>
+                saveExpense(values, true)
+              )}
               className="h-11 sm:h-9 whitespace-nowrap"
             >
               Guardar y agregar otro
@@ -445,9 +510,13 @@ export function AddExpenseModal({
       <Sheet open={open} onOpenChange={handleOpenChange}>
         {!isControlled && (
           <SheetTrigger asChild>
-            <Button className="bg-emerald-500 text-slate-900 hover:bg-emerald-400">
-              <Plus className="w-4 h-4 mr-2" />
-              Agregar gasto
+            <Button
+              size="icon"
+              className="bg-emerald-500 text-slate-900 hover:bg-emerald-400"
+              aria-label="Agregar gasto"
+              title="Agregar gasto"
+            >
+              <Plus className="w-4 h-4" />
             </Button>
           </SheetTrigger>
         )}
